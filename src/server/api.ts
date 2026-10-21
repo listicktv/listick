@@ -13,7 +13,6 @@ import { countries, isCountry, options, prefsOf, regionOf, setPrefs } from './re
 import { MEDIA, builtinOf, copyList, createList, deleteList, follow, isBuiltin, listOf, listsOf, membership, pickSearch, preview, refreshList, rowLists, setItem, updateList, type Filters, type Media } from './lists';
 import { statsOf, type Period } from './stats';
 import { importsOf, queueImport } from './import/run';
-import { stremioMeta, stremioSearch } from './addon';
 import { playCount } from './cards';
 import { FOR_YOU, catalogList, catalogSources } from './catalogs';
 import { details, season } from './details';
@@ -117,8 +116,8 @@ async function signIn(login: unknown, password: unknown) {
 // from a fresh baseline instead of reading as a burst of plays
 const forgetSource = (uid: string, sources: string[]) => q.run('delete from sync_state where user_id = ? and source = any(?)', uid, sources);
 // the apps a user can make an API key for (one key each) and the scopes of the public API (docs/api.md) each key opens: lists
-// (your lists and their titles), stremio (Stremio-shaped metas and search), calendar (the feed). A new app is one line here
-const APPS = [{ id: 'catalogs', name: 'Stremio Catalogs', scopes: ['lists', 'stremio'] }, { id: 'calendar', name: 'Calendar feed', scopes: ['calendar'] }];
+// (your lists and their titles), calendar (the feed). A new app is one line here
+const APPS = [{ id: 'catalogs', name: 'Stremio addon', scopes: ['lists'] }, { id: 'calendar', name: 'Calendar feed', scopes: ['calendar'] }];
 // a key's user and app, if the key is real
 const keyOf = (token: string) => (/^[\w-]{10,128}$/.test(token) ? q.one<{ id: string; app: string }>('select user_id id, addon app from api_keys where token = ?', token) : null);
 const mayUse = (app: string, scope: string) => !!APPS.find((a) => a.id === app)?.scopes.includes(scope);
@@ -285,7 +284,7 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
     const who = await keyOf(String(req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim());
     if (!who) return json(req, await tooMany(req) ? 429 : 401, { error: 'wrong or missing key' });
     if (p === '/api/v1/me') return json(req, 200, { name: (await getUser(who.id))?.name || null, app: who.app });
-    const scope = p.startsWith('/api/v1/lists') ? 'lists' : p.startsWith('/api/v1/stremio/') ? 'stremio' : null;
+    const scope = p.startsWith('/api/v1/lists') ? 'lists' : null;
     if (scope && !mayUse(who.app, scope)) return json(req, 403, { error: `this key has no ${scope} scope` });
     if (p === '/api/v1/lists') return json(req, 200, { lists: await catalogSources(who.id) });
     m = p.match(/^\/api\/v1\/lists\/([^/]+)$/);
@@ -294,21 +293,12 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
       const items = await catalogList(decodeURIComponent(m[1]), type, Math.min(365, Math.max(1, Number(s.get('days')) || 60)), s.get('filter') || null, who.id, s.get('genre') || null);
       return items ? json(req, 200, { items }) : json(req, 404, { error: 'no such list' });
     }
-    if (p === '/api/v1/stremio/meta') {
-      const type = url.searchParams.get('type') === 'movie' ? 'movie' : 'series', meta = await stremioMeta(type, url.searchParams.get('id') || '');
-      return meta ? json(req, 200, { meta }) : json(req, 404, { error: 'not found' });
-    }
-    if (p === '/api/v1/stremio/search') {
-      const text = (url.searchParams.get('q') || '').trim().slice(0, 100);
-      const st = url.searchParams.get('type') || '', type = ['movie', 'anime.series', 'anime.movie'].includes(st) ? st : 'series';
-      return json(req, 200, { metas: text ? await stremioSearch(type, text) : [] });
-    }
     return json(req, 404, { error: 'not found' });
   }
   // what the page needs to know before signing in: this instance's name, the captcha's site key, whether email works, whether
   // the weather shows; and which optional sources this instance has keys for, so About credits only those
   if (p === '/api/config' && req.method === 'GET') return json(req, 200, { name: appName(), captcha: captchaOn() ? env('TURNSTILE_SITE_KEY') : null, mail: mailOn(), weather: env('LISTICK_WEATHER') === 'on',
-    sources: { mal: !!env('MAL_CLIENT_ID'), omdb: !!env('OMDB_API_KEY'), tvdb: !!env('TVDB_API_KEY') } });
+    sources: { mal: !!env('MAL_CLIENT_ID'), omdb: !!env('OMDB_API_KEY') } });
   // the signed-out page's poster strip: the first posters of two shared rows, nothing of anyone's
   if (p === '/api/landing' && req.method === 'GET') return json(req, 200, { posters: await landingPosters() }, { 'cache-control': 'public, max-age=86400' });
   // ---- signing in ----

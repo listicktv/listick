@@ -45,6 +45,7 @@ export const titles = pgTable("titles", {
   label: text("label"),
   anime: smallint("anime"), // 1: Japanese animation
   episodes: integer("episodes"),
+  imdb: text("imdb"), // its IMDb id, which Stremio opens titles by: asked of TMDB once, when a list first needs it; '' when TMDB has none
   runtime: integer("runtime"), // minutes: a film's, or a show's episode; 0 when TMDB / Kitsu have none (asked once; Stats' hours)
   genres: jsonb("genres").$type<string[]>(),
   animeGenres: jsonb("anime_genres").$type<string[]>(), // an anime's own (MyAnimeList's, else Kitsu's): Isekai, Slice of Life…; [] when neither has any

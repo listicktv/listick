@@ -115,7 +115,6 @@ export interface TmdbSeasonDetails {
 }
 export interface TmdbCollection { parts?: TmdbItem[] }
 export interface TmdbWatchProviders { results?: Record<string, TmdbProviders> }
-export interface TmdbImages { logos?: { iso_639_1: string | null; vote_average?: number; file_path: string }[] }
 
 // ---------- Kitsu (JSON:API): one loose resource shape for anime, episodes, mappings, categories, producers, characters ----------
 interface KitsuImage { medium?: string; large?: string; original?: string }
@@ -153,6 +152,5 @@ export interface FribbEntry {
 // where a Kitsu entry sits on TMDB: a film, a season from an episode offset, or a whole show counted from its first episode
 export type TmdbAt = { type: 'movie' | 'tv'; id: number; season?: number; offset?: number; abs?: boolean };
 
-// ---------- Stremio and the TVDB ----------
+// ---------- Stremio ----------
 export interface CinemetaVideo { id: string; season: number; episode?: number; number?: number; released?: string; tvdb_id?: number }
-export interface TvdbEpisode { seasonNumber: number; number: number; name?: string; aired?: string; overview?: string; image?: string }

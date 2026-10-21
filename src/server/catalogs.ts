@@ -5,6 +5,8 @@ import { forYouOf } from './foryou';
 import { tvSeasons, tvSeasonsCache } from './mapping';
 import { ROWS, SERVICES, SERVICE_ROWS, ServiceRows, listOf, rowType, rowsNow } from './rows';
 import { listKeys, stremioLists } from './lists';
+import { inParallel } from './poller';
+import { tmdb } from './sources';
 import { liveOf } from './store';
 import { GENRE_OPTIONS, genresOf, titlesOf } from './titles';
 import type { Title } from './types';
@@ -96,19 +98,31 @@ function pickOk(t: Title, f: string | null) {
   if (f === 'Older') return !!t.year && t.year < 1990;
   return genresOf(t).includes(f);
 }
+// what Stremio opens each title as: its IMDb id (Cinemeta and stream addons know it), else a Kitsu entry's kitsu:<id> (the
+// Kitsu addon), else tmdb:<id>. A TMDB title's IMDb id is asked of TMDB once and kept in titles.imdb ('' when it has none)
+async function stremioIds(ts: Title[]) {
+  const keys = ts.filter((t) => t.key.startsWith('tmdb:')).map((t) => t.key);
+  const known = new Map((await q.all<{ key: string; imdb: string | null }>('select key, imdb from titles where key = any(?)', keys)).map((r) => [r.key, r.imdb]));
+  await inParallel(keys.filter((k) => known.get(k) == null), 8, async (k) => {
+    const [, kind, id] = k.split(':');
+    const x = await tmdb<{ imdb_id?: string | null }>(`/${kind}/${id}/external_ids`).catch(() => null);
+    if (!x) return;
+    const imdb = /^tt\d+$/.test(x.imdb_id || '') ? x.imdb_id! : '';
+    known.set(k, imdb);
+    await q.run('update titles set imdb = ? where key = ?', imdb, k);
+  });
+  return (t: Title) => known.get(t.key) || `${t.key.startsWith('kitsu:') ? 'kitsu' : 'tmdb'}:${t.key.split(':')[2]}`;
+}
 export async function catalogList(src: string, type: string, days: number, filter: string | null, uid: string, genre: string | null = null) {
   const list = await sourceKeys(src, days, filter, uid);
   if (!list) return null;
   const ts = await titlesOf(list.map((x) => x.key)), items = list.map((x) => ({ x, t: ts.get(x.key) }));
-  const card = ({ x, t }: { x: ListItem; t: Title }) => ({ key: t.key, type: itemKind(t, src), title: t.title, year: t.year, poster: t.poster, ...(x.next ? { next: x.next } : {}) });
   const withTitle = (i: { x: ListItem; t: Title | undefined }): i is { x: ListItem; t: Title } => !!i.t;
-  if (type === FOR_YOU) {
-    const want = filter ? FOR_YOU_KINDS[filter] : undefined;
-    // a split For you catalog: its kind (the filter) and, inside it, a genre
-    return items.filter(withTitle).filter(({ t }) => (!want || stremioType(t) === want) && pickOk(t, genre)).map(card);
-  }
   const row = /^(row|svc)\./.test(src) && rowType(src.split('.').at(-1)!);
-  // a row's filter is its genre; a streaming row's is the service, and a split one (one catalog per service) asks a genre too
-  const g = !src.startsWith('svc.') ? filter : genre;
-  return items.filter(withTitle).filter(({ t }) => (row ? row === type : stremioType(t) === type) && pickOk(t, g)).map(card);
+  // a split For you catalog: its kind (the filter) and, inside it, a genre; a row's filter is its genre; a streaming row's is
+  // the service, and a split one (one catalog per service) asks a genre too
+  const want = type === FOR_YOU && filter ? FOR_YOU_KINDS[filter] : undefined, g = type === FOR_YOU || src.startsWith('svc.') ? genre : filter;
+  const keep = items.filter(withTitle).filter(({ t }) => (type === FOR_YOU ? !want || stremioType(t) === want : row ? row === type : stremioType(t) === type) && pickOk(t, g));
+  const idOf = await stremioIds(keep.map(({ t }) => t));
+  return keep.map(({ x, t }) => ({ id: idOf(t), key: t.key, type: itemKind(t, src), title: t.title, year: t.year, poster: t.poster, ...(x.next ? { next: x.next } : {}) }));
 }

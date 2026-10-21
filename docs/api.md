@@ -40,11 +40,12 @@ Every list the user can read, listed once for each type it can contain:
 A list's titles, newest first:
 
 ```json
-{ "items": [{ "key": "tmdb:movie:603", "type": "movie", "title": "The Matrix", "year": 1999, "poster": "https://…", "next": "S2 E5" }] }
+{ "items": [{ "id": "tt0133093", "key": "tmdb:movie:603", "type": "movie", "title": "The Matrix", "year": 1999, "poster": "https://…", "next": "S2 E5" }] }
 ```
 
 Query: `type` (as in `/lists`), `filter` (one of the list's filter choices), `genre` (inside a split list), `days` (how far
-back Up next looks, 1–365, default 60). `next` is only on lists that have one (Up next, Coming soon). An unknown `src`
+back Up next looks, 1–365, default 60). `id` is what Stremio and its addons know the title by: its IMDb id, else `kitsu:<id>` for an anime only Kitsu has, else
+`tmdb:<id>`. `key` is Listick's own. `next` is only on lists that have one (Up next, Coming soon). An unknown `src`
 gets `404`.
 
 ### `GET /api/v1/calendar/<key>.ics` (`calendar`)

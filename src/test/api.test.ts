@@ -21,7 +21,7 @@ after(() => pool.end());
 
 describe('signing in', () => {
   test('signed out: the config is public, the session is not', async () => {
-    assert.deepEqual((await api('/api/config')).json, { name: 'Listick', captcha: null, mail: true, weather: false, sources: { mal: false, omdb: false, tvdb: false } });
+    assert.deepEqual((await api('/api/config')).json, { name: 'Listick', captcha: null, mail: true, weather: false, sources: { mal: false, omdb: false } });
     assert.equal((await api('/api/session', { method: 'POST', headers: { origin: ORIGIN } })).status, 401);
   });
   test('an address with a broken escape is refused, not an error', async () => {
@@ -148,9 +148,11 @@ describe('calendar and addon APIs', () => {
     assert.equal((await api('/api/v1/lists', as(cal))).status, 403, 'a calendar key has no lists scope');
     assert.equal((await api(`/api/v1/calendar/${key}.ics`)).status, 404, 'a catalogs key opens no calendar');
     await me.post(`/api/watchlist/add/${MATRIX}`);
+    fixtures({ '/3/movie/603?': TMDB_MATRIX, '/3/movie/603/external_ids': { imdb_id: 'tt0133093' } });
     assert.ok((await api('/api/v1/lists', as(key))).json.lists.some((l: { src: string }) => l.src === 'plan'));
     const plan = (type: string, filter = '') => api(`/api/v1/lists/plan?type=${encodeURIComponent(type)}${filter}`, as(key));
-    assert.deepEqual((await plan('For You')).json.items.map((t: { key: string }) => t.key), [MATRIX]);
+    assert.deepEqual((await plan('For You')).json.items.map((t: { key: string; id: string }) => [t.key, t.id]), [[MATRIX, 'tt0133093']]);
+    assert.equal((await q.one<{ imdb: string }>('select imdb from titles where key = ?', MATRIX))!.imdb, 'tt0133093', 'kept for next time');
     assert.deepEqual((await plan('For You', '&filter=Series')).json.items, []);
     assert.deepEqual((await plan('For You', '&filter=Movies')).json.items.map((t: { type: string }) => t.type), ['movie']);
   });
