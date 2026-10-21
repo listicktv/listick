@@ -1,0 +1,19 @@
+/* the About page: plain text on the page's navy, light on a light device, in system fonts (the app's own come with its build) */
+:root { --bg: #0b1020; --fg: #e8ebf2; --muted: #9aa3b5; --accent: #f5a524; --line: rgba(255, 255, 255, 0.1); color-scheme: dark; }
+@media (prefers-color-scheme: light) { :root { --bg: #f4f6fa; --fg: #172033; --muted: #5b6477; --line: rgba(0, 0, 0, 0.1); color-scheme: light; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 32px; margin: 8px 0 4px; }
+h2 { font-size: 19px; margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+ul { padding-left: 20px; }
+li { margin: 6px 0; }
+a { color: var(--accent); }
+.back a { color: var(--muted); text-decoration: none; }
+.back a:hover { color: var(--accent); }
+.meta { color: var(--muted); margin-top: 0; }
+.lead { font-size: 17px; }
+.tmdb { display: flex; align-items: center; gap: 18px; margin: 12px 0 4px; }
+.tmdb img { width: 96px; display: block; }
+.tmdb p { margin: 0; }
+@media (max-width: 560px) { .tmdb { flex-direction: column; align-items: flex-start; gap: 8px; } }

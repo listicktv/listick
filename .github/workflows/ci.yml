@@ -1,0 +1,40 @@
+# Every push and pull request: types, lint, the tests against a throwaway Postgres, and the production build. Images are
+# published by releases (release.yml).
+name: CI
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: listick
+          POSTGRES_PASSWORD: listick
+          POSTGRES_DB: listick_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U listick" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://listick:listick@localhost:5432/listick_test
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          BETTER_AUTH_SECRET: build-time-only
+

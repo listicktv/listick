@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About · Listick</title>
+<link rel="icon" href="icons/listick.svg?v=1" type="image/svg+xml">
+<link rel="stylesheet" href="about.css?v=3">
+<script src="about.js?v=2" defer></script>
+</head>
+<body>
+<main>
+<p class="back"><a href="/">← Listick</a></p>
+<h1>About</h1>
+<p class="lead">Listick keeps track of what you watch: movies, shows and anime. It’s open source
+(<a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0</a>) and self-hosted: this copy, its data and its API keys belong
+to whoever runs it.</p>
+
+<h2>Credits</h2>
+<!-- what each source asks for: TMDB's logo and notice in an About or Credits section; text
+     only for MyAnimeList, and for the IMDb, Rotten Tomatoes and Metacritic scores OMDb gives. An optional source (data-source)
+     is credited only when this instance has its key, which about.js asks /api/config -->
+<div class="tmdb"><a href="https://www.themoviedb.org"><img src="icons/tmdb.svg" alt="TMDB"></a>
+<p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p></div>
+<ul>
+<li>Streaming services from <a href="https://www.justwatch.com">JustWatch</a>, through TMDB.</li>
+<li>Anime from <a href="https://kitsu.app">Kitsu</a>, linked by <a href="https://github.com/Fribb/anime-lists">Fribb/anime-lists</a>.</li>
+<li>Air times from <a href="https://www.tvmaze.com">TVmaze</a>.</li>
+<li>New disc releases from <a href="https://www.blu-ray.com">Blu-ray.com</a>'s RSS feed.</li>
+<li data-source="mal">Anime scores and rankings from <a href="https://myanimelist.net">MyAnimeList</a>.</li>
+<li data-source="omdb">IMDb, Rotten Tomatoes and Metacritic scores from <a href="https://www.omdbapi.com">OMDb</a>; not endorsed by IMDb.</li>
+<li data-source="tvdb">Metadata provided by <a href="https://thetvdb.com">TheTVDB</a>.</li>
+<li data-source="weather">Weather by <a href="https://open-meteo.com">Open-Meteo</a>.</li>
+</ul>
+<p class="meta">Titles, posters, scores and episode lists belong to their owners, and may be incomplete or out of date.</p>
+</main>
+</body>
+</html>
