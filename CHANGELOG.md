@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/listicktv/listick/compare/v0.6.0...v0.7.0) (2026-10-22)
+
+
+### Features
+
+* Seanime connection ([e6a7000](https://github.com/listicktv/listick/commit/e6a70005fd2d10645302d6f0f2638839f14646a0))
+
+
+### Bug Fixes
+
+* Airing calendar level with the first row ([cc4b7e2](https://github.com/listicktv/listick/commit/cc4b7e26bd1aff4c5c5158ed60d45b8268d6296a))
+* connection setup steps ([1991289](https://github.com/listicktv/listick/commit/19912895c5bc7a47162ee53e5a5968f8cb2b460a))
+
 ## [0.6.0](https://github.com/listicktv/listick/compare/v0.5.0...v0.6.0) (2026-10-22)
 
 
