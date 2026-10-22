@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.0](https://github.com/listicktv/listick/compare/v0.4.0...v0.5.0) (2026-10-22)
+
+
+### Features
+
+* episode names, stories and images TMDB lacks from TheTVDB ([62a98c6](https://github.com/listicktv/listick/commit/62a98c69014f797c576bd19d79a9aab8f3e614c6))
+* episode stills show their story on hover and a watched tick ([ff0b581](https://github.com/listicktv/listick/commit/ff0b58125b71e66f4a5f3b98a5112c3dac2d000e))
+* food, travel, game show and home makeover list presets ([62a98c6](https://github.com/listicktv/listick/commit/62a98c69014f797c576bd19d79a9aab8f3e614c6))
+* imported episodes placed by their own ids, or by air date when the numbering differs ([ded7387](https://github.com/listicktv/listick/commit/ded7387244a8d26ec94a19347ac864f8b1314b94))
+* Next up beside the season's episodes in the title window ([ff0b581](https://github.com/listicktv/listick/commit/ff0b58125b71e66f4a5f3b98a5112c3dac2d000e))
+* phone Streaming heading picks the service ([ff0b581](https://github.com/listicktv/listick/commit/ff0b58125b71e66f4a5f3b98a5112c3dac2d000e))
+* TheTVDB categories for smart lists ([62a98c6](https://github.com/listicktv/listick/commit/62a98c69014f797c576bd19d79a9aab8f3e614c6))
+* TheTVDB seasons for shows it splits differently, switched in the season menu ([ded7387](https://github.com/listicktv/listick/commit/ded7387244a8d26ec94a19347ac864f8b1314b94))
+
+
+### Bug Fixes
+
+* circle rings drawn evenly on scaled screens ([ff0b581](https://github.com/listicktv/listick/commit/ff0b58125b71e66f4a5f3b98a5112c3dac2d000e))
+* episode page circles and arrows match the season line ([ff0b581](https://github.com/listicktv/listick/commit/ff0b58125b71e66f4a5f3b98a5112c3dac2d000e))
+* kids anime rows no longer empty after a failed Kitsu lookup ([ff0b581](https://github.com/listicktv/listick/commit/ff0b58125b71e66f4a5f3b98a5112c3dac2d000e))
+* the menu says Shows instead of TV ([ded7387](https://github.com/listicktv/listick/commit/ded7387244a8d26ec94a19347ac864f8b1314b94))
+
 ## [0.4.0](https://github.com/listicktv/listick/compare/v0.3.0...v0.4.0) (2026-10-22)
 
 
