@@ -43,8 +43,7 @@ export function ShelfGrid({ title, items, first, genres = [], empty, dismiss }: 
   return (
     <div className="gen-rows shelf-g">
       <div className="group-head pick-head shelf-head">{title ? <h1 className="st-title shelf-t">{title}</h1> : <span />}
-        {/* the count: a line under the name on a phone, a circle among the controls on a wider screen */}
-        <h2 className="sh shelf-count">{titles(shown.length).toUpperCase()}</h2><div className="pick-tools">
+        <div className="pick-tools">
         {/* the row's genres as one dropdown (they were a wall of chips) */}
         {genres.length > 1 && <div className="shelf-dd"><Drop bare label="Genre" search opts={[['', 'All genres'], ...genres.map((g): [string, string] => [g, g])]}
           value={genre || ''} set={(g) => setGenre(g || null)} /></div>}

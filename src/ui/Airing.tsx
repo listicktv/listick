@@ -101,7 +101,7 @@ export function Airing({ S }: { S: Summary | null }) {
     </div>
   );
   // two weeks: the agenda fills the panel beside History and Up next and scrolls inside it. On the phone (where it isn't
-  // beside anything) one week, the next 5 episodes of it, then "All N episodes", like the title card's Episodes
+  // beside anything) one week, the next 5 episodes of it, then "All N episodes"
   const cap = phone && !all ? 5 : Infinity;
   let shown = 0, total = 0;
   const body: React.ReactNode[] = [];

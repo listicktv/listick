@@ -366,7 +366,7 @@ const TC_ICON: Record<string, string> = {
 const trend = (t: Tile) => <TrendCard t={t} />;
 function CardBody({ d }: { d: Title }) {
   const [tab, setTab] = useState('overview');
-  const [eps, setEps] = useState({ season: null as number | null, allEps: false, fromStart: false });
+  const [eps, setEps] = useState({ season: null as number | null, allEps: false, home: 0 });
   const y = d.you || {}, total = (d.facts?.episodes as number | null) || d.episodes || null;
   const tabs: [string, string, string][] = [['overview', 'Overview', ''],
     ...(d.type !== 'movie' && d.seasons?.length ? [['episodes', 'Episodes', total ? `${y.episodes || 0}/${total}` : String(y.episodes || '')] as [string, string, string]] : []),
@@ -374,14 +374,13 @@ function CardBody({ d }: { d: Title }) {
     ...(d.similar?.length ? [['similar', 'Similar', String(d.similar.length)] as [string, string, string]] : []),
     ...(d.collectionItems?.length ? [['collection', 'Collection', String(d.collectionItems.length)] as [string, string, string]] : [])];
   const on = tabs.some(([id]) => id === tab) ? tab : 'overview';
-  // every part but Episodes stays laid out (hidden) in the same place, so the card keeps the tallest one's height and switching
-  // doesn't jump; Overview stretches to it. Episodes, longer by nature, is added only while open
+  // every part stays laid out (hidden) in the same place
   const layer = (id: string) => `tc-layer${on === id ? ' on' : ''}`;
   return (
     <div className="tc-body">
       <div className="tc-nav" role="tablist" aria-orientation="vertical">
         {tabs.map(([id, label, count]) => (
-          <button key={id} type="button" className={`tc-navb${on === id ? ' on' : ''}`} data-t={id} role="tab" aria-selected={on === id} onClick={() => setTab(id)}>
+          <button key={id} type="button" className={`tc-navb${on === id ? ' on' : ''}`} data-t={id} role="tab" aria-selected={on === id} onClick={() => { setTab(id); setEps((x) => ({ ...x, allEps: false, home: x.home + 1 })); }}>
             <Circ><Icon d={TC_ICON[id]} /></Circ><span className="l">{label}</span><span className="c">{count}</span>
           </button>
         ))}
@@ -392,7 +391,7 @@ function CardBody({ d }: { d: Title }) {
           : id === 'similar' ? <Group key={id} id="tc-similar" title={null} cls={`group tc-sec ${layer(id)}`} railClass="rail ptrack tc-rail" items={d.similar} keyOf={(t) => t.key} card={trend} />
           : id === 'collection' ? <Group key={id} id="tc-coll" title={null} cls={`group tc-sec ${layer(id)}`} railClass="rail ptrack tc-rail" items={d.collectionItems} keyOf={(t) => t.key} card={trend} />
           : null))}
-        {on === 'episodes' && <EpisodesPane d={d} st={eps} set={(s) => setEps((x) => ({ ...x, ...s }))} />}
+        {tabs.some(([id]) => id === 'episodes') && <EpisodesPane d={d} st={eps} set={(s) => setEps((x) => ({ ...x, ...s }))} cls={layer('episodes')} />}
       </div>
     </div>
   );

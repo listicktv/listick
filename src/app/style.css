@@ -662,15 +662,6 @@ body.tp-open { overflow: hidden; }
 
 .tc-tagline { margin: 0 0 8px; font-style: italic; color: var(--text-2); font-size: var(--fs-14); }
 .tc-overview { margin: 0; line-height: 1.6; font-size: var(--fs-14); }
-.tc-eptools { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.tc-pills { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-/* a season: the rating circle with its ring filled in accent as far as you've watched; the others dimmed, the open one's name after them */
-.tc-season { padding: 0; border: 0; background: none; cursor: pointer; }
-.tc-season .tc-circ { width: 30px; height: 30px; background: conic-gradient(var(--accent) 0 var(--fill), rgba(255, 255, 255, 0.22) var(--fill) 100%); }
-.tc-season .tc-circ > span { width: 24px; height: 24px; font-family: var(--mono); font-size: var(--fs-10); font-weight: 600; color: var(--faint); }
-.tc-season:hover .tc-circ > span, .tc-season.on .tc-circ > span { color: var(--text); }
-.tc-season:not(.on) { opacity: 0.5; transition: opacity 0.15s; }   /* the open one stands out by being the only one at full strength */
-.tc-season:not(.on):hover { opacity: 0.85; }
 /* a rating: the poster's rating ring in small. An episode's sits above its watched circle (shown on hover until you rate it); the
    season's left of the season's watched circle, your episodes' average faint until you rate the season */
 .tc-markwrap { gap: 8px; align-items: center; }
@@ -731,8 +722,8 @@ body.tp-open { overflow: hidden; }
 .tc-mark:disabled { cursor: default; opacity: 0.6; }
 /* like the poster's circles: every circle grows a little on hover; the action ones (watched, Mark season, rating) and the menu
    preview in the accent, while the seasons keep accent for the open one. A rating circle stays grown while it's dragged */
-:is(.tc-mark, .tc-cbtn, .tc-erate, .tc-season, .tc-navb) .tc-circ { transition: background 0.15s, transform 0.12s; }
-:is(.tc-mark, .tc-cbtn, .tc-erate, .tc-season, .tc-navb):not(:disabled):is(:hover, :focus-visible) .tc-circ, .tc-erate.dragging .tc-circ { transform: scale(1.15); }
+:is(.tc-mark, .tc-cbtn, .tc-erate, .tc-navb) .tc-circ { transition: background 0.15s, transform 0.12s; }
+:is(.tc-mark, .tc-cbtn, .tc-erate, .tc-navb):not(:disabled):is(:hover, :focus-visible) .tc-circ, .tc-erate.dragging .tc-circ { transform: scale(1.15); }
 :is(.tc-mark:not(.on), .tc-cbtn, .tc-erate:not(.on)):not(:disabled):not(.confirm):is(:hover, :focus-visible) .tc-circ { background: var(--accent); }
 :is(.tc-mark:not(.on), .tc-cbtn, .tc-erate:not(.on)):not(:disabled):not(.confirm):is(:hover, :focus-visible) .tc-circ > span { color: var(--accent); }
 /* a watched episode's tick takes the play away: red under the pointer, like the other remove circles */
@@ -900,15 +891,10 @@ a.tc-score:focus-visible img { transform: scale(1.15); }
 /* Overview: the details straight on the card (no panel), rows close together from the top; text in line with the posters */
 .tc-pane > .tc-details { align-content: start; gap: 2px 14px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .tc-pane > .tc-details .meter { padding-left: 0; padding-right: 0; }
-.tc-pane > .tc-details { margin-top: -14px; }   /* the first row's values level with the menu's first name (Overview) */
 .tpanel .tc-pane .ptrack { grid-auto-columns: calc((100% - 4 * 10px) / 5); }
 /* the rows start level with the other sections' panels: their ‹ › sit above them on the right, in the body's top padding */
 .tc-pane { position: relative; }
-.tc-pane .tc-sec > .group-head { position: absolute; top: -27px; right: 0; }
-/* Episodes: the season pills and Mark season sit in the same strip, so the list starts level too */
-.tc-pane .tc-eps > .tc-eptools { flex-wrap: nowrap; }
-/* the scroll box clips on every side: room for a season circle grown on hover, given back by the margin */
-.tc-pane .tc-eps .tc-pills { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 3px; margin: -3px; }
+.tc-pane .tc-sec > .group-head { justify-content: flex-end; }
 
 @media (max-width: 800px) {
   .tc-body { grid-template-columns: minmax(0, 1fr); }
@@ -918,7 +904,6 @@ a.tc-score:focus-visible img { transform: scale(1.15); }
   .tpanel .tc-pane .ptrack { grid-auto-columns: calc((100% - 2 * 8px) / 3); }
   /* the menu is a row above the part here, so the part's own top line (the season strip; a row's ‹ ›, swiped on a phone)
      sits in the flow instead of beside the menu's names */
-  .tc-pane .tc-eps > .tc-eptools { position: static; }
   .tc-pane .tc-sec > .group-head { display: none; }
   .tc-pane > .tc-details { margin-top: 0; }
 }
@@ -1280,6 +1265,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 }
 /* row titles */
 .group:has(> .group-head > .rail-nav) { gap: 14px; }
+.group-head:has(> .rail-nav) { align-items: center; }
 .group-head:has(> .rail-nav) > .sh { position: relative; padding-left: 13px; font-size: var(--fs-16); }
 .group-head:has(> .rail-nav) > .sh::before { content: ""; position: absolute; left: 0; top: 50%; width: 4px; height: 1em; border-radius: 2px; background: var(--accent); transform: translateY(-50%); }
 @media (max-width: 800px) {
@@ -1521,12 +1507,6 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 .rdial-n { font: 600 52px var(--mono); color: var(--accent); line-height: 1; }
 .rdial-h { font-size: var(--fs-12); color: var(--muted); }
 .rdial-btns { display: flex; gap: 16px; }
-/* the season circles' box: no box of its own on wider screens; on the phone three circles wide, the rest scrolled sideways */
-.tc-sbox { display: contents; }
-@media (max-width: 800px) {
-  .tc-sbox { display: flex; gap: 8px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; padding: 3px; margin: -3px; overscroll-behavior-x: contain; }   /* no snapping: on the phone it cut every swipe short */
-  .tc-sbox > * { flex-shrink: 0; }
-}
 /* touch screens (iPhones stuttered on row swipes): every poster kept its hidden action menu (three shadowed circles waiting
    to fade and slide in) and an invisible focus ring, and WebKit keeps a layer ready for each, ~100 posters deep. There they
    are only built while a poster is open, there is no focus ring, and the poster circles shadow is lighter */
@@ -2207,23 +2187,35 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 .shelf-grid .dialhost .topt .dot { width: 34px; height: 34px; }
 /* the page's name on the line of its controls: the genre dropdown, the kind and order circles, the count as a circle */
 .shelf-head { align-items: center; } .shelf-t { margin: 0 auto 0 0; }
+.st-title.shelf-t { font-size: 38px; }
+@media (max-width: 800px) { .st-title.shelf-t { font-size: 26px; } }
+@media (min-width: 801px) {
+  .shelf-head .pk-c { width: 40px; height: 40px; background: radial-gradient(circle, #121726 0 15.5px, rgba(255, 255, 255, 0.22) 16px); }
+  .shelf-head .pk.on .pk-c, .shelf-head .pk:is(:hover, :focus-visible) .pk-c { background: radial-gradient(circle, #121726 0 15.5px, var(--accent) 16px); }
+  .shelf-head .pk-c svg { width: 18px; height: 18px; }
+  .shelf-head .pk-sep { height: 30px; }
+}
 /* the genre dropdown only as wide as its value */
 .shelf-dd { width: max-content; max-width: 220px; align-self: center; margin-right: 6px; } .dd.bare { gap: 0; }
 .shelf-dd .dd-f { height: 34px; gap: 4px; padding: 0 2px; font: 600 var(--fs-13) var(--body-font); color: var(--text-2); border: 0; background: none; }
 .shelf-dd .dd-f svg { width: 15px; height: 15px; } .shelf-dd .dd-f:is(:hover, :focus-visible, .open), .shelf-dd .dd-f:is(:hover, :focus-visible, .open) svg { color: var(--accent); }
 .shelf-dd .dd-v.dim { color: inherit; }
 /* its menu only as wide as the longest genre */
-.shelf-dd .dd-m { right: auto; min-width: 100%; width: max-content; } .shelf-dd .dd-m button { min-height: 34px; gap: 8px; padding: 0 12px 0 8px; font-size: var(--fs-13); }
-.shelf-count, .shelf-br { display: none; }
+.shelf-dd .dd-m { right: auto; min-width: 100%; width: max-content; } .shelf-dd .dd-q input { width: 0; } .shelf-dd .dd-m button { min-height: 34px; gap: 8px; padding: 0 12px 0 8px; font-size: var(--fs-13); }
+.shelf-br { display: none; }
 .shelf-n { cursor: default; } .shelf-n .pk-c b { font: 600 var(--fs-13) var(--mono); color: var(--text); }
 .l-grid.shelf-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 26px 18px; }
 @media (max-width: 800px) {
   .l-grid.shelf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
   /* the genre dropdown under the title, the circles beside it */
   .shelf-dd { flex: 0 0 auto; margin: 0; } .shelf-t { flex: 0 0 100%; }
-  /* the count on the line of the order circles (they wrap under it only when they don't fit) */
-  .shelf-head > .shelf-count { display: block; flex: 1 0 auto; } .shelf-head .pk-set { margin-left: auto; } .shelf-n { display: none; }
+  /* genre left; order circles, a line, the count circle right */
+  .shelf-head .pk-set { margin-left: auto; }
   .shelf-head .pk-sep { display: none; }   /* the controls wrap; a divider would end up dangling at a line's end */
+  .shelf-head { --pk: 36px; }
+  .shelf-head .pk-sep:has(+ .shelf-n) { display: block; height: 20px; margin: 0 2px; }
+  .shelf-n .pk-c b { font-size: var(--fs-11); }
+  .shelf-head .pk-set { gap: 6px; }
   /* a list of movies and shows: All / Movies / Shows on the name's line, the count and the order circles on the next */
   .shelf-head:has(.shelf-kinds) > .shelf-t { flex: 1 1 0; min-width: 0; }
   .shelf-head:has(.shelf-kinds) > *, .shelf-head:has(.shelf-kinds) .pick-tools > * { order: 3; }
@@ -2267,19 +2259,119 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
   .tpanel .tc-details .meter-k { font-size: var(--fs-14); }
   .tpanel .tc-details .meter-v { font-size: var(--fs-18); line-height: 24px; } .tpanel .tc-details .meter-v.txt { font-size: var(--fs-15); }
 }
+@media (min-width: 1181px) and (max-height: 1000px) {
+  .tpanel .tc-hero { min-height: 350px; }
+  .tpanel .tc-epview { gap: 14px; }
+  .tpanel .tc-evbody { grid-template-columns: 340px minmax(0, 1fr); gap: 22px; }
+  .tpanel .tc-evname { font-size: var(--fs-18); }
+  .tpanel .tc-evov { font-size: var(--fs-14); line-height: 1.55; }
+  .tpanel .tc-body { padding-top: 24px; }
+  .tpanel .tc-postwrap { width: 240px; margin-bottom: -180px; }
+  .tpanel .tc-beside { padding-left: calc(40px + 240px + 32px); min-height: 180px; }
+  .tpanel .tc-body { grid-template-columns: 240px minmax(0, 1fr); }
+}
 
-/* Episodes: season circles with their count under them; the open season's line with its rating and tick circles; on a wide
-   window the episodes as cards two across, their circles on the still's corner as on posters */
-.tc-season { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 44px; }
-.tc-season .tc-sc { font: 600 var(--fs-10) var(--mono); color: var(--muted); line-height: 1.2; white-space: nowrap; }
-.tc-season.on .tc-sc { color: var(--text); }
-.tc-sbox { gap: 10px; }
+/* season line */
+.tc-eps > .tc-shead { border-top: 0; padding: 0; }
+.tc-eps > .tc-shead { align-items: center; }
+.tc-eps > .tc-shead .tc-sacts { gap: 6px; }
+@media (min-width: 801px) {
+  .tpanel .tc-body.tc-body { padding-top: 44px; }
+  .tc-pane .tc-sec > .group-head { position: absolute; top: -40px; right: 0; }
+  .tc-pane > .tc-eps > .tc-shead, .tc-pane > .tc-eps .tc-evtop { position: absolute; top: -40px; left: 0; right: 0; }
+  .tc-pane > .tc-eps .tc-evtop { align-items: center; }
+  .tc-pane > .tc-eps { position: relative; }
+  .tc-pane > .tc-eps.all > .tc-eplist { position: absolute; inset: 0; overflow-y: auto; align-content: start; }
+  .tc-pane > .tc-eps > .tc-epview { position: absolute; inset: 0; }
+  .tc-pane > .tc-eps > .tc-epview > .tc-evbody { flex: 1; min-height: 0; display: flex; gap: 22px; }
+  .tc-pane > .tc-eps > .tc-epview .tc-evstill { flex: none; height: min(214px, 100%); aspect-ratio: 16 / 9; max-width: 58%; }
+  .tc-pane > .tc-eps > .tc-epview .tc-evtext { flex: 1; min-width: 0; overflow-y: auto; }
+  .tc-pane > .tc-eps .tc-evtop .rsep { margin-top: 0; }
+  .tc-pane > .tc-eps .tc-evtop :is(.tc-evnav, .tc-erate, .tc-mark) .tc-circ { width: 30px; height: 30px; }
+  .tc-pane > .tc-eps .tc-evtop :is(.tc-evnav, .tc-erate, .tc-mark) .tc-circ > span { width: 24px; height: 24px; }
+  .tc-pane > .tc-eps .tc-evtop .tc-circ svg { width: 14px; height: 14px; }
+  .tc-pane > .tc-eps .tc-evtop .tc-erate .tc-circ > span { font-size: 9.5px; }
+}
+.tc-spick { position: relative; min-width: 0; }
+.tc-spill { position: relative; display: inline-flex; align-items: baseline; gap: 8px; padding: 0 0 0 13px; border: 0; background: none; color: var(--text); cursor: pointer; }
+.tc-spill::before { content: ""; position: absolute; left: 0; top: 50%; width: 4px; height: 1em; border-radius: 2px; background: var(--accent); transform: translateY(-50%); }
+.tc-spill:disabled { cursor: default; }
+.tc-spill b { font: 500 var(--fs-16) var(--label-font); font-stretch: 80%; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; transition: color 0.15s; }
+.tc-spill:not(:disabled):is(:hover, :focus-visible) b, .tc-spill.open b { color: var(--accent); }
+.tc-spill svg { align-self: center; color: var(--muted); transition: transform 0.15s; }
+.tc-spill.open svg { transform: rotate(180deg); }
+.tc-scount { font: 600 var(--fs-11) var(--mono); color: var(--muted); white-space: nowrap; }
+.tc-smenu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: max-content; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
+  padding: 6px; border: 1px solid var(--line-2); border-radius: 12px; background: #171e30; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5); }
+.tc-smenu button { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px 0 6px; border: 0; border-radius: 8px; background: none; color: var(--text);
+  font: 500 var(--fs-14) var(--body-font); text-align: left; cursor: pointer; }
+.tc-smenu button:hover { background: var(--hover); }
+.tc-smenu button.on { color: var(--accent); }
+.tc-smenu .l { flex: 1; white-space: nowrap; }
+.tc-smenu .tc-scount { margin-left: 14px; }
+@supports selector(::-webkit-scrollbar) {
+  .tc-smenu::-webkit-scrollbar-track { margin-block: 8px; }
+  .tc-smenu::-webkit-scrollbar { width: 4px; }
+  .tc-smenu::-webkit-scrollbar-thumb { border: 0; border-radius: 2px; min-height: 32px; background-color: var(--line-2); }
+  .tc-smenu::-webkit-scrollbar-thumb:hover { background-color: var(--accent); }
+}
+@supports not selector(::-webkit-scrollbar) { .tc-smenu { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; } }
+
+/* Next up */
+.tc-next { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 14px 10px 10px; border-radius: 12px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.tc-nstill { display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 0; border-radius: 8px; background: var(--tile); cursor: pointer;
+  -webkit-mask-image: linear-gradient(#000, #000); mask-image: linear-gradient(#000, #000); }
+.tc-nstill:has(> img) { background: none; }
+.tc-nstill { position: relative; }
+.tc-nstill img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.tc-ntx { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.tc-nk { font: 700 var(--fs-10) var(--body-font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.tc-nname { max-width: 100%; padding: 0; border: 0; background: none; color: var(--text); font: 600 var(--fs-15) var(--head-font); text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-nname:hover { color: var(--accent); }
+.tc-nmeta { font-size: var(--fs-11); color: var(--muted); }
+.tc-nov { margin: 3px 0 0; font-size: var(--fs-12); line-height: 1.45; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* episode row */
+.tc-srail { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 5 * 10px) / 6); gap: 10px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; }
+.tc-srail::-webkit-scrollbar { display: none; }
+@media (hover: none) { .tc-srail { scroll-snap-type: none; overscroll-behavior-x: contain; } }
+.tc-se { scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; border: 0; background: none; color: var(--text-2); font: inherit; text-align: left; cursor: pointer; }
+.tc-ses { position: relative; aspect-ratio: 4 / 3; border-radius: 6px; background: var(--tile); -webkit-mask-image: linear-gradient(#000, #000); mask-image: linear-gradient(#000, #000); }
+.tc-ses:has(> img) { background: none; }
+.tc-ses img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.tc-se.seen .tc-ses img { opacity: 0.55; }
+:is(.tc-ses, .tc-nstill, .tc-evstill, .tc-still) img.fb { opacity: 0.35; filter: grayscale(0.4); }
+.tc-sair { position: absolute; left: 5px; bottom: 5px; padding: 2px 6px; border-radius: 5px; background: rgba(11, 16, 32, 0.8); font: 600 var(--fs-10) var(--body-font); color: var(--text); }
+.tc-se.next .tc-ses::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--accent); }
+.tc-sek { position: absolute; right: 4px; bottom: 4px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #0b1020; }
+.tc-sek svg { width: 10px; height: 10px; }
+.tc-sen { font-size: var(--fs-11); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-sen b { margin-right: 4px; font: 600 var(--fs-10) var(--mono); color: var(--muted); }
+.tc-se:hover .tc-sen { color: var(--text); }
+@media (max-width: 1180px) { .tc-srail { grid-auto-columns: calc((100% - 4 * 10px) / 5); } }
+/* phone: Next up full width */
+.tc-nhead { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; max-width: 100%; }
+.tc-srh { display: none; }
+@media (max-width: 800px) {
+  .tc-shead .tc-rowctl { display: none; }
+  .tc-next { grid-template-columns: minmax(0, 1fr) auto; gap: 0; padding: 0; background: none; box-shadow: none; border-radius: 14px; }
+  .tc-nstill { grid-area: 1 / 1 / 3 / 3; border-radius: 14px; }
+  .tc-ntx { display: contents; }
+  .tc-nhead { grid-area: 2 / 1 / 3 / 3; z-index: 1; max-width: none; padding: 40px 60px 10px 12px; border-radius: 0 0 14px 14px; background: linear-gradient(to top, rgba(11, 16, 32, 0.95), transparent); }
+  .tc-nname { font-size: var(--fs-18); white-space: normal; }
+  .tc-nmeta { color: var(--text-2); }
+  .tc-next > .tc-mark { grid-area: 2 / 2; z-index: 2; align-self: end; margin: 0 10px 10px 0; }
+  .tc-nov { grid-area: 3 / 1 / 4 / 3; margin: 10px 0 0; font-size: var(--fs-13); -webkit-line-clamp: 3; }
+  .tc-srh { display: flex; align-items: center; margin-top: 4px; }
+  .tc-srh > span { font: 600 var(--fs-11) var(--mono); color: var(--muted); text-transform: uppercase; }
+  .tc-srail { grid-auto-columns: calc((100% - 2 * 10px) / 2.6); }
+}
+.rbtn.on { background: var(--accent); color: #0b1020; box-shadow: none; }
+@media (hover: none) { .rarrow.lit:not(:disabled) { color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); } }
+
+/* Episodes: the season line; all episodes as cards, two across on a wide window */
 .tc-shead { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0 4px; border-top: 1px solid var(--line); }
-/* one line: the name, then the count after a dot; it gives way (ellipsis) before the circles do */
-.tc-sum { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 8px; white-space: nowrap; overflow: hidden; }
-.tc-sum b { flex-shrink: 0; font: 600 var(--fs-15) var(--head-font); }
-.tc-sum span { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-13); color: var(--muted); }
-.tc-sum span:not(:empty)::before { content: '· '; }
 .tc-sacts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .tc-nexttag { position: absolute; left: 6px; top: 6px; padding: 2px 7px; border-radius: 6px; background: var(--accent); color: #0b1020; font: 700 var(--fs-10) var(--body-font); letter-spacing: 0.02em; }
 .tc-ep.seen .tc-still img { opacity: 0.7; }
@@ -2298,10 +2390,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
   .tpanel .tc-eptop { font-size: var(--fs-14); }
 }
 @media (max-width: 800px) {
-  .tc-sbox { max-width: 100%; }
   .tc-shead { gap: 10px; }
-  .tc-sum { flex-direction: column; gap: 1px; }
-  .tc-sum span::before { content: none !important; }
   .tc-ep { grid-template-columns: 128px minmax(0, 1fr) auto; gap: 12px; }
   .tc-still { width: 128px; }
   .tc-ep { align-items: start; }
@@ -2313,7 +2402,8 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 .tc-epopen { padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
 .tc-ep:hover .tc-epopen .t { color: var(--accent); }
 .tc-epview { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 60px; }
-.tc-evtop { display: flex; align-items: center; gap: 10px; }
+.tc-evtop { display: flex; align-items: flex-start; gap: 10px; }
+.tc-evwhere { align-self: center; }
 .tc-evwhere { flex: 1; min-width: 0; font: 600 var(--fs-13) var(--body-font); color: var(--muted); }
 .tc-evnav { padding: 0; border: 0; background: none; cursor: pointer; }
 .tc-evnav:disabled { opacity: 0.3; cursor: default; }
@@ -2321,19 +2411,22 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 .tc-evnav:not(:disabled):is(:hover, :focus-visible) .tc-circ { background: var(--accent); }
 .tc-evnav:not(:disabled):is(:hover, :focus-visible) .tc-circ > span { color: var(--accent); }
 /* the name and its line on the left, your rating and tick on the right; under them the still beside the story */
-.tc-evhead { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; }
 .tc-evtitle { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.tc-evbody { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.tc-evtext { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.tc-evtitle .tc-evl { align-self: flex-start; font-size: var(--fs-12); }
+.tc-evbody { display: grid; grid-template-columns: minmax(0, 38%) minmax(0, 1fr); gap: 22px; align-items: start; }
 @keyframes tc-evin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .tc-epview { animation: tc-evin 0.18s ease-out; }
 .tc-evstill { aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--tile); }
 .tc-evstill img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tc-evname { margin: 0; font: 600 var(--fs-22)/1.2 var(--head-font); }
 .tc-evmeta { font-size: var(--fs-13); color: var(--muted); }
-.tc-evacts { display: flex; flex-wrap: wrap; gap: 10px 22px; }
-.tc-evact { display: flex; align-items: center; gap: 10px; }
-.tc-epview .tc-erate .tc-circ, .tc-epview .tc-mark .tc-circ { width: 40px; height: 40px; }
-.tc-epview .tc-erate .tc-circ > span, .tc-epview .tc-mark .tc-circ > span { width: 33px; height: 33px; }
+.tc-evacts { display: flex; gap: 10px; }
+.tc-evtop .rsep { margin-top: 8px; }
+.tc-evact { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tc-evact .tc-evl { font-size: var(--fs-10); font-weight: 600; color: var(--muted); }
+.tc-epview .tc-erate .tc-circ, .tc-epview .tc-mark .tc-circ { width: 34px; height: 34px; }
+.tc-epview .tc-erate .tc-circ > span, .tc-epview .tc-mark .tc-circ > span { width: 28px; height: 28px; }
 .tc-epview .tc-erate .tc-circ > span { font-size: var(--fs-11); } .tc-epview .tc-mark .tc-circ svg { width: 16px; height: 16px; }
 .tc-evl { font: 600 var(--fs-13) var(--body-font); color: var(--text-2); white-space: nowrap; } .tc-evl.bad { color: var(--down-text); }
 .tc-evdate { padding: 0; border: 0; background: none; cursor: pointer; text-align: left; }
@@ -2342,7 +2435,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 @media (max-width: 800px) {
   /* a phone: the still first, then the name and its line, your circles, the story */
   .tc-epview { touch-action: pan-y; }
-  .tc-evhead, .tc-evbody { display: contents; }
+  .tc-evbody, .tc-evtext { display: contents; }
   .tc-evstill { order: 1; } .tc-evtitle { order: 2; } .tc-evacts { order: 3; } .tc-evov { order: 4; }
   .tc-evtop { order: 0; }
   .tc-evname { font-size: var(--fs-18); }

@@ -55,11 +55,14 @@ export function Group<T>({ id, title, href, titleId, note, hidden, trend, cls, r
 
   // the ‹ › state: hidden unless the row overflows, each end disabled at its end (› stays on while there's more to fetch)
   const [nav, setNav] = useState('h');
+  const last = useRef({ left: 0, dir: '' });
   const upd = useCallback(() => {
     const x = r.current; if (!x) return;
     const h = !x.classList.contains('rail') || x.scrollWidth <= x.clientWidth + 4;
     const p = x.scrollLeft < 4, nx = x.scrollLeft + x.clientWidth >= x.scrollWidth - 4 && !moreLeft;
-    setNav(`${h ? 'h' : ''}${p ? 'p' : ''}${nx ? 'n' : ''}`);
+    const l = last.current;
+    if (x.scrollLeft !== l.left) { l.dir = x.scrollLeft > l.left ? 'R' : 'L'; l.left = x.scrollLeft; }
+    setNav(`${h ? 'h' : ''}${p ? 'p' : ''}${nx ? 'n' : ''}${l.dir}`);
   }, [moreLeft]);
   useEffect(() => { const f = requestAnimationFrame(upd); return () => cancelAnimationFrame(f); });
   useEffect(() => { window.addEventListener('resize', upd); return () => window.removeEventListener('resize', upd); }, [upd]);
@@ -115,8 +118,8 @@ export function Group<T>({ id, title, href, titleId, note, hidden, trend, cls, r
           {href && <Link href={href} className="rbtn" aria-label="See all"><Icon d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z" size={15} /></Link>}
           {href && !nav.includes('h') && <span className="rsep" aria-hidden="true" />}
           {!nav.includes('h') && <>
-            <button type="button" className="rbtn" aria-label="Previous" disabled={nav.includes('p')} onClick={() => void go(-1)}><Icon d="M15 6l-6 6 6 6" size={16} width={2.2} /></button>
-            <button type="button" className="rbtn" aria-label="Next" disabled={nav.includes('n')} onClick={() => void go(1)}><Icon d="M9 6l6 6-6 6" size={16} width={2.2} /></button>
+            <button type="button" className={`rbtn rarrow${nav.includes('L') ? ' lit' : ''}`} aria-label="Previous" disabled={nav.includes('p')} onClick={() => void go(-1)}><Icon d="M15 6l-6 6 6 6" size={16} width={2.2} /></button>
+            <button type="button" className={`rbtn rarrow${nav.includes('R') ? ' lit' : ''}`} aria-label="Next" disabled={nav.includes('n')} onClick={() => void go(1)}><Icon d="M9 6l6 6-6 6" size={16} width={2.2} /></button>
           </>}
         </div>
       </div>

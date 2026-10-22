@@ -1,9 +1,6 @@
 'use client';
-// The title card's Episodes: season circles (your progress, the count under each), the open season's line (its name, how many
-// you've watched, your average) with its rating and tick circles (what the tick does on hover and for screen readers), then four
-// episodes around where you are (the rest behind "All N episodes"), as cards two across on a wide window: the still, the name
-// and the tick (on the accent ring once watched, a clock until it airs). A tap on one opens its page in the window: the still
-// big, its air date and length, your rating, when you watched it, its story; Back returns to the list. Also the date wheels (Pick date) and the rating circles the card's own controls use.
+// The title card's Episodes: the season line (season menu, rating, tick, the row's circles), Next up, the season's episodes as a
+// row or all of them as cards, and an episode's page. Also the date wheels (Pick date) and the rating circles the card uses.
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { PIcon, useRingRate, useTwoTap } from './Cards';
@@ -67,8 +64,8 @@ async function rateIt(d: Title, n: number | null, season?: number, episode?: num
   return true;
 }
 
-type St = { season: number | null; allEps: boolean; fromStart: boolean };
-export function EpisodesPane({ d, st, set }: { d: Title; st: St; set: (s: Partial<St>) => void }) {
+type St = { season: number | null; allEps: boolean; home: number };
+export function EpisodesPane({ d, st, set, cls }: { d: Title; st: St; set: (s: Partial<St>) => void; cls: string }) {
   const { reloadTitle, pickDay, backRef } = useTitle();
   const seasons = d.seasons!, by = d.you?.bySeason || {};
   // start where you are: the latest season you have watched in, else the first
@@ -87,24 +84,17 @@ export function EpisodesPane({ d, st, set }: { d: Title; st: St; set: (s: Partia
   }, [d, season]);
   const got = res && res.d === d && res.season === season ? res : null, episodes = got?.list;
   // an episode's page, open over the list (only within its season); Back and Escape leave it first
-  const [opened, setOpened] = useState<{ season: number; ep: number } | null>(null);
-  const viewing = opened?.season === season && episodes?.some((e) => e.ep === opened.ep) ? opened.ep : null;
+  const [opened, setOpened] = useState<{ season: number; ep: number; home: number } | null>(null);
+  const viewing = opened?.season === season && opened.home === st.home && episodes?.some((e) => e.ep === opened.ep) ? opened.ep : null;
+  const shown = cls.includes(' on');
   useEffect(() => {
-    if (viewing == null) return;
-    backRef.current = () => { setOpened(null); return true; };
+    if (!shown) return;
+    if (viewing != null) backRef.current = () => { setOpened(null); return true; };
+    else if (st.allEps) backRef.current = () => { set({ allEps: false }); return true; };
+    else return;
     return () => { backRef.current = null; };
-  }, [viewing, backRef]);
-  const openEp = (ep: number | null) => setOpened(ep == null ? null : { season, ep });
-
-  // the season circles sit in their own box: on the phone it shows three and the rest scroll sideways, the open one in the middle
-  const sbox = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const f = requestAnimationFrame(() => {
-      const b = sbox.current, on = b?.querySelector<HTMLElement>('.on');
-      if (b && on && b.scrollWidth > b.clientWidth) b.scrollLeft = on.offsetLeft - b.offsetLeft - (b.clientWidth - on.offsetWidth) / 2;
-    });
-    return () => cancelAnimationFrame(f);
-  }, [season]);
+  }, [shown, viewing, st.allEps, backRef, set]);
+  const openEp = (ep: number | null) => setOpened(ep == null ? null : { season, ep, home: st.home });
 
   // at: when you watched them; times: each one's own (their air dates); unknown: the date isn't known (at only stands in)
   const markEpisodes = async (eps: number[], watched: boolean, at?: number | null, times?: (number | null)[]) => {
@@ -143,32 +133,15 @@ export function EpisodesPane({ d, st, set }: { d: Title; st: St; set: (s: Partia
   }
 
   const sr = d.you?.seasonRatings?.[cur.n], avg = d.you?.seasonAvg?.[cur.n];
+  const [railRef, strip] = useStrip(episodes);
   if (viewing != null && episodes) return (
-    <div className="tc-eps"><EpisodeView key={viewing} d={d} episodes={episodes} at={viewing} season={season} where={seasonName(cur)} markEpisodes={markEpisodes} open={openEp} /></div>
+    <div className={`tc-eps ${cls}`}><EpisodeView key={viewing} d={d} episodes={episodes} at={viewing} season={season} where={seasonName(cur)} markEpisodes={markEpisodes} open={openEp} /></div>
   );
   return (
-    <div className="tc-eps">
-      <div className="tc-eptools">
-        <div className="tc-pills">
-          <div className="tc-sbox" ref={sbox}>
-            {seasons.map((x) => (
-              <button key={x.n} type="button" className={`tc-season${x.n === season ? ' on' : ''}`} aria-label={`${seasonName(x)}${x.episodes ? ` · ${done(x)} / ${x.episodes} watched` : ''}`}
-                onClick={() => set({ season: x.n, allEps: false, fromStart: true })}>
-                <Circ fill={x.episodes ? Math.min(100, (done(x) / x.episodes) * 100) : 0}><span>{d.type === 'anime' ? String(x.n || 1) : x.n ? `S${x.n}` : 'SP'}</span></Circ>
-                <span className="tc-sc">{x.episodes ? `${done(x)}/${x.episodes}` : ''}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* the open season in one line: its name, how many watched, your episodes' average; its action, rating and tick */}
+    <div className={`tc-eps ${cls}${st.allEps ? ' all' : ''}`}>
       <div className="tc-shead">
-        <div className="tc-sum">
-          <b>{seasonName(cur)}</b>
-          <span>{[cur.episodes ? `${done(cur)} of ${cur.episodes} watched` : null, avg && !sr ? `avg ${avg.toFixed(1)}` : null].filter(Boolean).join(' · ')}</span>
-        </div>
+        <SeasonPick seasons={seasons} cur={cur} label={seasonName} done={done} pick={(n) => set({ season: n, allEps: false })} />
         <div className="tc-sacts">
-          {/* the season's rating: your episodes' average, faint, until you rate the season */}
           {(d.type !== 'anime' || seasons.length > 1) && (
             <RateCircle key={`s${cur.n}`} cls="tc-erate season" state={sr ? ' on' : avg ? ' avg' : ''} v={sr || avg || 0} current={sr || 0}
               label={sr ? `Your rating of ${seasonName(cur)}` : avg ? 'Episode average · drag to rate' : 'Drag to rate'} save={(n) => rateIt(d, n, cur.n, -1)} />
@@ -176,35 +149,153 @@ export function EpisodesPane({ d, st, set }: { d: Title; st: St; set: (s: Partia
           <button ref={markRef} type="button" className={`tc-cbtn${markAsk.armed ? ' confirm' : ''}`} aria-label={markLabel} title={markLabel} disabled={!!got?.err} onClick={markClick}>
             <Circ fill={markFill}>{markAsk.armed ? <PIcon name="close" /> : <PIcon name="watched" />}</Circ>
           </button>
+          {episodes?.length ? <>
+            <span className={`rsep${st.allEps ? '' : ' tc-rowctl'}`} aria-hidden="true" />
+            <button type="button" className={`rbtn${st.allEps ? ' on' : ' tc-rowctl'}`} aria-label={st.allEps ? 'Back to Next up' : 'All episodes'} aria-pressed={st.allEps}
+              onClick={() => set({ allEps: !st.allEps })}><Icon d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z" size={15} /></button>
+            {!st.allEps && !strip.nav.includes('h') && <>
+              <button type="button" className={`rbtn rarrow tc-rowctl${strip.nav.includes('L') ? ' lit' : ''}`} aria-label="Previous" disabled={strip.nav.includes('p')} onClick={() => strip.go(-1)}><Icon d="M15 6l-6 6 6 6" size={16} width={2.2} /></button>
+              <button type="button" className={`rbtn rarrow tc-rowctl${strip.nav.includes('R') ? ' lit' : ''}`} aria-label="Next" disabled={strip.nav.includes('n')} onClick={() => strip.go(1)}><Icon d="M9 6l6 6-6 6" size={16} width={2.2} /></button>
+            </>}
+          </> : null}
         </div>
       </div>
-      <div className="tc-eplist">
-        {!got ? <p className="tc-note">Loading episodes…</p>
-          : got.err ? <p className="tc-note">{`Couldn't load episodes (${got.err}).`}</p>
-          : <EpisodeRows d={d} episodes={got.list!} st={st} season={season} markEpisodes={markEpisodes} open={openEp} />}
+      {!got ? <p className="tc-note">Loading episodes…</p>
+        : got.err ? <p className="tc-note">{`Couldn't load episodes (${got.err}).`}</p>
+        : !episodes!.length ? <p className="tc-note">No episode list for this season yet.</p>
+        : st.allEps ? <>
+          <div className="tc-eplist"><EpisodeRows d={d} episodes={episodes!} season={season} markEpisodes={markEpisodes} open={openEp} /></div>
+        </>
+        : <>
+          <NextUp d={d} episodes={episodes!} season={season} markEpisodes={markEpisodes} open={openEp} />
+          <div className="tc-srh">
+            <span>{`${episodes!.length} episodes`}</span>
+            <div className="rail-nav">
+              <button type="button" className="rbtn" aria-label="All episodes" onClick={() => set({ allEps: true })}><Icon d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z" size={15} /></button>
+              {!strip.nav.includes('h') && <>
+                <span className="rsep" aria-hidden="true" />
+                <button type="button" className={`rbtn rarrow${strip.nav.includes('L') ? ' lit' : ''}`} aria-label="Previous" disabled={strip.nav.includes('p')} onClick={() => strip.go(-1)}><Icon d="M15 6l-6 6 6 6" size={16} width={2.2} /></button>
+                <button type="button" className={`rbtn rarrow${strip.nav.includes('R') ? ' lit' : ''}`} aria-label="Next" disabled={strip.nav.includes('n')} onClick={() => strip.go(1)}><Icon d="M9 6l6 6-6 6" size={16} width={2.2} /></button>
+              </>}
+            </div>
+          </div>
+          <EpisodeStrip episodes={episodes!} open={openEp} strip={strip} rail={railRef} art={d.backdrop} />
+        </>}
+    </div>
+  );
+}
+
+type Season = NonNullable<Title['seasons']>[number];
+// the season title and its menu
+function SeasonPick({ seasons, cur, label, done, pick }: { seasons: Season[]; cur: Season; label: (x: Season) => string; done: (x: Season) => number; pick: (n: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [room, setRoom] = useState(300);
+  const box = useRef<HTMLDivElement>(null);
+  const toggle = () => {
+    const b = box.current;
+    if (!open && b) {
+      const end = b.closest('.tp-body')?.getBoundingClientRect().bottom ?? innerHeight;
+      setRoom(Math.max(140, Math.min(300, end - b.getBoundingClientRect().bottom - 16)));
+    }
+    setOpen(!open);
+  };
+  useEffect(() => {
+    if (!open) return;
+    const off = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', off);
+    return () => document.removeEventListener('pointerdown', off);
+  }, [open]);
+  const count = (x: Season) => (x.episodes ? `${done(x)}/${x.episodes}` : '');
+  return (
+    <div className="tc-spick" ref={box} onKeyDown={(e) => { if (open && e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }}>
+      <button type="button" className={`tc-spill${open ? ' open' : ''}`} aria-haspopup="listbox" aria-expanded={open} disabled={seasons.length < 2} onClick={toggle}>
+        <b>{label(cur)}</b><span className="tc-scount">{count(cur)}</span>
+        {seasons.length > 1 && <Icon d="M6 9l6 6 6-6" size={14} />}
+      </button>
+      {open && (
+        <div className="tc-smenu" role="listbox" style={{ maxHeight: room }}>
+          {seasons.map((x) => (
+            <button key={x.n} type="button" role="option" aria-selected={x.n === cur.n} className={x.n === cur.n ? 'on' : ''} onClick={() => { setOpen(false); pick(x.n); }}>
+              <span className="l">{label(x)}</span><span className="tc-scount">{count(x)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Next up: the next aired episode you haven't watched, else the next to air
+function NextUp({ d, episodes, season, markEpisodes, open }: { d: Title; episodes: Episode[]; season: number; markEpisodes: Mark; open: Open }) {
+  const e = episodes.find((x) => !x.watched && (!x.air || x.air <= today())) || episodes.find((x) => !x.watched);
+  return e ? <NextCard key={e.ep} d={d} e={e} episodes={episodes} season={season} markEpisodes={markEpisodes} open={open} /> : null;
+}
+function NextCard({ d, e, episodes, season, markEpisodes, open }: { d: Title; e: Episode; episodes: Episode[]; season: number; markEpisodes: Mark; open: Open }) {
+  const ep = useEpisode(d, e, episodes, season, markEpisodes);
+  const mkRef = useRef<HTMLButtonElement>(null);
+  return (
+    <div className="tc-next">
+      <button type="button" className="tc-nstill" aria-label={e.name || `Episode ${e.ep}`} onClick={() => open(e.ep)}>{(e.still || d.backdrop) && <img src={e.still || d.backdrop!} alt="" className={e.still ? undefined : 'fb'} />}</button>
+      <div className="tc-ntx">
+        <div className="tc-nhead">
+          <span className="tc-nk">{ep.upcoming ? `${airs(e.air)} · E${e.ep}` : `Next up · E${e.ep}`}</span>
+          <button type="button" className="tc-nname" onClick={() => open(e.ep)}>{e.name || `Episode ${e.ep}`}</button>
+          <span className="tc-nmeta">{[ep.upcoming ? null : epDay(e.air), e.runtime ? `${e.runtime}m` : null].filter(Boolean).join(' · ')}</span>
+        </div>
+        {e.overview && <p className="tc-nov">{e.overview}</p>}
       </div>
-      {episodes && episodes.length > 4 ? (
-        <button type="button" className="tc-more" onClick={() => set({ allEps: !st.allEps })}>
-          <span>{st.allEps ? 'Fewer episodes' : `All ${episodes.length} episodes`}</span><Icon d={st.allEps ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
+      <button ref={mkRef} type="button" className={`tc-mark${ep.ask.armed ? ' confirm' : ''}`} aria-label={ep.tickLabel} title={ep.tickLabel} disabled={ep.upcoming}
+        onClick={() => ep.tick(mkRef.current)}>
+        <Circ><TickIcon armed={ep.ask.armed} upcoming={ep.upcoming} /></Circ>
+      </button>
+    </div>
+  );
+}
+
+// the season's episodes as a row, starting one before Next up
+function useStrip(episodes: Episode[] | undefined) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [nav, setNav] = useState('h');
+  const last = useRef({ left: 0, dir: '' });
+  const upd = () => {
+    const x = ref.current; if (!x) return setNav('h');
+    const max = x.scrollWidth - x.clientWidth, l = last.current;
+    if (x.scrollLeft !== l.left) { l.dir = x.scrollLeft > l.left ? 'R' : 'L'; l.left = x.scrollLeft; }
+    setNav(max <= 2 ? 'h' : `${x.scrollLeft <= 2 ? 'p' : ''}${x.scrollLeft >= max - 2 ? 'n' : ''}${l.dir}`);
+  };
+  useLayoutEffect(() => {
+    const x = ref.current, on = x?.querySelector<HTMLElement>('.next');
+    if (x) x.scrollLeft = on?.previousElementSibling ? (on.previousElementSibling as HTMLElement).offsetLeft : 0;
+    upd();
+  }, [episodes]);
+  useEffect(() => { addEventListener('resize', upd); return () => removeEventListener('resize', upd); }, []);
+  const go = (dir: number) => { const x = ref.current; x?.scrollBy({ left: dir * x.clientWidth, behavior: 'smooth' }); };
+  return [ref, { nav, upd, go }] as const;
+}
+type Strip = ReturnType<typeof useStrip>[1];
+function EpisodeStrip({ episodes, open, strip, rail, art }: { episodes: Episode[]; open: Open; strip: Strip; rail: React.RefObject<HTMLDivElement | null>; art: string | null }) {
+  const next = episodes.find((x) => !x.watched && (!x.air || x.air <= today()));
+  useLayoutEffect(() => { strip.upd(); });
+  return (
+    <div ref={rail} className="tc-srail" onScroll={strip.upd}>
+      {episodes.map((e) => (
+        <button key={e.ep} type="button" className={`tc-se${e.watched ? ' seen' : ''}${e === next ? ' next' : ''}`} onClick={() => open(e.ep)}>
+          <span className="tc-ses">
+            {(e.still || art) && <img src={e.still || art!} alt="" loading="lazy" className={e.still ? undefined : 'fb'} />}
+            {e.watched ? <span className="tc-sek"><PIcon name="watched" /></span> : e.air && e.air > today() ? <span className="tc-sair">{epDay(e.air)}</span> : null}
+          </span>
+          <span className="tc-sen"><b>{`E${e.ep}`}</b>{e.name || `Episode ${e.ep}`}</span>
         </button>
-      ) : <button type="button" className="tc-more" hidden />}
+      ))}
     </div>
   );
 }
 
 type Mark = (eps: number[], watched: boolean, at?: number | null, times?: (number | null)[]) => Promise<unknown>;
 type Open = (ep: number | null) => void;
-function EpisodeRows({ d, episodes, st, season, markEpisodes, open }: { d: Title; episodes: Episode[]; st: St; season: number; markEpisodes: Mark; open: Open }) {
-  if (!episodes.length) return <p className="tc-note">No episode list for this season yet.</p>;
+function EpisodeRows({ d, episodes, season, markEpisodes, open }: { d: Title; episodes: Episode[]; season: number; markEpisodes: Mark; open: Open }) {
   const next = episodes.find((e) => !e.watched && (!e.air || e.air <= today()));
-  // two before the next one up and one after it (all aired ones watched: the next one to air, so an airing season shows where
-  // you are, not its last four); with nothing left, the last four; nothing watched yet, the first four
-  const ahead = next || episodes.find((e, i) => !e.watched && episodes.slice(0, i).some((x) => x.watched));
-  const at = ahead ? episodes.indexOf(ahead) : episodes.some((e) => e.watched) ? episodes.length : 0;
-  // a season opened with its circle starts at its first episode
-  const from = st.fromStart ? 0 : Math.max(0, Math.min(at - 2, episodes.length - 4));
-  const shown = st.allEps ? episodes : episodes.slice(from, from + 4);
-  return <>{shown.map((e) => <EpisodeRow key={e.ep} d={d} e={e} episodes={episodes} next={e === next} season={season} markEpisodes={markEpisodes} open={open} />)}</>;
+  return <>{episodes.map((e) => <EpisodeRow key={e.ep} d={d} e={e} episodes={episodes} next={e === next} season={season} markEpisodes={markEpisodes} open={open} />)}</>;
 }
 
 // an episode's marking, for its row and its page: the tick marks it watched (asking when, from the day of the watched one
@@ -264,7 +355,7 @@ function EpisodeRow({ d, e, episodes, next, season, markEpisodes, open }: { d: T
   return (
     <div className={`tc-ep${w ? ' seen' : ''}${ep.upcoming ? ' soon' : ''}${next ? ' next' : ''}`} onClick={() => open(e.ep)}>
       <div className="tc-still">
-        {e.still && <img src={e.still} alt="" loading="lazy" />}
+        {(e.still || d.backdrop) && <img src={e.still || d.backdrop!} alt="" loading="lazy" className={e.still ? undefined : 'fb'} />}
         {next && <span className="tc-nexttag">Next up</span>}
         {!phone && tick}
       </div>
@@ -310,34 +401,33 @@ function EpisodeView({ d, episodes, at, season, where, markEpisodes, open }: { d
       <div className="tc-evtop">
         <button type="button" className="tc-evnav" aria-label="Back to the episodes" onClick={() => open(null)}><Circ><Icon d="M15 5l-7 7 7 7" /></Circ></button>
         <span className="tc-evwhere">{`${where} · E${e.ep}`}</span>
-        <button type="button" className="tc-evnav" aria-label="Previous episode" disabled={!prev} onClick={() => prev && open(prev.ep)}><Circ><Icon d="M15 5l-7 7 7 7" /></Circ></button>
-        <button type="button" className="tc-evnav" aria-label="Next episode" disabled={!nextOne} onClick={() => nextOne && open(nextOne.ep)}><Circ><Icon d="M9 5l7 7-7 7" /></Circ></button>
-      </div>
-      <div className="tc-evhead">
-        <div className="tc-evtitle">
-          <h3 className="tc-evname">{e.name || `Episode ${e.ep}`}</h3>
-          <div className="tc-evmeta">{[ep.upcoming ? airs(e.air) : epDay(e.air), e.runtime ? `${e.runtime}m` : null].filter(Boolean).join(' · ')}</div>
-        </div>
         <div className="tc-evacts">
           {!ep.upcoming && (
             <div className="tc-evact">
               <RateCircle cls="tc-erate" state={e.mine ? ' on' : ''} v={e.mine || 0} current={e.mine || 0} label={e.mine ? `Your rating ${e.mine.toFixed(1)}` : 'Drag to rate'}
                 save={(n) => rateIt(d, n, season, e.ep)} />
-              <span className="tc-evl">{e.mine ? 'Your rating' : 'Rate'}</span>
             </div>
           )}
           <div className="tc-evact">
             <button ref={mkRef} type="button" className={`tc-mark${w ? ' on' : ''}${ep.ask.armed ? ' confirm' : ''}`} aria-label={ep.tickLabel} title={ep.tickLabel} disabled={ep.upcoming}
               onClick={() => ep.tick(mkRef.current)}><Circ><TickIcon armed={ep.ask.armed} upcoming={ep.upcoming} /></Circ></button>
-            {ep.ask.armed ? <span className="tc-evl bad">{ep.tickLabel}</span>
-              : w ? <button ref={dateRef} type="button" className="tc-evl tc-evdate" onClick={() => ep.redate(dateRef.current)}>{seenTxt}</button>
-              : <span className="tc-evl">{seenTxt}</span>}
           </div>
         </div>
+        <span className="rsep" aria-hidden="true" />
+        <button type="button" className="tc-evnav" aria-label="Previous episode" disabled={!prev} onClick={() => prev && open(prev.ep)}><Circ><Icon d="M15 5l-7 7 7 7" /></Circ></button>
+        <button type="button" className="tc-evnav" aria-label="Next episode" disabled={!nextOne} onClick={() => nextOne && open(nextOne.ep)}><Circ><Icon d="M9 5l7 7-7 7" /></Circ></button>
       </div>
       <div className="tc-evbody">
-        <div className="tc-evstill">{e.still && <img src={e.still} alt="" />}</div>
-        {e.overview && <p className="tc-evov">{e.overview}</p>}
+        <div className="tc-evstill">{(e.still || d.backdrop) && <img src={e.still || d.backdrop!} alt="" className={e.still ? undefined : 'fb'} />}</div>
+        <div className="tc-evtext">
+          <div className="tc-evtitle">
+            <h3 className="tc-evname">{e.name || `Episode ${e.ep}`}</h3>
+            <div className="tc-evmeta">{[ep.upcoming ? airs(e.air) : epDay(e.air), e.runtime ? `${e.runtime}m` : null].filter(Boolean).join(' · ')}</div>
+            {ep.ask.armed ? <span className="tc-evl bad">{ep.tickLabel}</span>
+              : w ? <button ref={dateRef} type="button" className="tc-evl tc-evdate" onClick={() => ep.redate(dateRef.current)}>{seenTxt}</button> : null}
+          </div>
+          {e.overview && <p className="tc-evov">{e.overview}</p>}
+        </div>
       </div>
     </div>
   );
