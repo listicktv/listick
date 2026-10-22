@@ -247,28 +247,47 @@ function AccountPane({ section }: { section: Exclude<SectionId, 'appearance' | '
   );
 }
 
+// setup steps
+const INFO = 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 11v5M12 7.5h.01';
+type Step = { text: ReactNode; copy?: { value: string; what: string; show?: string } };
+const masked = (key: string) => `••••••••${key.slice(-4)}`;
+function Steps({ name, steps }: { name: string; steps: Step[] }) {
+  return (
+    <ol className="jf-steps">
+      {steps.map((s, i) => (
+        <li key={i}><div className="jf-step"><span>{s.text}</span>
+          {s.copy && <div className="jf-val"><code>{s.copy.show ?? s.copy.value}</code><CopyKey name={name} value={s.copy.value} what={s.copy.what} /></div>}
+        </div></li>
+      ))}
+    </ol>
+  );
+}
+const SetupToggle = ({ name, open, set }: { name: string; open: boolean; set: (o: boolean) => void }) => (
+  <ACircle d={INFO} label={`${open ? 'Hide' : 'Show'} the ${name} setup`} cls={open ? 'on' : ''} onClick={() => set(!open)} />
+);
+const playLine = (last: { at: number; name: string }) => `${last.name} · ${new Date(last.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
+
 // Jellyfin: a key in a webhook address, the steps to set up its Webhook plugin, and the last play it sent
 function JellyfinRow({ a, done }: { a: Account; done: (p: Promise<string | null>) => Promise<void> }) {
   const key = a.apiKeys?.find((k) => k.id === 'jellyfin')?.key, hook = key ? `${location.origin}/api/v1/jellyfin/${key}` : null, last = a.jellyfin?.last;
   const make = () => done(postJ('/api/account/apikey/jellyfin', {}));
+  const [open, setOpen] = useState(false);
   return (
     <>
       <div className="acct-detail">
         <span className={`acct-c logo${last ? ' on' : ''}`} aria-hidden="true"><img src="/icons/jellyfin.svg" alt="" /></span>
         <div className="acct-detail-t"><b>Jellyfin</b>
-          <span className={`acct-state${last ? ' on' : ''}`}>{!hook ? 'not connected' : last
-            ? `${last.name} · ${new Date(last.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'waiting for the first play'}</span></div>
+          <span className={`acct-state${last ? ' on' : ''}`}>{!hook ? 'not connected' : last ? playLine(last) : 'waiting for the first play'}</span></div>
+        {hook && last && <SetupToggle name="Jellyfin" open={open} set={setOpen} />}
         {!hook ? <ACircle d={PATHS.plus} label="Connect Jellyfin" cls="on" onClick={make} />
           : <TwoTap d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" label="Replace the Jellyfin address" cls="rm" fn={make} />}
       </div>
-      {hook && a.jellyfin && (
-        <ol className="jf-steps">
-          <li><span>In Jellyfin: Dashboard › Plugins › Catalog, install <b>Webhook</b>, then restart Jellyfin.</span></li>
-          <li><span>Plugins › Webhook › <b>Add Generic Destination</b>, with this as its Webhook URL</span><CopyKey name="Jellyfin" value={hook} what="address" /></li>
-          <li><span>Notification types <b>Playback Start</b>, <b>Playback Progress</b>, <b>Playback Stop</b> and <b>User Data Saved</b>; item types <b>Movies</b> and <b>Episodes</b>; your user in the user filter.</span></li>
-          <li><span>This as its Template (leave <b>Send All Properties</b> off), then Save</span><CopyKey name="Jellyfin" value={a.jellyfin.template} what="template" /></li>
-        </ol>
-      )}
+      {hook && a.jellyfin && (!last || open) && <Steps name="Jellyfin" steps={[
+        { text: <>Dashboard › Plugins › Catalog: install <b>Webhook</b>, restart Jellyfin</> },
+        { text: <>Plugins › Webhook › <b>Add Generic Destination</b>, Webhook URL</>, copy: { value: hook, what: 'address', show: `${location.origin}/api/v1/jellyfin/${masked(key!)}` } },
+        { text: <>Notifications <b>Playback Start</b>, <b>Progress</b>, <b>Stop</b>, <b>User Data Saved</b>; items <b>Movies</b>, <b>Episodes</b>; your user</> },
+        { text: <>Template, <b>Send All Properties</b> off, then Save</>, copy: { value: a.jellyfin.template, what: 'template' } },
+      ]} />}
     </>
   );
 }
@@ -278,23 +297,22 @@ const SEANIME_PLUGIN = 'https://raw.githubusercontent.com/listicktv/listick-sean
 function SeanimeRow({ a, done }: { a: Account; done: (p: Promise<string | null>) => Promise<void> }) {
   const key = a.apiKeys?.find((k) => k.id === 'seanime')?.key, last = a.seanime?.last;
   const make = () => done(postJ('/api/account/apikey/seanime', {}));
+  const [open, setOpen] = useState(false);
   return (
     <>
       <div className="acct-detail">
         <span className={`acct-c logo${last ? ' on' : ''}`} aria-hidden="true"><img src="/icons/seanime.svg" alt="" /></span>
         <div className="acct-detail-t"><b>Seanime</b>
-          <span className={`acct-state${last ? ' on' : ''}`}>{!key ? 'not connected' : last
-            ? `${last.name} · ${new Date(last.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'waiting for the first play'}</span></div>
+          <span className={`acct-state${last ? ' on' : ''}`}>{!key ? 'not connected' : last ? playLine(last) : 'waiting for the first play'}</span></div>
+        {key && last && <SetupToggle name="Seanime" open={open} set={setOpen} />}
         {!key ? <ACircle d={PATHS.plus} label="Connect Seanime" cls="on" onClick={make} />
           : <TwoTap d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" label="Replace the Seanime key" cls="rm" fn={make} />}
       </div>
-      {key && (
-        <ol className="jf-steps">
-          <li><span>In Seanime: Extensions › <b>Add extension</b>, with this manifest URL</span><CopyKey name="Seanime" value={SEANIME_PLUGIN} what="address" /></li>
-          <li><span>In the Listick plugin&apos;s settings, this as <b>Listick address</b></span><CopyKey name="Seanime" value={location.origin} what="address" /></li>
-          <li><span>and this as <b>API key</b></span><CopyKey name="Seanime" value={key} /></li>
-        </ol>
-      )}
+      {key && (!last || open) && <Steps name="Seanime" steps={[
+        { text: <>Extensions › <b>Add extension</b>, manifest URL</>, copy: { value: SEANIME_PLUGIN, what: 'manifest URL' } },
+        { text: <>Plugin settings › <b>Listick address</b></>, copy: { value: location.origin, what: 'address' } },
+        { text: <>Plugin settings › <b>API key</b></>, copy: { value: key, what: 'key', show: masked(key) } },
+      ]} />}
     </>
   );
 }

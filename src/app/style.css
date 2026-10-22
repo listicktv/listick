@@ -2224,10 +2224,15 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 .shelf-dd .dd-m { right: auto; min-width: 100%; width: max-content; } .shelf-dd .dd-q input { width: 0; } .shelf-dd .dd-m button { min-height: 34px; gap: 8px; padding: 0 12px 0 8px; font-size: var(--fs-13); }
 .shelf-br { display: none; }
 .jf-steps { margin: -4px 0 14px; padding: 0 0 0 62px; display: flex; flex-direction: column; gap: 8px; counter-reset: jf; list-style: none; }
-.jf-steps li { counter-increment: jf; display: flex; align-items: center; gap: 10px; font-size: var(--fs-13); line-height: 1.45; color: var(--text-2); }
+.jf-steps li { counter-increment: jf; display: flex; align-items: flex-start; gap: 10px; font-size: var(--fs-13); line-height: 20px; color: var(--text-2); }
 .jf-steps li::before { content: counter(jf); flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 600 var(--fs-11) var(--mono);
   color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
-.jf-steps li span { flex: 1; min-width: 0; }
+.jf-step { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+/* copy values */
+.jf-val { display: flex; align-items: center; gap: 8px; }
+.jf-val code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 12px; height: 36px; line-height: 36px;
+  border-radius: 10px; background: var(--on); font: 500 var(--fs-12)/36px var(--mono); color: var(--text-2); }
+.set-rows .jf-val .acct-c { width: 36px; height: 36px; }
 .jf-steps b { color: var(--text); font-weight: 600; }
 @media (max-width: 800px) { .jf-steps { padding-left: 0; } }
 .shelf-n { cursor: default; } .shelf-n .pk-c b { font: 600 var(--fs-13) var(--mono); color: var(--text); }
