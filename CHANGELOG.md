@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.0](https://github.com/listicktv/listick/compare/v0.5.0...v0.6.0) (2026-10-22)
+
+
+### Features
+
+* Jellyfin tracking through its Webhook plugin ([5da2b0f](https://github.com/listicktv/listick/commit/5da2b0fd7b0362836c49a15e820908de7bed994b))
+* watching now on Continue watching, posters, the title window and episodes ([5da2b0f](https://github.com/listicktv/listick/commit/5da2b0fd7b0362836c49a15e820908de7bed994b))
+
+
+### Bug Fixes
+
+* security hardening ([135f679](https://github.com/listicktv/listick/commit/135f679848a6bdaf5a1ce9862245327ead6f18cb))
+* skip Stremio progress while still playing ([e099b38](https://github.com/listicktv/listick/commit/e099b3830ab9c69bfb88e8a2f5f3f164b895da78))
+* watching tags on phone ([91b27b9](https://github.com/listicktv/listick/commit/91b27b96ed648a933d439622abe89d8957954195))
+
 ## [0.5.0](https://github.com/listicktv/listick/compare/v0.4.0...v0.5.0) (2026-10-22)
 
 
