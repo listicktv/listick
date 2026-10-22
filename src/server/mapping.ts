@@ -57,24 +57,26 @@ export async function asTmdb(list: Title[]) {
 // IMDb id, and where it sits on TMDB, so anime show like any series: Attack on Titan Season 3 Part 2 is TMDB show 1429,
 // season 3 from episode 13; a film entry is the TMDB film. A show whose one TV entry has no season (One Piece) is counted from
 // its first episode across TMDB's seasons. Fetched once a day per process; a failed fetch keeps the old map and is tried again in an hour.
-type FribbKitsu = { imdb: string[]; season: number | null; tmdb: TmdbAt | null; mal: number | null };
-type FribbOnTmdb = { kitsu: number; mal: number | null; season: number | null; offset: number };
+type FribbKitsu = { imdb: string[]; season: number | null; tmdb: TmdbAt | null; mal: number | null; anilist: number | null };
+type FribbOnTmdb = { kitsu: number; mal: number | null; anilist: number | null; season: number | null; offset: number };
 type Fribb = {
   at: number; map: Map<number, FribbKitsu>; byImdb: Map<string, { kitsu: number; season: number | null }[]>; byTmdb: Map<number, FribbOnTmdb[]>;
   byMal: Map<number, number>;   // MyAnimeList id -> Kitsu id (the MAL and Simkl imports)
+  byAnilist: Map<number, number>;   // AniList id -> Kitsu id (Seanime)
   byMovie: Map<number, number>;   // TMDB film id -> Kitsu id (the addon plays an anime film as its Kitsu entry)
 };
-export let fribb: Fribb = { at: 0, map: new Map(), byImdb: new Map(), byTmdb: new Map(), byMal: new Map(), byMovie: new Map() };
+export let fribb: Fribb = { at: 0, map: new Map(), byImdb: new Map(), byTmdb: new Map(), byMal: new Map(), byAnilist: new Map(), byMovie: new Map() };
 let fribbLoading: Promise<void> | null = null;
 export async function loadFribb() {
   if (Date.now() - fribb.at <= 24 * HOUR) return;
   fribbLoading ||= (async () => {
     try {
       // and back: IMDb id -> its Kitsu entries, one per TheTVDB season; TMDB show -> its entries (for MyAnimeList's score)
-      const map: Fribb['map'] = new Map(), byImdb: Fribb['byImdb'] = new Map(), byTmdb: Fribb['byTmdb'] = new Map(), byMal: Fribb['byMal'] = new Map(), byMovie: Fribb['byMovie'] = new Map(), whole = new Map<number, number>();
+      const map: Fribb['map'] = new Map(), byImdb: Fribb['byImdb'] = new Map(), byTmdb: Fribb['byTmdb'] = new Map(), byMal: Fribb['byMal'] = new Map(), byAnilist: Fribb['byAnilist'] = new Map(), byMovie: Fribb['byMovie'] = new Map(), whole = new Map<number, number>();
       for (const e of await getJSON<FribbEntry[]>('https://raw.githubusercontent.com/Fribb/anime-lists/master/anime-list-full.json')) {
         if (!e.kitsu_id) continue;
         if (e.mal_id && !byMal.has(e.mal_id)) byMal.set(e.mal_id, e.kitsu_id);
+        if (e.anilist_id && !byAnilist.has(e.anilist_id)) byAnilist.set(e.anilist_id, e.kitsu_id);
         // a film entry lists its TMDB films ([129]; it was one number), the first is the entry's own
         const films = ([] as number[]).concat(e.themoviedb_id?.movie ?? []);
         for (const f of films) if (!byMovie.has(f)) byMovie.set(f, e.kitsu_id);
@@ -83,13 +85,13 @@ export async function loadFribb() {
           : tv && e.type === 'TV' ? { type: 'tv', id: tv, abs: true } : null;
         if (tmdbAt?.abs) whole.set(tv!, (whole.get(tv!) || 0) + 1);
         const imdb = ([] as string[]).concat(e.imdb_id || []);
-        map.set(e.kitsu_id, { imdb, season: e.season?.tvdb ?? null, tmdb: tmdbAt, mal: e.mal_id || null });
+        map.set(e.kitsu_id, { imdb, season: e.season?.tvdb ?? null, tmdb: tmdbAt, mal: e.mal_id || null, anilist: e.anilist_id || null });
         for (const im of imdb) (byImdb.get(im) || byImdb.set(im, []).get(im)!).push({ kitsu: e.kitsu_id, season: e.season?.tvdb ?? null });
-        if (tmdbAt?.type === 'tv') (byTmdb.get(tv!) || byTmdb.set(tv!, []).get(tv!)!).push({ kitsu: e.kitsu_id, mal: e.mal_id || null, season: tmdbAt.season ?? null, offset: tmdbAt.offset || 0 });
+        if (tmdbAt?.type === 'tv') (byTmdb.get(tv!) || byTmdb.set(tv!, []).get(tv!)!).push({ kitsu: e.kitsu_id, mal: e.mal_id || null, anilist: e.anilist_id || null, season: tmdbAt.season ?? null, offset: tmdbAt.offset || 0 });
       }
       // two season-less TV entries on one show can't both count from its first episode: those stay on Kitsu
       for (const m of map.values()) if (m.tmdb?.abs && (whole.get(m.tmdb.id) ?? 0) > 1) m.tmdb = null;
-      fribb = { at: Date.now(), map, byImdb, byTmdb, byMal, byMovie };
+      fribb = { at: Date.now(), map, byImdb, byTmdb, byMal, byAnilist, byMovie };
     } catch (err) {
       console.error(`fribb: ${msg(err)}`);
       fribb = { ...fribb, at: Date.now() - 23 * HOUR };
@@ -163,4 +165,29 @@ export async function kitsuOfMal(mal: number) {
   const d = await kitsu<KitsuList>(`/mappings?filter[externalSite]=myanimelist/anime&filter[externalId]=${mal}&include=item`).catch(() => null);
   const item = (d?.included || []).find((x) => x.type === 'anime');
   return item ? Number(item.id) : null;
+}
+// AniList entry + episode -> Listick place
+export async function placeOfAnilist(anilist: number, ep: number): Promise<Place | null> {
+  await loadFribb();
+  const k = fribb.byAnilist.get(anilist), key = k && await kitsuTitle(k);
+  return key ? canonEp(key, 1, ep) : null;
+}
+// Listick title (+ episode) -> AniList entry and its episode number
+export async function anilistOf(key: string, se = -1, ep = -1): Promise<{ id: number; ep: number } | null> {
+  await loadFribb();
+  const [, kind, raw] = key.split(':'), id = Number(raw);
+  const ofKitsu = (kitsu: number | undefined, e: number) => { const a = kitsu ? fribb.map.get(kitsu)?.anilist : null; return a ? { id: a, ep: e } : null; };
+  if (kind === 'anime') return ofKitsu(id, ep);
+  if (kind === 'movie') return ofKitsu(fribb.byMovie.get(id), -1);
+  const on = (fribb.byTmdb.get(id) || []).filter((x) => x.anilist), abs = on.find((x) => x.season == null && fribb.map.get(x.kitsu)?.tmdb?.abs);
+  if (se < 1) {
+    const first = on.filter((x) => x.season != null && x.season > 0).sort((a, b) => a.season! - b.season! || a.offset - b.offset)[0] || abs;
+    return first ? { id: first.anilist!, ep: -1 } : null;
+  }
+  const part = on.filter((x) => x.season === se && x.offset < ep).sort((a, b) => b.offset - a.offset)[0];
+  if (part) return { id: part.anilist!, ep: ep - part.offset };
+  if (!abs) return null;
+  let n = ep;
+  for (const s of await tvSeasons(id)) { if (s.n >= se) break; n += s.count; }
+  return { id: abs.anilist!, ep: n };
 }

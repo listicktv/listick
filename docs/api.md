@@ -1,12 +1,12 @@
 # Listick API (v1)
 
-An API for addons and other apps: a user's lists and their titles, the calendar feed, and plays sent by Jellyfin. Every route is under `/api/v1/` on a Listick instance (for example `https://listick.example.com/api/v1/me`, or `http://localhost:3000/api/v1/me`).
+An API for addons and other apps: a user's lists and their titles, the calendar feed, and plays sent by Jellyfin and Seanime. Every route is under `/api/v1/` on a Listick instance (for example `https://listick.example.com/api/v1/me`, or `http://localhost:3000/api/v1/me`).
 
 ## Keys and scopes
 
 Users create keys in **Settings › API access**, one per app. Creating a new key replaces the old one, which stops working.
 Each key can use only the scopes its app needs: `lists` (the user's lists and their titles), `calendar` (the calendar
-feed) or `plays` (Jellyfin's plays). To add an app, add an entry to `APPS` in `src/server/api.ts`. Send the key as a header:
+feed) or `plays` (plays sent by Jellyfin or Seanime). To add an app, add an entry to `APPS` in `src/server/api.ts`. Send the key as a header:
 
 ```
 Authorization: Bearer <key>
@@ -69,3 +69,15 @@ Listick's template). The key is in the address; a wrong key gets `404`. The body
 | `position`, `runtime` | `PlaybackPositionTicks`, `RunTimeTicks` | how far it is |
 
 The reply is `{ "ok": true, "recorded": <plays added> }`, or `{ "ok": true, "playing": true }` for a start or progress event.
+
+### `GET /api/v1/anime` (`lists`)
+
+The user's anime as AniList entries: `upNext` (next aired episode, `episode` numbered within the entry), `plan` (Plan to
+watch) and `lists` (own lists with anime, `{ id, name, items }`, max 100 items). Item:
+`{ "anilistId": 154587, "key": "tmdb:tv:209867", "title": "Frieren", "year": 2023, "poster": "https://…", "episode": 29 }`.
+Titles without an AniList mapping are left out.
+
+### `POST /api/v1/anime/play` (`plays`)
+
+An episode by AniList id: `{ "anilistId": 154587, "episode": 29, "state": "watched" }`. `state`: `playing` (watching now,
+optional `progress` 0-100), `stopped` or `watched` (a play). Answers `{ "ok": true, "recorded": 1 }`; unknown id: `404`.

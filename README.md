@@ -1,7 +1,7 @@
 # Listick
 
 Track what you watch: movies, shows and anime. History, ratings, smart lists, Up next, an airing calendar, stats,
-tracking from Stremio and Jellyfin, and imports from Trakt, Simkl, Letterboxd, MyAnimeList, AniList and Kitsu.
+tracking from Stremio, Jellyfin and Seanime, and imports from Trakt, Simkl, Letterboxd, MyAnimeList, AniList and Kitsu.
 Self-hosted, with invite-only sign-up, so you can share it with family and friends.
 
 ![Home: History, Up next, Plan to watch and the airing calendar](docs/screenshots/home.webp)

@@ -22,8 +22,8 @@ import { HOUR } from './util';
 const stremioType = (t: Title) => (t.anime === 1 || t.type === 'anime' ? 'anime' : t.type === 'movie' ? 'movie' : 'series');
 // what Stremio opens an item as: a film or a show (an anime film in a movie row is a Kitsu entry, which reads as a show)
 const itemKind = (t: Title, src: string) => ((/^row\.anime-movie/.test(src) || t.type === 'movie') ? 'movie' : 'series');
-type ListItem = { key: string; next?: string | null };
-async function upNextKeys(uid: string, days: number) {
+type ListItem = { key: string; next?: string | null; se?: number; ep?: number };
+export async function upNextKeys(uid: string, days: number) {
   const out: ListItem[] = [];
   const shows = await q.all<{ key: string; at: number }>(`select h.key, max(h.watched_at) at from history h join titles t using (key)
     where h.user_id = ? and t.type != 'movie' and h.season > 0 and h.watched_at > ? group by h.key order by at desc`, uid, Date.now() - days * 24 * HOUR);
@@ -34,7 +34,7 @@ async function upNextKeys(uid: string, days: number) {
     if (id) await tvSeasons(id).catch(() => {});
     const last = await lastEpOf(uid, t.key), n = nextEpFrom(t, last), aired = id && tvSeasonsCache.get(id)?.aired;
     if (!n || (id && (!aired || n.se > aired.se || (n.se === aired.se && n.ep > aired.ep))) || (!id && t.episodes && n.ep > t.episodes)) continue;
-    out.push({ key: t.key, next: nextUpFrom(t, last) });
+    out.push({ key: t.key, next: nextUpFrom(t, last), se: n.se, ep: n.ep });
   }
   return out;
 }

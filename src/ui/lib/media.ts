@@ -37,7 +37,7 @@ export type Wide = { app: string; ref: Ref | null; ids?: string[]; title: string
   cw?: { id: string; video?: string | null; at: number; key?: string; se?: number; ep?: number; movie: boolean } | null;
   play?: { key: string; season: number; episode: number; mine?: number | null } };
 
-export const APP_NAME: Record<string, string> = { listick: 'Listick', stremio: 'Stremio', jellyfin: 'Jellyfin', anilist: 'AniList', tmdb: 'TMDB', kitsu: 'Kitsu', manual: 'Marked by you', imported: 'Past history' };
+export const APP_NAME: Record<string, string> = { listick: 'Listick', stremio: 'Stremio', jellyfin: 'Jellyfin', seanime: 'Seanime', anilist: 'AniList', tmdb: 'TMDB', kitsu: 'Kitsu', manual: 'Marked by you', imported: 'Past history' };
 export const TYPE_NAME: Record<TitleType, string> = { movie: 'Movie', tv: 'TV', anime: 'Anime' };
 
 const imdbRef = (id: string | undefined) => (/^tt\d+$/.test(id || '') ? { imdb: id! } : null);
@@ -46,7 +46,7 @@ const stremioWide = (id: string | undefined) => (/^tt\d+$/.test(id || '') ? `htt
 
 // one list, newest first: what you stopped partway in Stremio (Continue watching), and the next aired episode of each show and
 // anime you played lately (Up next, from the History: upnext.ts)
-// watching now: what a player says is playing (Jellyfin), or a Stremio item played in the last 20 minutes
+// watching now: what a player says is playing (Jellyfin, Seanime), or a Stremio item played in the last 20 minutes
 const NOW = 20 * 60000;
 export function continueItems(S: Summary) {
   const out: Wide[] = [];
@@ -69,7 +69,7 @@ export function continueItems(S: Summary) {
 // History: from our own database (every play, last 30 days, one card per title); the live sources only if the media
 // service is unreachable. Imported past data (Trakt, MDBList) was watched in Stremio, so it shows Stremio's logo; new plays
 // carry their real source
-const SOURCE_APP: Record<string, string> = { stremio: 'stremio', anilist: 'anilist', jellyfin: 'jellyfin', manual: 'manual', trakt: 'stremio', mdblist: 'stremio' };
+const SOURCE_APP: Record<string, string> = { stremio: 'stremio', anilist: 'anilist', jellyfin: 'jellyfin', seanime: 'seanime', manual: 'manual', trakt: 'stremio', mdblist: 'stremio' };
 export function historyItems(S: Summary) {
   if (S.media?.recent) return oneCardPerTitle(S.media.recent.map((h) => ({ app: SOURCE_APP[h.source] || 'imported', ref: { key: h.key }, title: h.title,
     poster: h.poster, wide: h.backdrop, at: h.at, play: { key: h.key, season: h.season, episode: h.episode, mine: h.mine },

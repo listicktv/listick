@@ -3,7 +3,7 @@
 // sections are a row of chips above it). Account: username (signs you in), name (the greeting), email and password, each
 // changed in place from its pencil circle, and signing out. Appearance: this device's look. Region & services: your country
 // and the services you pay for there (smart lists start with them). Connections: Stremio tracks what you
-// watch (Jellyfin, Plex, Emby, Kodi and Seanime to come). Import: bring your history from another service's export (Kitsu: by
+// watch, and so do Jellyfin and Seanime (Plex, Emby and Kodi to come). Import: bring your history from another service's export (Kitsu: by
 // username). Your data: all of it as a file, or the account deleted.
 // API access: one key per app, and the calendar feed's link. The section is in the address (/settings/import), so a link opens on it. Each change
 // goes to Listick and the section redraws from its answer.
@@ -18,7 +18,7 @@ import { say } from './lib/format';
 import { Icon, PATHS } from './lib/icons';
 
 type Account = { name: string; firstName: string | null; email: string | null; stremio: string | null; apiKeys?: { id: string; name: string; key: string | null }[];
-  jellyfin?: { template: string; last: { at: number; name: string } | null } | null };
+  jellyfin?: { template: string; last: { at: number; name: string } | null } | null; seanime?: { last: { at: number; name: string } | null } | null };
 type Run = { source: string; status: 'queued' | 'running' | 'done' | 'failed'; counts?: Record<string, number>; error?: string | null };
 type Imports = { sources: { id: string; name: string; what: string; file: string; user?: boolean }[]; runs: Run[]; onboard?: boolean };
 
@@ -97,7 +97,7 @@ const SECTIONS = [
 ] as const;
 type SectionId = (typeof SECTIONS)[number]['id'];
 // the connections still to come: name and logo
-const SOON: [string, string][] = [['Plex', 'plex.svg'], ['Emby', 'emby.svg'], ['Kodi', 'kodi.svg'], ['Seanime', 'seanime.svg']];
+const SOON: [string, string][] = [['Plex', 'plex.svg'], ['Emby', 'emby.svg'], ['Kodi', 'kodi.svg']];
 const sectionOf = (id: string | undefined, admin: boolean): SectionId => (SECTIONS.find((x) => x.id === id && (x.id !== 'users' || admin))?.id ?? 'account');
 
 export function Settings() {
@@ -178,6 +178,7 @@ function AccountPane({ section }: { section: Exclude<SectionId, 'appearance' | '
         </div>
         {!on && <StremioForm done={refresh} />}
         <JellyfinRow a={a} done={done} />
+        <SeanimeRow a={a} done={done} />
         {/* the players to come, each as its own connection later */}
         <h3 className="set-sub">Coming soon</h3>
         {SOON.map(([name, logo]) => (
@@ -266,6 +267,32 @@ function JellyfinRow({ a, done }: { a: Account; done: (p: Promise<string | null>
           <li><span>Plugins › Webhook › <b>Add Generic Destination</b>, with this as its Webhook URL</span><CopyKey name="Jellyfin" value={hook} what="address" /></li>
           <li><span>Notification types <b>Playback Start</b>, <b>Playback Progress</b>, <b>Playback Stop</b> and <b>User Data Saved</b>; item types <b>Movies</b> and <b>Episodes</b>; your user in the user filter.</span></li>
           <li><span>This as its Template (leave <b>Send All Properties</b> off), then Save</span><CopyKey name="Jellyfin" value={a.jellyfin.template} what="template" /></li>
+        </ol>
+      )}
+    </>
+  );
+}
+
+// Seanime plugin setup
+const SEANIME_PLUGIN = 'https://raw.githubusercontent.com/listicktv/listick-seanime/main/manifest.json';
+function SeanimeRow({ a, done }: { a: Account; done: (p: Promise<string | null>) => Promise<void> }) {
+  const key = a.apiKeys?.find((k) => k.id === 'seanime')?.key, last = a.seanime?.last;
+  const make = () => done(postJ('/api/account/apikey/seanime', {}));
+  return (
+    <>
+      <div className="acct-detail">
+        <span className={`acct-c logo${last ? ' on' : ''}`} aria-hidden="true"><img src="/icons/seanime.svg" alt="" /></span>
+        <div className="acct-detail-t"><b>Seanime</b>
+          <span className={`acct-state${last ? ' on' : ''}`}>{!key ? 'not connected' : last
+            ? `${last.name} · ${new Date(last.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'waiting for the first play'}</span></div>
+        {!key ? <ACircle d={PATHS.plus} label="Connect Seanime" cls="on" onClick={make} />
+          : <TwoTap d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" label="Replace the Seanime key" cls="rm" fn={make} />}
+      </div>
+      {key && (
+        <ol className="jf-steps">
+          <li><span>In Seanime: Extensions › <b>Add extension</b>, with this manifest URL</span><CopyKey name="Seanime" value={SEANIME_PLUGIN} what="address" /></li>
+          <li><span>In the Listick plugin&apos;s settings, this as <b>Listick address</b></span><CopyKey name="Seanime" value={location.origin} what="address" /></li>
+          <li><span>and this as <b>API key</b></span><CopyKey name="Seanime" value={key} /></li>
         </ol>
       )}
     </>
