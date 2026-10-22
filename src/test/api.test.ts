@@ -175,3 +175,31 @@ describe('outside data', () => {
     assert.equal(t!.overview, 'Fresh overview.');
   });
 });
+
+describe('Jellyfin', () => {
+  const TMDB_BB = { id: 1396, name: 'Breaking Bad', first_air_date: '2008-01-20', poster_path: '/b.jpg', seasons: [{ season_number: 1, episode_count: 7 }] };
+  const hook = (h: Record<string, string>) => ({ event: 'PlaybackStop', done: 'True', played: 'False', tmdb: '', imdb: '', tvdb: '', season: '', episode: '', episodeEnd: '', ...h });
+  test('a finished movie or episode from its Webhook plugin becomes a play', async () => {
+    const me = await signIn('alice', 'password-123', '198.51.100.40');
+    const key = (await me.post('/api/account/apikey/jellyfin')).json.apiKeys.find((k: { id: string }) => k.id === 'jellyfin').key;
+    const plays = () => q.all<{ key: string; season: number; episode: number }>(`select key, season, episode from history where source = 'jellyfin' order by key, season, episode`);
+    fixtures({ '/3/movie/603': TMDB_MATRIX, '/3/find/349232?external_source=tvdb_id': { tv_episode_results: [{ show_id: 1396, season_number: 1, episode_number: 1 }] },
+      '/3/tv/1396': TMDB_BB, '/3/search/tv?query=Breaking%20Bad': { results: [TMDB_BB] } });
+    const send = (h: Record<string, string>, k = key) => api(`/api/v1/jellyfin/${k}`, { method: 'POST', body: hook(h) });
+    assert.equal((await send({ type: 'Movie', name: 'The Matrix', tmdb: '603' })).json.recorded, 1);
+    assert.equal((await send({ type: 'Episode', name: 'Pilot', series: 'Breaking Bad', tvdb: '349232', season: '1', episode: '1' })).json.recorded, 1, 'by its TheTVDB id');
+    assert.equal((await send({ type: 'Episode', name: 'Cat\'s in the Bag', series: 'Breaking Bad', year: '2008', season: '1', episode: '2', episodeEnd: '3' })).json.recorded, 2,
+      'by its show and number, a double episode as two');
+    assert.equal((await send({ type: 'Episode', series: 'Breaking Bad', season: '1', episode: '4', done: 'False' })).json.recorded, 0, 'not played to the end');
+    assert.equal((await send({ type: 'Episode', series: 'Breaking Bad', season: '1', episode: '4', event: 'UserDataSaved', done: '', played: 'True' })).json.recorded, 1, 'marked played');
+    assert.equal((await send({ type: 'Movie', tmdb: '603' })).json.recorded, 0, 'the same play again is not added');
+    assert.equal((await send({ type: 'Movie', tmdb: '603' }, 'not-a-real-jellyfin-key')).status, 404);
+    assert.deepEqual(await plays(), [{ key: MATRIX, season: -1, episode: -1 }, ...[1, 2, 3, 4].map((episode) => ({ key: 'tmdb:tv:1396', season: 1, episode }))]);
+    assert.equal((await me.get('/api/account')).json.jellyfin.last.name, 'Breaking Bad · S1 E4', 'the last play shows in Settings');
+    const now = async () => (await q.one<{ state: { key: string; pct: number } | null }>(`select state from sync_state where source = 'jellyfin' and item = 'now'`))?.state ?? null;
+    assert.equal((await send({ type: 'Movie', tmdb: '603', event: 'PlaybackProgress', done: '', position: '408000000000', runtime: '816000000000' })).json.playing, true);
+    assert.deepEqual([(await now())?.key, (await now())?.pct], [MATRIX, 50], 'what is playing, and how far');
+    await send({ type: 'Movie', tmdb: '603', done: 'False' });
+    assert.equal(await now(), null, 'stopped');
+  });
+});

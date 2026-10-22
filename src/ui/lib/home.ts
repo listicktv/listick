@@ -2,7 +2,7 @@
 import { createContext, useContext, useSyncExternalStore } from 'react';
 import type { Ref } from './media';
 
-export type HomeState = { reload: (ms?: number) => void; openTitle: (ref: Ref) => void };
+export type HomeState = { reload: (ms?: number) => void; openTitle: (ref: Ref) => void; watching?: Set<string> };
 export const HomeCtx = createContext<HomeState>({ reload: () => {}, openTitle: () => {} });
 export const useHome = () => useContext(HomeCtx);
 

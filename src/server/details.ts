@@ -7,6 +7,7 @@ import { TMDB_IMG, getJSON, kitsu, mal, tmdb } from './sources';
 import { watchKeys } from './store';
 import { cleanSynopsis, fillFromTmdb, fromKitsu, fromTmdb, getTitle, saveTitles } from './titles';
 import { fillFromTvdb, tvdbSplit, tvdbSplitKnown } from './tvdb';
+import { watchingOf } from './watching';
 import type { Detail, Episode, KitsuList, KitsuOne, MalAnime, Omdb, Title, TmdbCollection, TmdbDetails, TmdbSeasonDetails, Uid } from './types';
 import { HOUR, env } from './util';
 
@@ -70,6 +71,7 @@ export async function details(key: string, uid: Uid = null) {
   }
   return { ...value, seasonsTvdb: split ? split.map((s) => ({ n: s.n, name: `Season ${s.n}`, episodes: s.eps.length, year: s.year })) : null,
     watchlist: wl.has(key), you, upNext: await nextUp({ key, type: value.type, anime: value.anime }, uid),
+    watching: uid ? (await watchingOf(uid)).find((w) => w.key === key) ?? null : null,
     collectionItems: await cardsOf(uid, value.collectionKeys || [], wl), similar: await cardsOf(uid, similarKeys, wl) };
 }
 // one season's episodes (TMDB for shows; Kitsu's list for anime) with your plays of each

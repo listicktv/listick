@@ -17,7 +17,8 @@ import { getJ, postJ } from './lib/api';
 import { say } from './lib/format';
 import { Icon, PATHS } from './lib/icons';
 
-type Account = { name: string; firstName: string | null; email: string | null; stremio: string | null; apiKeys?: { id: string; name: string; key: string | null }[] };
+type Account = { name: string; firstName: string | null; email: string | null; stremio: string | null; apiKeys?: { id: string; name: string; key: string | null }[];
+  jellyfin?: { template: string; last: { at: number; name: string } | null } | null };
 type Run = { source: string; status: 'queued' | 'running' | 'done' | 'failed'; counts?: Record<string, number>; error?: string | null };
 type Imports = { sources: { id: string; name: string; what: string; file: string; user?: boolean }[]; runs: Run[]; onboard?: boolean };
 
@@ -96,7 +97,7 @@ const SECTIONS = [
 ] as const;
 type SectionId = (typeof SECTIONS)[number]['id'];
 // the connections still to come: name and logo
-const SOON: [string, string][] = [['Jellyfin', 'jellyfin.svg'], ['Plex', 'plex.svg'], ['Emby', 'emby.svg'], ['Kodi', 'kodi.svg'], ['Seanime', 'seanime.svg']];
+const SOON: [string, string][] = [['Plex', 'plex.svg'], ['Emby', 'emby.svg'], ['Kodi', 'kodi.svg'], ['Seanime', 'seanime.svg']];
 const sectionOf = (id: string | undefined, admin: boolean): SectionId => (SECTIONS.find((x) => x.id === id && (x.id !== 'users' || admin))?.id ?? 'account');
 
 export function Settings() {
@@ -176,6 +177,7 @@ function AccountPane({ section }: { section: Exclude<SectionId, 'appearance' | '
           {on && <TwoTap d={PATHS.cross} label="Disconnect Stremio" cls="rm" fn={() => done(postJ('/api/account/stremio', { disconnect: true }))} />}
         </div>
         {!on && <StremioForm done={refresh} />}
+        <JellyfinRow a={a} done={done} />
         {/* the players to come, each as its own connection later */}
         <h3 className="set-sub">Coming soon</h3>
         {SOON.map(([name, logo]) => (
@@ -240,6 +242,32 @@ function AccountPane({ section }: { section: Exclude<SectionId, 'appearance' | '
           </div>
         );
       })}
+    </>
+  );
+}
+
+// Jellyfin: a key in a webhook address, the steps to set up its Webhook plugin, and the last play it sent
+function JellyfinRow({ a, done }: { a: Account; done: (p: Promise<string | null>) => Promise<void> }) {
+  const key = a.apiKeys?.find((k) => k.id === 'jellyfin')?.key, hook = key ? `${location.origin}/api/v1/jellyfin/${key}` : null, last = a.jellyfin?.last;
+  const make = () => done(postJ('/api/account/apikey/jellyfin', {}));
+  return (
+    <>
+      <div className="acct-detail">
+        <span className={`acct-c logo${last ? ' on' : ''}`} aria-hidden="true"><img src="/icons/jellyfin.svg" alt="" /></span>
+        <div className="acct-detail-t"><b>Jellyfin</b>
+          <span className={`acct-state${last ? ' on' : ''}`}>{!hook ? 'not connected' : last
+            ? `${last.name} · ${new Date(last.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'waiting for the first play'}</span></div>
+        {!hook ? <ACircle d={PATHS.plus} label="Connect Jellyfin" cls="on" onClick={make} />
+          : <TwoTap d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" label="Replace the Jellyfin address" cls="rm" fn={make} />}
+      </div>
+      {hook && a.jellyfin && (
+        <ol className="jf-steps">
+          <li><span>In Jellyfin: Dashboard › Plugins › Catalog, install <b>Webhook</b>, then restart Jellyfin.</span></li>
+          <li><span>Plugins › Webhook › <b>Add Generic Destination</b>, with this as its Webhook URL</span><CopyKey name="Jellyfin" value={hook} what="address" /></li>
+          <li><span>Notification types <b>Playback Start</b>, <b>Playback Progress</b>, <b>Playback Stop</b> and <b>User Data Saved</b>; item types <b>Movies</b> and <b>Episodes</b>; your user in the user filter.</span></li>
+          <li><span>This as its Template (leave <b>Send All Properties</b> off), then Save</span><CopyKey name="Jellyfin" value={a.jellyfin.template} what="template" /></li>
+        </ol>
+      )}
     </>
   );
 }

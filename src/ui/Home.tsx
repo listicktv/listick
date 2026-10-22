@@ -74,7 +74,9 @@ export function Home({ view, kind }: { view: (body: ReactNode) => ReactNode; kin
     window.scrollTo(0, 0); void load();
   }, [kind, load]);
   const panel = useRef<TitlePanelApi>(null);
-  const home = useMemo<HomeState>(() => ({ reload: (ms = 0) => { setTimeout(load, ms); }, openTitle: (r) => panel.current?.open(r) }), [load]);
+  const watchingNow = S?.watching;
+  const home = useMemo<HomeState>(() => ({ reload: (ms = 0) => { setTimeout(load, ms); }, openTitle: (r) => panel.current?.open(r),
+    watching: new Set((watchingNow || []).map((w) => w.key)) }), [load, watchingNow]);
 
   // a card at a slide row's visible edge (left or right, wherever the row is scrolled) grows inward on hover, so the row doesn't
   // clip it; the ones in between grow from their middle

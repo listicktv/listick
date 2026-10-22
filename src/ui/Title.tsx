@@ -322,6 +322,8 @@ function TitleView({ d }: { d: Title }) {
           </div>
           <div className="tc-h">
             <h2 className="tc-title">{d.title + (d.label ? ` · ${d.label}` : '')}</h2>
+            {d.watching && <span className="tc-now">{['Watching now', d.watching.se >= 0 ? (d.type === 'anime' ? `E${d.watching.ep}` : `S${d.watching.se} E${d.watching.ep}`) : null,
+              d.watching.pct != null ? `${d.watching.pct} %` : null].filter(Boolean).join(' · ')}</span>}
             <div className="tc-meta">{meta}<Cert d={d} /></div>
             <Scores d={d}>{!phone && trailer(false)}</Scores>
           </div>

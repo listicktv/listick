@@ -2,6 +2,7 @@
 import { cardsOf, viewsOf } from './cards';
 import { q } from './db';
 import { forYouOf } from './foryou';
+import { watchingCards } from './watching';
 import { asTmdb } from './mapping';
 import { ROWS, SERVICES, SERVICE_ROWS, listOf, liveServices, rowType, rowsNow, serviceRowKind } from './rows';
 import { kitsu, tmdb } from './sources';
@@ -47,10 +48,12 @@ async function hideDone(uid: string, sr: LiveValue['stremio']) {
   const hidden = new Map((await q.all<{ item: string; state: { at?: number } | null }>("select item, state from sync_state where user_id = ? and source = 'cw-hide'", uid)).map((r) => [r.item, r.state?.at ?? -1]));
   return { ...sr, continue: (sr.continue || []).filter((c) => !(c.resume && (hidden.get(`${c.id}|${c.video || ''}`) ?? -1) >= c.at)) };
 }
-// the page's summary (asked every 15 s): Stremio's live parts, Up next, the calendar, Home's rows and For you
+// the page's summary (asked every 15 s): Stremio's live parts, what a player says is playing, Up next, the calendar, Home's rows
+// and For you
 export async function pageData(uid: string, query: URLSearchParams) {
   const l = await liveOf(uid);
-  return { stremio: await hideDone(uid, l.stremio), upNext: l.upNext || [], schedule: l.schedule || [], media: await summary(uid, query), forYou: await forYouOf(uid) };
+  return { stremio: await hideDone(uid, l.stremio), watching: await watchingCards(uid), upNext: l.upNext || [], schedule: l.schedule || [], media: await summary(uid, query),
+    forYou: await forYouOf(uid) };
 }
 // the home page's two pickers, each with Movies | Shows | Anime: a group of the general rows (Everyone, Kids) (In theaters stays a row of its own) and a
 // streaming service. The page gets the picked pair's two rows only; a switch asks for the next pair (/api/shelf)

@@ -3,6 +3,7 @@
 import crypto from 'node:crypto';
 import { auth } from '@/lib/auth';
 import { q, tx } from './db';
+import { JELLYFIN_TEMPLATE, jellyfinEvent } from './jellyfin';
 import { mailOn, ORIGINS, LINK_ORIGIN } from './mail';
 import { exportOf } from './account';
 import { calendarOf } from './calendar';
@@ -117,7 +118,8 @@ async function signIn(login: unknown, password: unknown) {
 const forgetSource = (uid: string, sources: string[]) => q.run('delete from sync_state where user_id = ? and source = any(?)', uid, sources);
 // the apps a user can make an API key for (one key each) and the scopes of the public API (docs/api.md) each key opens: lists
 // (your lists and their titles), calendar (the feed). A new app is one line here
-const APPS = [{ id: 'catalogs', name: 'Stremio addon', scopes: ['lists'] }, { id: 'calendar', name: 'Calendar feed', scopes: ['calendar'] }];
+const APPS = [{ id: 'catalogs', name: 'Stremio addon', scopes: ['lists'] }, { id: 'calendar', name: 'Calendar feed', scopes: ['calendar'] },
+  { id: 'jellyfin', name: 'Jellyfin', scopes: ['plays'] }];
 // a key's user and app, if the key is real
 const keyOf = (token: string) => (/^[\w-]{10,128}$/.test(token) ? q.one<{ id: string; app: string }>('select user_id id, addon app from api_keys where token = ?', token) : null);
 const mayUse = (app: string, scope: string) => !!APPS.find((a) => a.id === app)?.scopes.includes(scope);
@@ -125,7 +127,8 @@ async function account(uid: string) {
   const u = (await getUser(uid))!;
   const keys = Object.fromEntries((await q.all<{ addon: string; token: string }>('select addon, token from api_keys where user_id = ?', uid)).map((r) => [r.addon, r.token]));
   return { ...pubUser(u), email: u.email || null, mail: mailOn(), stremio: u.stremio_key ? (u.stremio_user || 'connected') : null,
-    apiKeys: APPS.map(({ id, name }) => ({ id, name, key: keys[id] || null })) };
+    apiKeys: APPS.map(({ id, name }) => ({ id, name, key: keys[id] || null })),
+    jellyfin: keys.jellyfin ? { template: JELLYFIN_TEMPLATE, last: await getState<{ at: number; name: string }>(uid, 'jellyfin', 'last') } : null };
 }
 // Stremio's own sign-in (the request its apps send, stremio-core's AuthRequest::Login): only the session key it returns is kept
 async function stremioLogin(email: string, password: string) {
@@ -276,6 +279,13 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
     const who = await keyOf(m[1]);
     if (!who || !mayUse(who.app, 'calendar')) return json(req, await tooMany(req) ? 429 : 404, { error: 'no such calendar' });
     return new Response(await calendarOf(who.id), { headers: { 'content-type': 'text/calendar; charset=utf-8', 'cache-control': 'private, max-age=900' } });
+  }
+  // Jellyfin's Webhook plugin: what plays and what was played, opened by a Jellyfin key in its address
+  m = p.match(/^\/api\/v1\/jellyfin\/([\w-]{10,128})$/);
+  if (m && req.method === 'POST') {
+    const who = await keyOf(m[1]);
+    if (!who || !mayUse(who.app, 'plays')) return json(req, await tooMany(req) ? 429 : 404, { error: 'no such key' });
+    return json(req, 200, await jellyfinEvent(who.id, await req.json().catch(() => null)));
   }
   // the public API, v1 (docs/api.md): read-only, for addons and other apps. A key (Authorization: Bearer <key>, made in
   // Settings › API access) opens the scopes of the app it was made for. Wrong keys count toward the same limit as sign-in

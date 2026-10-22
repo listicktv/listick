@@ -1,12 +1,12 @@
 # Listick API (v1)
 
-A read-only API for addons and other apps: a user's lists and their titles, and the calendar feed. Every route is under `/api/v1/` on a Listick instance (for example `https://listick.example.com/api/v1/me`, or `http://localhost:3000/api/v1/me`).
+An API for addons and other apps: a user's lists and their titles, the calendar feed, and plays sent by Jellyfin. Every route is under `/api/v1/` on a Listick instance (for example `https://listick.example.com/api/v1/me`, or `http://localhost:3000/api/v1/me`).
 
 ## Keys and scopes
 
 Users create keys in **Settings › API access**, one per app. Creating a new key replaces the old one, which stops working.
-Each key can use only the scopes its app needs: `lists` (the user's lists and their titles) or `calendar` (the calendar
-feed). To add an app, add an entry to `APPS` in `src/server/api.ts`. Send the key as a header:
+Each key can use only the scopes its app needs: `lists` (the user's lists and their titles), `calendar` (the calendar
+feed) or `plays` (Jellyfin's plays). To add an app, add an entry to `APPS` in `src/server/api.ts`. Send the key as a header:
 
 ```
 Authorization: Bearer <key>
@@ -52,3 +52,20 @@ gets `404`.
 
 The user's calendar (airing episodes and Plan to watch releases) as iCalendar. The key is in the address, since calendar
 apps send no headers; a wrong key gets `404`.
+
+### `POST /api/v1/jellyfin/<key>` (`plays`)
+
+What Jellyfin's Webhook plugin sends, set up from **Settings › Connections › Jellyfin** (a Generic destination with
+Listick's template). The key is in the address; a wrong key gets `404`. The body is the template's JSON:
+
+| Field | From the plugin | Use |
+|---|---|---|
+| `event` | `NotificationType` | `PlaybackStart` and `PlaybackProgress`: what's playing now; `PlaybackStop` with `done`, or `UserDataSaved` with `played`: a play |
+| `type` | `ItemType` | `Movie` or `Episode` |
+| `tmdb`, `imdb`, `tvdb` | `Provider_tmdb`, `Provider_imdb`, `Provider_tvdb` | the movie, or the episode's own ids |
+| `series`, `year`, `season`, `episode`, `episodeEnd` | `SeriesName`, `Year`, `SeasonNumber`, `EpisodeNumber`, `EpisodeNumberEnd` | an episode without ids |
+| `name` | `Name` | the last play shown in Settings |
+| `done`, `played` | `PlayedToCompletion`, `Played` | `True` or `False` |
+| `position`, `runtime` | `PlaybackPositionTicks`, `RunTimeTicks` | how far it is |
+
+The reply is `{ "ok": true, "recorded": <plays added> }`, or `{ "ok": true, "playing": true }` for a start or progress event.

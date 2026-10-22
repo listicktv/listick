@@ -24,6 +24,7 @@ type Play = { key: string; type: TitleType; title: string; poster: string | null
 type Planned = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; addedAt: number; label?: string | null; year?: number | null; anime?: boolean };
 export type Summary = {
   stremio?: { continue?: StContinue[]; history?: StCard[] } | null;
+  watching?: { source: string; key: string; se: number; ep: number; pct: number | null; at: number; title: string; type: TitleType; poster: string | null; backdrop: string | null }[];
   upNext?: UpNext[]; schedule?: AirEp[];
   media?: { recent?: Play[]; watchlist?: Planned[]; rows?: Row[]; group?: Shelf | null; service?: Shelf | null; services?: Service[] } | null;
   forYou?: { suggested?: Tile[]; coming?: Tile[] } | null;
@@ -32,7 +33,7 @@ export type Summary = {
 export type Ref = { key: string } | { imdb: string };
 // a wide card (History, Continue watching, Up next, Plan to watch)
 export type Wide = { app: string; ref: Ref | null; ids?: string[]; title: string; poster: string | null; wide: string | null; url?: string; at: number;
-  sub: string; pct?: number; airedAt?: number; isNew?: boolean; resume?: boolean;
+  sub: string; pct?: number; airedAt?: number; isNew?: boolean; watching?: boolean; resume?: boolean;
   cw?: { id: string; video?: string | null; at: number; key?: string; se?: number; ep?: number; movie: boolean } | null;
   play?: { key: string; season: number; episode: number; mine?: number | null } };
 
@@ -45,8 +46,12 @@ const stremioWide = (id: string | undefined) => (/^tt\d+$/.test(id || '') ? `htt
 
 // one list, newest first: what you stopped partway in Stremio (Continue watching), and the next aired episode of each show and
 // anime you played lately (Up next, from the History: upnext.ts)
+// watching now: what a player says is playing (Jellyfin), or a Stremio item played in the last 20 minutes
+const NOW = 20 * 60000;
 export function continueItems(S: Summary) {
   const out: Wide[] = [];
+  for (const w of (S.watching || []).filter((x) => x.source !== 'stremio')) out.push({ app: w.source, ref: { key: w.key }, ids: [w.key], title: w.title, poster: w.poster, wide: w.backdrop, at: w.at, pct: w.pct ?? undefined,
+    watching: true, sub: `${w.se < 0 ? 'Movie' : w.type === 'anime' ? `E${w.ep}` : `S${w.se} E${w.ep}`}${w.pct != null ? ` · ${w.pct} %` : ''}` });
   for (const u of S.upNext || []) out.push({ app: 'listick', ref: { key: u.key }, ids: [u.key], title: u.title, poster: u.poster, wide: u.backdrop, at: u.at,
     airedAt: u.airedAt ?? undefined, sub: `${u.type === 'anime' ? `E${u.ep}` : `S${u.se} E${u.ep}`} · next up` });
   // a placed episode uses its TMDB/Kitsu title, artwork and numbering (the same as the History row)
@@ -54,10 +59,12 @@ export function continueItems(S: Summary) {
     const p = c.place, ep = p ? (p.type === 'anime' ? `E${p.ep}` : `S${p.se} E${p.ep}`) : c.type === 'movie' ? 'Movie' : epLabel(c);
     out.push({ app: 'stremio', ref: p ? { key: p.key } : imdbRef(c.id), ids: c.ids, title: p?.title || c.title, poster: p?.poster || c.poster,
       wide: p?.backdrop || stremioWide(c.id), url: c.url, at: c.at, pct: c.pct, airedAt: c.airedAt, resume: !!c.resume, sub: `${ep} · ${c.resume ? `${c.pct} %` : 'next up'}`,
-      cw: c.resume && (p || c.type === 'movie') ? { id: c.id, video: c.video, at: c.at, key: p?.key, se: p?.se, ep: p?.ep, movie: c.type === 'movie' } : null });
+      cw: c.resume && (p || c.type === 'movie') ? { id: c.id, video: c.video, at: c.at, key: p?.key, se: p?.se, ep: p?.ep, movie: c.type === 'movie' } : null,
+      watching: !!c.resume && Date.now() - c.at < NOW });
   }
   // NEW: the episode you're up to came out in the last 4 days
-  return oneCardPerTitle(out).slice(0, 15).map((w) => ({ ...w, isNew: !!w.airedAt && Date.now() - w.airedAt < 4 * 86400000 }));
+  out.sort((a, b) => Number(!!b.watching) - Number(!!a.watching));
+  return oneCardPerTitle(out).slice(0, 15).map((w) => ({ ...w, isNew: !w.watching && !!w.airedAt && Date.now() - w.airedAt < 4 * 86400000 }));
 }
 // History: from our own database (every play, last 30 days, one card per title); the live sources only if the media
 // service is unreachable. Imported past data (Trakt, MDBList) was watched in Stremio, so it shows Stremio's logo; new plays
