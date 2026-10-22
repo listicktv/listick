@@ -10,10 +10,10 @@ import { useApp } from './App';
 import { HistCard, PkBtn, PlanCard, ResumeCard, TrendCard, WideCard } from './Cards';
 import { Hero } from './Hero';
 import { getJ, postJ, signedOut } from './lib/api';
-import { HomeCtx, type HomeState } from './lib/home';
+import { HomeCtx, usePhone, type HomeState } from './lib/home';
 import { Icon, PATHS } from './lib/icons';
 import { listsBus } from './lib/lists';
-import { comingTag, continueItems, historyItems, planItems, setFetchedAt, type Row, type Shelf, type Summary, type Tile, type TitleType, type Wide } from './lib/media';
+import { comingTag, continueItems, historyItems, planItems, setFetchedAt, type Row, type Service, type Shelf, type Summary, type Tile, type TitleType, type Wide } from './lib/media';
 import { Group } from './Rail';
 import { TitlePanel, type TitlePanelApi } from './Title';
 
@@ -49,7 +49,7 @@ export function Home({ view, kind }: { view: (body: ReactNode) => ReactNode; kin
   // the page S was asked for: another page's rows stay out of sight until its own come in
   const [sFor, setSFor] = useState<TitleType | null | undefined>(undefined);
   const [pk, setPk] = useState<Picks>(() => first(kind));
-  const [svcEnd, setSvcEnd] = useState(false);
+  const phone = usePhone();
   const pkNow = useRef(pk), kindNow = useRef(kind);
   const shelves = useRef(new Map<string, { group?: Shelf | null; service?: Shelf | null }>());
 
@@ -162,18 +162,17 @@ export function Home({ view, kind }: { view: (body: ReactNode) => ReactNode; kin
         </div></div>
         {media?.group && <Pair root="grp" shelf={media.group} empty={`No ${media.group.id === 'kids' ? `kids ${WORD[media.group.kind]}` : WORD[media.group.kind]} right now`} />}
       </div>
-      {/* streaming services: a logo per service in the section head, the picked one's two rows below */}
+      {/* streaming services: a logo per service in the section head (a phone picks from the heading), the picked one's two rows below */}
       <div className="gen-rows" id="svc" hidden={!services.length || !media?.service}>
         <div className="group-head pick-head"><h2 className="sh">STREAMING</h2><div className="pick-tools">
-          {/* the logos scroll sideways on a phone: a small › says there are more, until the end is reached */}
-          <div className={`pk-set${svcEnd ? ' at-end' : ''}`} id="svc-pick" role="group" aria-label="Streaming service"
-            onScroll={(e) => { const x = e.currentTarget; setSvcEnd(x.scrollLeft + x.clientWidth >= x.scrollWidth - 4); }}>
-            {services.map((sv) => (
-              <PkBtn key={sv.id} label={SVC_SHORT[sv.id] || sv.name} data={{ svc: sv.id }} face={<img src={sv.logo} alt="" />} aria={sv.name} on={svcOn === sv.id} pressed={svcOn === sv.id}
-                none={svcOn === sv.id && !!media?.service && !media.service.rows.some((r) => r.items.length)} onClick={() => void pick('service', { service: sv.id })} />
-            ))}
-          </div>
-          <span className="svc-more" aria-hidden="true" hidden={svcEnd}>›</span>
+          {phone ? <SvcPick services={services} on={svcOn} pick={(id) => void pick('service', { service: id })} /> : <>
+            <div className="pk-set" role="group" aria-label="Streaming service">
+              {services.map((sv) => (
+                <PkBtn key={sv.id} label={SVC_SHORT[sv.id] || sv.name} data={{ svc: sv.id }} face={<img src={sv.logo} alt="" />} aria={sv.name} on={svcOn === sv.id} pressed={svcOn === sv.id}
+                  none={svcOn === sv.id && !!media?.service && !media.service.rows.some((r) => r.items.length)} onClick={() => void pick('service', { service: sv.id })} />
+              ))}
+            </div>
+          </>}
           {/* the Anime page picks series or films here too */}
           {kind === 'anime' && <>
             <span className="pk-sep" />
@@ -324,4 +323,34 @@ function Titles() {
   const list = want.length >= 3 ? res.results || [] : [];
   return <Group id="titles" trend title="TITLES" note={<span className="mono faint note-line" id="titles-note">{res.note}</span>} hidden={!list.length}
     railClass="rail ptrack" items={list} keyOf={tileKey} card={trend} />;
+}
+
+// phone: the section heading picks the service (STREAMING · NETFLIX ▾)
+function SvcPick({ services, on, pick }: { services: Service[]; on: string | undefined; pick: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const off = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', off);
+    return () => document.removeEventListener('pointerdown', off);
+  }, [open]);
+  const cur = services.find((sv) => sv.id === on) || services[0];
+  if (!cur) return null;
+  return (
+    <div ref={box} className="svc-hp">
+      <button type="button" className={`svc-hbtn${open ? ' open' : ''}`} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span>STREAMING · </span><em>{cur.name.toUpperCase()}</em><Icon d="M6 9l6 6 6-6" size={14} width={2.4} />
+      </button>
+      {open && (
+        <div className="svc-menu" role="listbox">
+          {services.map((sv) => (
+            <button key={sv.id} type="button" role="option" aria-selected={sv.id === cur.id} className={sv.id === cur.id ? 'on' : ''} onClick={() => { setOpen(false); if (sv.id !== cur.id) pick(sv.id); }}>
+              <img src={sv.logo} alt="" />{sv.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

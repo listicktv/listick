@@ -11,7 +11,8 @@ export async function fromMal(nodes: { node: MalNode }[]) {
   // the Kitsu entries not looked up yet, all at once (one by one, a row took seconds)
   const todo = nodes.filter(({ node: n }) => !malKitsu.has(n.id));
   for (let i = 0; i < todo.length; i += 10) await Promise.all(todo.slice(i, i + 10).map(async ({ node: n }) => {
-    const d = await kitsu<KitsuList>(`/mappings?filter[externalSite]=myanimelist/anime&filter[externalId]=${n.id}&include=item`).catch(() => null);
+    const d = await kitsu<KitsuList>(`/mappings?filter[externalSite]=myanimelist/anime&filter[externalId]=${n.id}&include=item`).catch(() => undefined);
+    if (d === undefined) return;
     let k = (d?.included || []).find((x) => x.type === 'anime') || null;
     // brand-new entries often lack the MAL link on Kitsu yet: find it by title, if the start year agrees
     if (!k && n.start_season) {

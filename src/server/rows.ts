@@ -137,7 +137,7 @@ async function trendingAnimeMovies() {
   let y = d.getFullYear(), i = order.indexOf(SEASONS[d.getMonth()]);
   const seasons: [number, string][] = [], today = d.toISOString().slice(0, 10);
   for (let n = 0; n < 4; n++) { seasons.push([y, order[i]]); if (--i < 0) { i = 3; y--; } }
-  const lists = await Promise.all(seasons.map(([yy, se]) => mal<MalList>(`/anime/season/${yy}/${se}?sort=anime_num_list_users&limit=100&${MAL_FIELDS},media_type,num_list_users,start_date`).then((r) => r.data).catch(() => [])));
+  const lists = await Promise.all(seasons.map(([yy, se]) => mal<MalList>(`/anime/season/${yy}/${se}?sort=anime_num_list_users&limit=100&${MAL_FIELDS},media_type,num_list_users,start_date`).then((r) => r.data).catch((e) => { console.error(`mal ${yy} ${se}: ${msg(e)}`); return []; })));
   const seen = new Set<number>();
   const films = lists.flat().filter(({ node: n }) => n.media_type === 'movie' && n.start_date && n.start_date <= today && !seen.has(n.id) && seen.add(n.id))
     .sort((a, b) => (b.node.num_list_users || 0) - (a.node.num_list_users || 0));
@@ -152,7 +152,7 @@ async function trendingKidsAnime() {
   let y = d.getFullYear(), i = order.indexOf(SEASONS[d.getMonth()]);
   const seasons: [number, string][] = [];
   for (let n = 0; n < 4; n++) { seasons.push([y, order[i]]); if (--i < 0) { i = 3; y--; } }
-  const lists = await Promise.all(seasons.map(([yy, se]) => mal<MalList>(`/anime/season/${yy}/${se}?sort=anime_num_list_users&limit=300&${MAL_FIELDS},rating,num_list_users`).then((r) => r.data).catch(() => [])));
+  const lists = await Promise.all(seasons.map(([yy, se]) => mal<MalList>(`/anime/season/${yy}/${se}?sort=anime_num_list_users&limit=300&${MAL_FIELDS},rating,num_list_users`).then((r) => r.data).catch((e) => { console.error(`mal ${yy} ${se}: ${msg(e)}`); return []; })));
   const seen = new Set<number>();
   const kids = lists.flat().filter(({ node: n }) => KIDS_RATED.includes(n.rating!) && !seen.has(n.id) && seen.add(n.id))
     .sort((a, b) => (b.node.num_list_users || 0) - (a.node.num_list_users || 0));
@@ -161,7 +161,7 @@ async function trendingKidsAnime() {
 async function popularKidsAnime() {
   if (!env('MAL_CLIENT_ID')) return kitsuList('/anime?filter[ageRating]=G,PG&sort=popularityRank&page[limit]=20');
   // few of the most popular are rated for kids: the top 2,000 (four pages)
-  const pages = await Promise.all([0, 500, 1000, 1500].map((off) => mal<MalList>(`/anime/ranking?ranking_type=bypopularity&limit=500&offset=${off}&${MAL_FIELDS},rating`).then((r) => r.data).catch(() => [])));
+  const pages = await Promise.all([0, 500, 1000, 1500].map((off) => mal<MalList>(`/anime/ranking?ranking_type=bypopularity&limit=500&offset=${off}&${MAL_FIELDS},rating`).then((r) => r.data).catch((e) => { console.error(`mal popularity ${off}: ${msg(e)}`); return []; })));
   return fromMal(pages.flat().filter(({ node: n }) => KIDS_RATED.includes(n.rating!)).slice(0, DEEP));
 }
 async function popularAnimeMovies() {
@@ -377,6 +377,8 @@ export async function refreshRows() {
     try {
       const seen = new Set<string>();
       const list = (await row.job()).filter((t) => !seen.has(byTitle(t)) && seen.add(byTitle(t)));
+      const kept = rows[row.id];
+      if (!list.length && Array.isArray(kept) && kept.length) { console.error(`${row.id}: nothing found, kept the last list`); continue; }
       rows[row.id] = (await saveTitles(list)).map((t) => t.key);
     } catch (e) { console.error(`${row.id}: ${msg(e)}`); }
   }

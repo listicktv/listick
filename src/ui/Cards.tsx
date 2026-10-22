@@ -207,7 +207,7 @@ export function ResumeCard({ w }: { w: Wide }) {
     <WideCard w={w} logo={false} cls={`${ask.armed ? ' asking' : ''}${leaving ? ' leaving' : ''}`}>
       <button type="button" className="pdial second" aria-label="Mark watched" onKeyDown={stop}
         onClick={(e) => { e.stopPropagation(); if (ask.armed) void leave(true); }}><span className="face"><PIcon name="watched" /></span></button>
-      <button type="button" className={`pdial${ask.armed ? ' confirm' : ' more'}`} aria-label={ask.armed ? 'Remove from Continue watching' : 'Actions'} onKeyDown={stop}
+      <button type="button" className={`pdial${ask.armed ? ' confirm' : ' acts'}`} aria-label={ask.armed ? 'Remove from Continue watching' : 'Actions'} onKeyDown={stop}
         onClick={(e) => { e.stopPropagation(); ask.tap(() => leave(false)); }}><span className="face"><PIcon name={ask.armed ? 'close' : 'more'} /></span></button>
     </WideCard>
   );
