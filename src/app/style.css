@@ -503,10 +503,10 @@ button.day:hover:not(.today) { background: var(--on); }
 /* phone, every page: one rhythm. A title sits 5 px above its card; a card is 14 px above the next title,
    whether the next section is in the main column, the side column or after it */
 @media (max-width: 800px) {
-  .view, .body, .main { gap: 14px; }
+  .view, .body, .main { gap: 20px; }
   .group { gap: 5px; }
   .view .side { gap: 5px; }
-  .view .side > .group-head:not(:first-child) { margin-top: 9px; }
+  .view .side > .group-head:not(:first-child) { margin-top: 15px; }
   .cal-gh { height: auto; }
 }
 @media (max-width: 800px) { .group-head, .group-head > .sh, .group-head .note-line { line-height: 1.15; min-height: 0; } }
@@ -1283,7 +1283,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 .group-head:has(> .rail-nav) > .sh { position: relative; padding-left: 13px; font-size: var(--fs-16); }
 .group-head:has(> .rail-nav) > .sh::before { content: ""; position: absolute; left: 0; top: 50%; width: 4px; height: 1em; border-radius: 2px; background: var(--accent); transform: translateY(-50%); }
 @media (max-width: 800px) {
-  .group:has(> .group-head > .rail-nav) { gap: 9px; }
+  .group:has(> .group-head > .rail-nav) { gap: 11px; }
   .group-head:has(> .rail-nav) > .sh { padding-left: 11px; font-size: var(--fs-14); }
   .group-head:has(> .rail-nav) > .sh::before { width: 3px; }
 }
