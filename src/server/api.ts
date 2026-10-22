@@ -597,7 +597,9 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
     if (!g.user.admin) return json(req, 403, { error: 'admins only' });
     const x = await getUser(m[1]);
     if (!x) return json(req, 404, { error: 'no such user' });
+    const owner = await ownerId();
     if (m[2] === 'password') {
+      if (x.id === owner && g.user.id !== owner) return json(req, 403, { error: "only the owner changes the owner's password" });
       const b = await body(req);
       if (!passOk(b.password)) return json(req, 400, { error: 'password: at least 8 characters' });
       const ctx = await auth.$context;
@@ -606,7 +608,7 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
       return json(req, 200, { ok: true });
     }
     // the owner and yourself stay; everything the user had goes with them (cascade)
-    if (x.id === await ownerId() || x.id === g.user.id) return json(req, 403, { error: 'the owner and your own account stay' });
+    if (x.id === owner || x.id === g.user.id) return json(req, 403, { error: 'the owner and your own account stay' });
     await q.run('delete from "user" where id = ?', x.id);
     console.log(`users: ${g.user.name} removed ${x.name}`);
     return json(req, 200, { ok: true });

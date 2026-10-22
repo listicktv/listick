@@ -29,6 +29,10 @@ services:
       - "3000:3000"
     depends_on:
       db: { condition: service_healthy }
+    read_only: true
+    tmpfs: [/tmp, /app/web/.next/cache]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
 
 volumes:
   pgdata:

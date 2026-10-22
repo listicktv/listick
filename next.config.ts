@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   cacheComponents: true,
   partialPrefetching: true,
+  poweredByHeader: false,
   // no framing by other sites (clickjacking), no guessing of content types, and only the origin (never a reset or invite
   // link's token) in the Referer sent to other sites
   async headers() {
@@ -12,6 +13,7 @@ const nextConfig: NextConfig = {
       { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Strict-Transport-Security", value: "max-age=31536000" },
     ] }];
   },
 };

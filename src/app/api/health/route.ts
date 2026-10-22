@@ -11,8 +11,8 @@ export async function GET(req: Request) {
     const jobs = await db.select().from(jobRuns);
     const beat = jobs.find((j) => j.job === "heartbeat")?.lastRunAt;
     const worker = beat && Date.now() - beat.getTime() < 3 * 60_000 ? "ok" : "stale";
-    if (worker === "stale" && new URL(req.url).searchParams.has("worker")) return Response.json({ ok: false, worker, jobs }, { status: 503 });
-    return Response.json({ ok: true, worker, jobs });
+    if (worker === "stale" && new URL(req.url).searchParams.has("worker")) return Response.json({ ok: false, worker }, { status: 503 });
+    return Response.json({ ok: true, worker });
   } catch (err) {
     console.error("health:", err);
     return Response.json({ ok: false, error: "the database isn't answering" }, { status: 503 });

@@ -4,7 +4,7 @@ import zlib from 'node:zlib';
 import type { SimklData } from './simkl';
 import type { TraktData, TraktItem } from './trakt';
 
-// what one unpacked file may grow to: far above any real export, low enough that a crafted archive can't fill the memory
+// what one unpacked archive may grow to, all files together
 const MAX_UNPACKED = 200 * 1024 * 1024;
 
 // ---------- zip ----------
@@ -15,14 +15,18 @@ export function unzip(buf: Buffer): Map<string, Buffer> {
   for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
   if (eocd < 0) throw new Error('not a zip file');
   const count = buf.readUInt16LE(eocd + 10);
-  let p = buf.readUInt32LE(eocd + 16);
+  let p = buf.readUInt32LE(eocd + 16), total = 0;
   for (let n = 0; n < count; n++) {
     if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error('broken zip file');
     const method = buf.readUInt16LE(p + 10), size = buf.readUInt32LE(p + 20);
     const nameLen = buf.readUInt16LE(p + 28), extraLen = buf.readUInt16LE(p + 30), commentLen = buf.readUInt16LE(p + 32);
     const local = buf.readUInt32LE(p + 42), name = buf.toString('utf8', p + 46, p + 46 + nameLen);
     const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28), data = buf.subarray(start, start + size);
-    if (!name.endsWith('/')) out.set(name, method === 8 ? zlib.inflateRawSync(data, { maxOutputLength: MAX_UNPACKED }) : method === 0 ? data : Buffer.alloc(0));
+    if (!name.endsWith('/')) {
+      const file = method === 8 ? zlib.inflateRawSync(data, { maxOutputLength: Math.max(1, MAX_UNPACKED - total) }) : method === 0 ? data : Buffer.alloc(0);
+      if ((total += file.length) > MAX_UNPACKED) throw new Error('the archive unpacks too big');
+      out.set(name, file);
+    }
     p += 46 + nameLen + extraLen + commentLen;
   }
   return out;
