@@ -7,7 +7,7 @@ import { env, netErr } from './util';
 // api_calls (per day, role and service): the worker every 30 s, the web app after each request, since a serverless host can
 // freeze the process between requests and run many copies at once.
 const API_HOSTS: Record<string, string> = { 'api.themoviedb.org': 'tmdb', 'www.omdbapi.com': 'omdb', 'api.myanimelist.net': 'mal', 'myanimelist.net': 'mal',
-  'kitsu.io': 'kitsu', 'kitsu.app': 'kitsu' };
+  'kitsu.io': 'kitsu', 'kitsu.app': 'kitsu', 'api4.thetvdb.com': 'tvdb' };
 export const OMDB_DAILY = 1000;   // the free key's limit
 export const localDay = () => new Date().toLocaleDateString('sv-SE');   // YYYY-MM-DD in TZ
 const role = () => env('LISTICK_ROLE') || 'web';   // which process counted: web or worker

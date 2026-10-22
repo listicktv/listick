@@ -298,7 +298,7 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
   // what the page needs to know before signing in: this instance's name, the captcha's site key, whether email works, whether
   // the weather shows; and which optional sources this instance has keys for, so About credits only those
   if (p === '/api/config' && req.method === 'GET') return json(req, 200, { name: appName(), captcha: captchaOn() ? env('TURNSTILE_SITE_KEY') : null, mail: mailOn(), weather: env('LISTICK_WEATHER') === 'on',
-    sources: { mal: !!env('MAL_CLIENT_ID'), omdb: !!env('OMDB_API_KEY') } });
+    sources: { mal: !!env('MAL_CLIENT_ID'), omdb: !!env('OMDB_API_KEY'), tvdb: !!env('TVDB_API_KEY') } });
   // the signed-out page's poster strip: the first posters of two shared rows, nothing of anyone's
   if (p === '/api/landing' && req.method === 'GET') return json(req, 200, { posters: await landingPosters() }, { 'cache-control': 'public, max-age=86400' });
   // ---- signing in ----

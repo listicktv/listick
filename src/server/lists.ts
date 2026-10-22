@@ -8,6 +8,7 @@ import { q } from './db';
 import { prefsOf } from './region';
 import { floorsOf, known, verdict, warm, type ScoreRule } from './scores';
 import { homeReleases, type Home } from './athome';
+import { tvdbCategory, tvdbOn } from './tvdb';
 import { SERVICES } from './rows';
 import { tmdb } from './sources';
 import { metaGet, metaSet, watchKeys } from './store';
@@ -46,6 +47,8 @@ export type Filters = {
   // not finished. Either makes the list from your library instead, with the filters titles carry here (kind, genres, years,
   // runtime, TMDB score)
   myFrom?: number; myTo?: number; watched?: 'year' | 'old' | 'started';
+  // shows: a TheTVDB category (genre id) instead of TMDB's search
+  tvdbGenre?: number;
 } & ScoreRule;
 type Picked = { id: number; name: string; out?: boolean };
 type Row = { id: string; user_id: string; name: string; description: string | null; kind: 'manual' | 'smart'; media: Media | null; filters: Filters | null;
@@ -195,6 +198,11 @@ async function runSmart(uid: string, media: Media, f: Filters) {
   if (f.hideWatched) for (const r of await q.all<{ key: string }>('select distinct key from history where user_id = ?', uid)) hide.add(r.key);
   if (f.hidePlan) for (const r of await q.all<{ key: string }>('select key from watchlist where user_id = ?', uid)) hide.add(r.key);
   const rated = f.onlyRated ? new Set((await q.all<{ key: string }>('select distinct key from ratings where user_id = ?', uid)).map((r) => r.key)) : null;
+  if (f.tvdbGenre && media === 'tv' && tvdbOn()) {
+    const found = await tvdbCategory(f.tvdbGenre, { sort: f.sort, language: f.languages?.[0] || f.language, country: f.countries?.[0] || f.country, want: Math.min(600, want * 2) });
+    const pool = found.filter((k) => !hide.has(k) && (!rated || rated.has(k))).slice(0, want);
+    return { ...await pick(pool, f), total: found.length, pool };
+  }
   const qs = queries(media, f, f.my ? (await prefsOf(uid)).services : []).map((x) => ({ ...x, keys: [] as string[], done: false }));
   const merged = () => { const out: string[] = [], seen = new Set<string>();
     for (let i = 0; qs.some((x) => i < x.keys.length); i++) for (const x of qs) { const k = x.keys[i]; if (k && !seen.has(k)) { seen.add(k); out.push(k); } }

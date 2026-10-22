@@ -255,6 +255,7 @@ function NextCard({ d, e, episodes, season, markEpisodes, open }: { d: Title; e:
         <div className="tc-nhead">
           <button type="button" className="tc-nname" onClick={() => open(e.ep)}>{e.name || `Episode ${e.ep}`}</button>
           <span className="tc-nmeta">{[`E${e.ep}`, ep.upcoming ? null : epDay(e.air), e.runtime ? `${e.runtime}m` : null].filter(Boolean).join(' · ')}</span>
+          {e.tvdb && <a className="tc-tvdb" href="https://thetvdb.com" target="_blank" rel="noopener noreferrer">Info from TheTVDB.com</a>}
         </div>
         {e.overview && <p className="tc-nov">{e.overview}</p>}
       </div>
@@ -453,6 +454,7 @@ function EpisodeView({ d, episodes, at, season, where, markEpisodes, open, dir }
           <div className="tc-evtitle">
             <h3 className="tc-evname">{e.name || `Episode ${e.ep}`}</h3>
             <div className="tc-evmeta">{[ep.upcoming ? airs(e.air) : epDay(e.air), e.runtime ? `${e.runtime}m` : null].filter(Boolean).join(' · ')}</div>
+            {e.tvdb && <a className="tc-tvdb" href="https://thetvdb.com" target="_blank" rel="noopener noreferrer">Info from TheTVDB.com</a>}
             {ep.ask.armed ? <span className="tc-evl bad">{ep.tickLabel}</span>
               : w ? <button ref={dateRef} type="button" className="tc-evl tc-evdate" onClick={() => ep.redate(dateRef.current)}>{seenTxt}</button> : null}
           </div>

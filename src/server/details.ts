@@ -6,6 +6,7 @@ import { langOf, namesOf, posterAt } from './names';
 import { TMDB_IMG, getJSON, kitsu, mal, tmdb } from './sources';
 import { watchKeys } from './store';
 import { cleanSynopsis, fillFromTmdb, fromKitsu, fromTmdb, getTitle, saveTitles } from './titles';
+import { fillFromTvdb } from './tvdb';
 import type { Detail, Episode, KitsuList, KitsuOne, MalAnime, Omdb, Title, TmdbCollection, TmdbDetails, TmdbSeasonDetails, Uid } from './types';
 import { HOUR, env } from './util';
 
@@ -69,6 +70,7 @@ export async function season(key: string, n: number, uid: Uid) {
       const d = await tmdb<TmdbSeasonDetails>(`/tv/${id}/season/${n}`);
       eps = (d.episodes || []).map((e) => ({ ep: e.episode_number, name: e.name || null, air: e.air_date || null, runtime: e.runtime || null,
         still: e.still_path ? `${TMDB_IMG}w300${e.still_path}` : null, overview: e.overview || null }));
+      eps = await fillFromTvdb(id, n, eps).catch(() => eps);
     } else {
       const page = (off: number) => kitsu<KitsuList>(`/anime/${id}/episodes?sort=number&page[limit]=20&page[offset]=${off}`);
       const first = await page(0), count = Math.min(first.meta?.count || 0, 3000), rest: number[] = [];

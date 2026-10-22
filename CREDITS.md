@@ -9,6 +9,7 @@
 - [TVmaze](https://www.tvmaze.com): air times.
 - [MyAnimeList](https://myanimelist.net) (optional): anime scores and rankings.
 - [OMDb](https://www.omdbapi.com) (optional): IMDb, Rotten Tomatoes and Metacritic scores. Not endorsed by IMDb.
+- [TheTVDB](https://thetvdb.com) (optional): TV categories for lists, and episode names, stories and images TMDB lacks.
 - [Wikidata](https://www.wikidata.org): links to Rotten Tomatoes and Metacritic.
 - [Fribb/anime-lists](https://github.com/Fribb/anime-lists): anime ID mapping.
 - [Blu-ray.com](https://www.blu-ray.com): new disc releases, from its RSS feed.

@@ -5,7 +5,7 @@ import type { Ref, Tile, TitleType } from './media';
 
 export type Season = { n: number; name: string; episodes: number | null; year: number | null };
 export type Play = { at: number; approx?: number | null; source?: string; plays?: number };
-export type Episode = { ep: number; name: string | null; air: string | null; runtime: number | null; still: string | null; overview: string | null;
+export type Episode = { ep: number; name: string | null; air: string | null; runtime: number | null; still: string | null; overview: string | null; tvdb?: boolean;
   watched?: Play | null; mine?: number | null };
 export type Title = {
   key: string; type: TitleType; title: string; label: string | null; year: number | null; poster: string | null; backdrop: string | null;

@@ -27,7 +27,7 @@ type Filters = {
   when?: 'any' | '30d' | '6m' | 'year' | 'next3' | 'years'; yearFrom?: number; yearTo?: number; decades?: number[];
   runtimeFrom?: number; runtimeTo?: number; released?: 'out' | 'coming' | 'both'; cert?: string; out?: ('cinema' | 'digital' | 'disc' | 'tv')[]; status?: number[]; type?: number[];
   scoreFrom?: number; scoreTo?: number; votes?: number; votesTo?: number; region?: string; reach?: 'released' | 'streaming' | 'anywhere'; services?: (number | string)[]; my?: boolean;
-  how?: 'flatrate' | 'free' | 'rent';
+  how?: 'flatrate' | 'free' | 'rent'; tvdbGenre?: number;
   language?: string; country?: string; languages?: string[]; countries?: string[];
   mood?: string; keywords?: Picked[]; cast?: Picked[]; castMatch?: 'any' | 'all'; crew?: Picked[]; companies?: Picked[]; networks?: number[];
   hideWatched?: boolean; hidePlan?: boolean; onlyRated?: boolean; myFrom?: number; myTo?: number; watched?: 'year' | 'old' | 'started';
@@ -64,6 +64,10 @@ const PRESETS: [string, string, Partial<Draft> & { media: Media; filters: Filter
   ['Binge-worthy TV', 'M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-6 1 1 2 2 3 2 0-2-1-4 0-6z', { name: 'Binge-worthy TV', media: 'tv', filters: { scoreFrom: 8, votes: 1000 } }],
   ['Korean TV', PATHS.heart, { name: 'Korean TV', media: 'tv', filters: { language: 'ko', votes: 50 } }],
   ['Coming soon', PATHS.cal, { name: 'Coming soon', media: 'movie', filters: { released: 'coming' } }],
+  ['Food shows', 'M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10', { name: 'Food shows', media: 'tv', filters: { tvdbGenre: 9 } }],
+  ['Travel shows', 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18', { name: 'Travel shows', media: 'tv', filters: { tvdbGenre: 25 } }],
+  ['Game shows', 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 21h6M10 17h4', { name: 'Game shows', media: 'tv', filters: { tvdbGenre: 8 } }],
+  ['Home makeover', 'M4 11l8-7 8 7M6 10v10h12V10M10 20v-5h4v5', { name: 'Home makeover', media: 'tv', filters: { tvdbGenre: 7 } }],
 ];
 const ICON = { smart: 'M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4zM18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z',
   refresh: 'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7',
@@ -73,6 +77,8 @@ export function Lists() {
   const router = useRouter();
   const [page, setPage] = useState<Page | null>(null), [err, setErr] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null), [naming, setNaming] = useState<Naming | null>(null);
+  const [tvdb, setTvdb] = useState(false);
+  useEffect(() => { let live = true; getJ<{ sources: { tvdb?: boolean } }>('/api/config').then((c) => { if (live) setTvdb(!!c.sources.tvdb); }, () => {}); return () => { live = false; }; }, []);
   const load = useCallback(() => getJ<Page>('/api/lists').then((p) => { setPage(p); setErr(''); }, (e: Error) => setErr(e.message)), []);
   useEffect(() => { let live = true; getJ<Page>('/api/lists').then((p) => { if (live) setPage(p); }, (e: Error) => { if (live) setErr(e.message); }); return () => { live = false; }; }, []);
   // a change from Add to list (anywhere) shows here
@@ -107,7 +113,7 @@ export function Lists() {
         ))}
 
         <div className="gen-rows l-presets"><div className="group-head pick-head"><h2 className="sh">START A SMART LIST</h2><div className="pick-tools"><div className="pk-set">
-          {PRESETS.map(([n, f, d]) => <PkBtn key={n} label={n} data={{}} face={f} on={false} onClick={() => setDraft({ description: '', name: '', ...d })} />)}
+          {PRESETS.filter(([, , d]) => !d.filters.tvdbGenre || tvdb).map(([n, f, d]) => <PkBtn key={n} label={n} data={{}} face={f} on={false} onClick={() => setDraft({ description: '', name: '', ...d })} />)}
         </div></div></div></div>
       </div>
       <Sheet id="lname" title="NEW EMPTY LIST" open={!!naming} from={naming?.from ?? null} onClose={() => setNaming(null)}>
@@ -161,6 +167,7 @@ export function ListPage({ id }: { id: string }) {
                 ]} /></div>
               <div className="l-cm"><Badge l={open} /><span>{titles(open.count)}</span>{open.kind === 'smart' && <span>· {ago(open.refreshedAt)}</span>}{!open.mine && open.owner && <span>· by {open.owner}</span>}</div>
               {open.description && <p className="l-desc">{open.description}</p>}
+              {open.media === 'tv' && open.filters?.tvdbGenre && <p className="l-desc">{`${label(TVDB_CATS, open.filters.tvdbGenre)} shows from `}<a href="https://thetvdb.com" target="_blank" rel="noopener noreferrer">TheTVDB.com</a></p>}
               {open.kind === 'smart' && open.filters && <Chips media={open.media!} f={open.filters} />}
             </div>
             {/* someone else's shared list: follow it onto your Lists page, or copy it to make it yours */}
@@ -326,6 +333,7 @@ function describe(media: Media, f: Filters, n: { svc?: (id: number | string) => 
     ...(f.home?.length ? [D('basics', `Last ${label(WITHIN, f.homeWithin || 90)}`, f.homeWithin ? { homeWithin: undefined } : null)] : []),
     ...(f.home?.length && f.homeCinema ? [D('basics', 'From cinemas', { homeCinema: undefined })] : []),
     ...(f.mood ? [D('genres', label(MOODS.map(([v, nm]) => [v, nm] as [string, string]), f.mood), { mood: undefined })] : []),
+    ...(media === 'tv' && f.tvdbGenre ? [D('genres', `${label(TVDB_CATS, f.tvdbGenre)} · TheTVDB`, { tvdbGenre: undefined })] : []),
     ...(f.genres || []).map((g) => D('genres', g, { genres: f.genres!.filter((x) => x !== g) })),
     ...(f.without || []).map((g) => D('genres', g, { without: f.without!.filter((x) => x !== g) }, true)),
     ...(f.match === 'all' && (f.genres || []).length > 1 ? [D('genres', 'All genres', { match: undefined })] : []),
@@ -375,6 +383,8 @@ const WITHIN: [number, string][] = [[30, '30 days'], [90, '3 months'], [180, '6 
 const DECADES: [number, string][] = [[1950, '50s'], [1960, '60s'], [1970, '70s'], [1980, '80s'], [1990, '90s'], [2000, '2000s'], [2010, '2010s'], [2020, '2020s']];
 const OUT: [NonNullable<Filters['out']>[number], string][] = [['cinema', 'In cinemas'], ['digital', 'On digital'], ['disc', 'On disc'], ['tv', 'On TV']];
 const STATUS: [number, string][] = [[0, 'Returning'], [1, 'Planned'], [2, 'In production'], [3, 'Ended'], [4, 'Cancelled'], [5, 'Pilot']];
+const TVDB_CATS: [number, string][] = [[8, 'Game show'], [9, 'Food'], [25, 'Travel'], [7, 'Home and garden'], [23, 'Talk show'], [21, 'Sport'], [3, 'Reality'],
+  [13, 'Documentary'], [1, 'Soap'], [36, 'Awards show'], [33, 'History'], [35, 'Martial arts'], [30, 'Podcast']];
 const TV_TYPE: [number, string][] = [[4, 'Scripted'], [2, 'Miniseries'], [0, 'Documentary'], [3, 'Reality'], [5, 'Talk show'], [1, 'News'], [6, 'Video']];
 const MINUTES: [number, string][] = [[0, 'Any'], [20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '1 h'], [90, '1 h 30'], [120, '2 h'], [150, '2 h 30'], [180, '3 h'],
   [210, '3 h 30'], [240, '4 h'], [300, '5 h']];
@@ -428,9 +438,9 @@ function Builder({ draft, page, close, saved }: { draft: Draft; page: Page; clos
   const [prev, setPrev] = useState<{ total: number; count: number; pending: number; pool: number; posters: { key: string; title: string; poster: string | null }[] } | null>(null), [loading, setLoading] = useState(false);
   const [prefs, setPrefs] = useState<Prefs | null>(null), [got, setGot] = useState<{ cc: string; r: RegionInfo } | null>(null);
   const [seeing, setSeeing] = useState(false);
-  const [keys, setKeys] = useState<{ mal: boolean; omdb: boolean } | null>(null), [opts, setOpts] = useState<{ languages: Country[]; countries: Country[] } | null>(null);
+  const [keys, setKeys] = useState<{ mal: boolean; omdb: boolean; tvdb?: boolean } | null>(null), [opts, setOpts] = useState<{ languages: Country[]; countries: Country[] } | null>(null);
   useEffect(() => { let live = true; getJ<{ languages: Country[]; countries: Country[] }>('/api/lists/options').then((o) => { if (live) setOpts(o); }, () => {}); return () => { live = false; }; }, []);
-  useEffect(() => { let live = true; getJ<{ sources: { mal: boolean; omdb: boolean } }>('/api/config').then((c) => { if (live) setKeys(c.sources); }, () => {}); return () => { live = false; }; }, []);
+  useEffect(() => { let live = true; getJ<{ sources: { mal: boolean; omdb: boolean; tvdb?: boolean } }>('/api/config').then((c) => { if (live) setKeys(c.sources); }, () => {}); return () => { live = false; }; }, []);
   const f = d.filters, setF = (x: Partial<Filters>) => setD((y) => ({ ...y, filters: { ...y.filters, ...x } }));
   const yours = prefs ? prefs.country || guessCountry() : null, region = f.region || yours;
   // your country and the countries; a new list (or one from before lists had countries) starts with yours
@@ -531,6 +541,7 @@ function Builder({ draft, page, close, saved }: { draft: Draft; page: Page; clos
           set={(genres) => setF({ genres, without: (f.without || []).filter((x) => !genres.includes(x)) })} />
         <Drop label="Leave out" multi search opts={page.genres[d.media].map((n): [string, string] => [n, n])} value={f.without || []} empty="None"
           set={(without) => setF({ without, genres: (f.genres || []).filter((x) => !without.includes(x)) })} />
+        {d.media === 'tv' && keys?.tvdb && <Drop label="TV category (TheTVDB)" opts={[[0, 'None'], ...TVDB_CATS]} value={f.tvdbGenre || 0} set={(c) => setF({ tvdbGenre: c || undefined })} />}
         <Drop label="Match genres" opts={[['any', 'Any of them'], ['all', 'All of them']]} value={f.match || 'any'} set={(match) => setF({ match })} />
       </div>
       <div className="b-half"><SearchPick kind="keyword" label="Keywords" canOut value={f.keywords || []} set={(keywords) => setF({ keywords: keywords.length ? keywords : undefined })} /></div>
