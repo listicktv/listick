@@ -591,6 +591,7 @@ button.day:hover:not(.today) { background: var(--on); }
   .body { gap: 16px; }
   .main .group > :not(.group-head) { zoom: 1.12; }
   .main .group > .dcells { zoom: 1.08; }   /* dense three-value panels: their small sub-lines would get cut at 12 % */
+  #view-media .cal-gh { height: 30.5px; }   /* calendar level with the first row */
 }
 /* rows on desktop: inside the 12 % scale the title is set a little smaller (renders ~13 px); the second line
    (logo, episode, time) keeps its full scaled size */
