@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/listicktv/listick/compare/v0.3.0...v0.4.0) (2026-10-22)
+
+
+### Features
+
+* episode page with the still beside its story ([ff16e22](https://github.com/listicktv/listick/commit/ff16e22cb550774b131bf0f1411bd4c040b1220f))
+* new Episodes tab in the title window ([ff16e22](https://github.com/listicktv/listick/commit/ff16e22cb550774b131bf0f1411bd4c040b1220f))
+* phone Episodes tab with a full-width Next up ([ff16e22](https://github.com/listicktv/listick/commit/ff16e22cb550774b131bf0f1411bd4c040b1220f))
+* row arrows light up in the swipe direction on touch screens ([ff16e22](https://github.com/listicktv/listick/commit/ff16e22cb550774b131bf0f1411bd4c040b1220f))
+* row pages show their count as a circle, with smaller sort circles and title ([ff16e22](https://github.com/listicktv/listick/commit/ff16e22cb550774b131bf0f1411bd4c040b1220f))
+
+
+### Bug Fixes
+
+* row titles line up with their circles ([ff16e22](https://github.com/listicktv/listick/commit/ff16e22cb550774b131bf0f1411bd4c040b1220f))
+* title window keeps one height when switching tabs ([ff16e22](https://github.com/listicktv/listick/commit/ff16e22cb550774b131bf0f1411bd4c040b1220f))
+* unaired episodes show the show's backdrop ([ff16e22](https://github.com/listicktv/listick/commit/ff16e22cb550774b131bf0f1411bd4c040b1220f))
+
 ## [0.3.0](https://github.com/listicktv/listick/compare/v0.2.0...v0.3.0) (2026-10-22)
 
 
