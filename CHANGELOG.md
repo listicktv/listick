@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/listicktv/listick/compare/v0.7.0...v0.8.0) (2026-10-22)
+
+
+### Features
+
+* every anime list for Seanime ([1715cc7](https://github.com/listicktv/listick/commit/1715cc732ee302b7a3c3d8abb306b4bd1ae7ec04))
+
 ## [0.7.0](https://github.com/listicktv/listick/compare/v0.6.0...v0.7.0) (2026-10-22)
 
 
