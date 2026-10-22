@@ -11,4 +11,4 @@ process.env.TMDB_ACCESS_TOKEN = 'test';
 // email on, so new accounts confirm their address (Resend itself is answered by a fixture)
 process.env.RESEND_API_KEY = 'test';
 process.env.MAIL_FROM = 'Listick <test@example.com>';
-for (const k of ['LISTICK_CONTACT', 'LISTICK_WEATHER', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET', 'MAL_CLIENT_ID', 'OMDB_API_KEY']) delete process.env[k];
+for (const k of ['LISTICK_CONTACT', 'LISTICK_WEATHER', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET', 'MAL_CLIENT_ID', 'OMDB_API_KEY', 'TVDB_API_KEY']) delete process.env[k];

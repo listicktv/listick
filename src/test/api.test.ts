@@ -21,7 +21,7 @@ after(() => pool.end());
 
 describe('signing in', () => {
   test('signed out: the config is public, the session is not', async () => {
-    assert.deepEqual((await api('/api/config')).json, { name: 'Listick', captcha: null, mail: true, weather: false, sources: { mal: false, omdb: false } });
+    assert.deepEqual((await api('/api/config')).json, { name: 'Listick', captcha: null, mail: true, weather: false, sources: { mal: false, omdb: false, tvdb: false } });
     assert.equal((await api('/api/session', { method: 'POST', headers: { origin: ORIGIN } })).status, 401);
   });
   test('an address with a broken escape is refused, not an error', async () => {
