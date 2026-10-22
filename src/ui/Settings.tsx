@@ -247,8 +247,7 @@ function AccountPane({ section }: { section: Exclude<SectionId, 'appearance' | '
   );
 }
 
-// setup steps
-const INFO = 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 11v5M12 7.5h.01';
+// setup steps, folded until opened
 type Step = { text: ReactNode; copy?: { value: string; what: string; show?: string } };
 const masked = (key: string) => `••••••••${key.slice(-4)}`;
 function Steps({ name, steps }: { name: string; steps: Step[] }) {
@@ -263,26 +262,26 @@ function Steps({ name, steps }: { name: string; steps: Step[] }) {
   );
 }
 const SetupToggle = ({ name, open, set }: { name: string; open: boolean; set: (o: boolean) => void }) => (
-  <ACircle d={INFO} label={`${open ? 'Hide' : 'Show'} the ${name} setup`} cls={open ? 'on' : ''} onClick={() => set(!open)} />
+  <ACircle d={open ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} label={`${open ? 'Hide' : 'Show'} the ${name} setup`} cls={open ? 'on' : ''} aria-expanded={open} onClick={() => set(!open)} />
 );
 const playLine = (last: { at: number; name: string }) => `${last.name} · ${new Date(last.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
 
 // Jellyfin: a key in a webhook address, the steps to set up its Webhook plugin, and the last play it sent
 function JellyfinRow({ a, done }: { a: Account; done: (p: Promise<string | null>) => Promise<void> }) {
   const key = a.apiKeys?.find((k) => k.id === 'jellyfin')?.key, hook = key ? `${location.origin}/api/v1/jellyfin/${key}` : null, last = a.jellyfin?.last;
-  const make = () => done(postJ('/api/account/apikey/jellyfin', {}));
   const [open, setOpen] = useState(false);
+  const make = () => { setOpen(true); return done(postJ('/api/account/apikey/jellyfin', {})); };
   return (
     <>
       <div className="acct-detail">
         <span className={`acct-c logo${last ? ' on' : ''}`} aria-hidden="true"><img src="/icons/jellyfin.svg" alt="" /></span>
         <div className="acct-detail-t"><b>Jellyfin</b>
           <span className={`acct-state${last ? ' on' : ''}`}>{!hook ? 'not connected' : last ? playLine(last) : 'waiting for the first play'}</span></div>
-        {hook && last && <SetupToggle name="Jellyfin" open={open} set={setOpen} />}
+        {hook && <SetupToggle name="Jellyfin" open={open} set={setOpen} />}
         {!hook ? <ACircle d={PATHS.plus} label="Connect Jellyfin" cls="on" onClick={make} />
           : <TwoTap d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" label="Replace the Jellyfin address" cls="rm" fn={make} />}
       </div>
-      {hook && a.jellyfin && (!last || open) && <Steps name="Jellyfin" steps={[
+      {hook && a.jellyfin && open && <Steps name="Jellyfin" steps={[
         { text: <>Dashboard › Plugins › Catalog: install <b>Webhook</b>, restart Jellyfin</> },
         { text: <>Plugins › Webhook › <b>Add Generic Destination</b>, Webhook URL</>, copy: { value: hook, what: 'address', show: `${location.origin}/api/v1/jellyfin/${masked(key!)}` } },
         { text: <>Notifications <b>Playback Start</b>, <b>Progress</b>, <b>Stop</b>, <b>User Data Saved</b>; items <b>Movies</b>, <b>Episodes</b>; your user</> },
@@ -296,19 +295,19 @@ function JellyfinRow({ a, done }: { a: Account; done: (p: Promise<string | null>
 const SEANIME_PLUGIN = 'https://raw.githubusercontent.com/listicktv/listick-seanime/main/manifest.json';
 function SeanimeRow({ a, done }: { a: Account; done: (p: Promise<string | null>) => Promise<void> }) {
   const key = a.apiKeys?.find((k) => k.id === 'seanime')?.key, last = a.seanime?.last;
-  const make = () => done(postJ('/api/account/apikey/seanime', {}));
   const [open, setOpen] = useState(false);
+  const make = () => { setOpen(true); return done(postJ('/api/account/apikey/seanime', {})); };
   return (
     <>
       <div className="acct-detail">
         <span className={`acct-c logo${last ? ' on' : ''}`} aria-hidden="true"><img src="/icons/seanime.svg" alt="" /></span>
         <div className="acct-detail-t"><b>Seanime</b>
           <span className={`acct-state${last ? ' on' : ''}`}>{!key ? 'not connected' : last ? playLine(last) : 'waiting for the first play'}</span></div>
-        {key && last && <SetupToggle name="Seanime" open={open} set={setOpen} />}
+        {key && <SetupToggle name="Seanime" open={open} set={setOpen} />}
         {!key ? <ACircle d={PATHS.plus} label="Connect Seanime" cls="on" onClick={make} />
           : <TwoTap d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" label="Replace the Seanime key" cls="rm" fn={make} />}
       </div>
-      {key && (!last || open) && <Steps name="Seanime" steps={[
+      {key && open && <Steps name="Seanime" steps={[
         { text: <>Extensions › <b>Add extensions</b> › Install from URL</>, copy: { value: SEANIME_PLUGIN, what: 'manifest URL' } },
         { text: <>Listick › Preferences › <b>Listick address</b></>, copy: { value: location.origin, what: 'address' } },
         { text: <>Listick › Preferences › <b>API key</b></>, copy: { value: key, what: 'key', show: masked(key) } },
