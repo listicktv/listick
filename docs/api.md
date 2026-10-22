@@ -73,7 +73,8 @@ The reply is `{ "ok": true, "recorded": <plays added> }`, or `{ "ok": true, "pla
 ### `GET /api/v1/anime` (`lists`)
 
 The user's anime as AniList entries: `upNext` (next aired episode, `episode` numbered within the entry), `plan` (Plan to
-watch) and `lists` (own lists with anime, `{ id, name, items }`, max 100 items). Item:
+watch), `lists` (own lists, followed lists with `owner`, then Watched and Rated) and `discover` (For you and the anime
+rows); each list `{ id, name, items }` with up to 50 anime. Item:
 `{ "anilistId": 154587, "key": "tmdb:tv:209867", "title": "Frieren", "year": 2023, "poster": "https://…", "episode": 29 }`.
 Titles without an AniList mapping are left out.
 

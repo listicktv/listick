@@ -59,12 +59,20 @@ describe('Seanime', () => {
     await me.post('/api/watchlist/add/tmdb%3Amovie%3A603');
     await me.post('/api/lists/new', { name: 'Favourites', add: SOLO });
     await me.post('/api/lists/new', { name: 'Films', add: 'tmdb:movie:603' });
+    await addUser('kai');
+    const kai = await signIn('kai', 'password-123', '198.51.100.61');
+    const shared = (await kai.post('/api/lists/new', { name: 'Kai picks', shared: true, add: LATER })).json.id;
+    await me.post(`/api/lists/${shared}/follow`, { on: true });
+    await q.run(`insert into meta (k, v) values ('rows', ?::jsonb) on conflict (k) do update set v = excluded.v`, JSON.stringify({ rows: { at: Date.now(), 'anime-trending': [SOLO, LATER] } }));
     const r = await api('/api/v1/anime', { headers: { authorization: `Bearer ${key}` } });
     assert.equal(r.status, 200);
     const ids = (xs: { anilistId: number; episode?: number }[]) => xs.map((x) => [x.anilistId, x.episode ?? null]);
     assert.deepEqual(ids(r.json.upNext).sort(), [[1000, 4], [3000, 3]], 'the next episode in its AniList entry');
     assert.deepEqual(ids(r.json.plan), [[7001, null]], 'anime only');
-    assert.deepEqual(r.json.lists.map((l: { name: string; items: { anilistId: number }[] }) => [l.name, l.items.map((x) => x.anilistId)]), [['Favourites', [3000]]]);
+    const groups = (gs: { name: string; owner?: string; items: { anilistId: number }[] }[]) => gs.map((l) => [l.name, l.owner ?? null, l.items.map((x) => x.anilistId)]);
+    assert.deepEqual(groups(r.json.lists), [['Favourites', null, [3000]], ['Kai picks', 'kai', [7001]], ['Watched', null, [2000, 3000, 999]]],
+      'yours, followed, then the built-in ones; anime only');
+    assert.deepEqual(groups(r.json.discover), [['Trending anime', null, [3000, 7001]]], 'the anime rows');
   });
   test('keys open only their scopes', async () => {
     assert.equal((await play({ anilistId: 1000, episode: 5, state: 'watched' }, 'not-a-real-seanime-key')).status, 401);

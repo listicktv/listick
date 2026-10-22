@@ -1,39 +1,58 @@
 // AniList-keyed API (Seanime plugin)
 import { upNextKeys } from './catalogs';
 import { q } from './db';
-import { listKeys } from './lists';
+import { forYouOf } from './foryou';
+import { appLists, builtinKeys } from './lists';
 import { anilistOf, placeOfAnilist } from './mapping';
 import { addPlay } from './plays';
+import { ROWS, listOf as rowKeys, rowType, rowsNow } from './rows';
 import { getState, setState } from './store';
 import { getTitle, titlesOf } from './titles';
 import type { Title } from './types';
 
 type Now = { key: string; se: number; ep: number; pct: number | null; at: number; until: number };
 type Item = { anilistId: number; key: string; title: string; year: number | null; poster: string | null; episode?: number };
-const LIST_MAX = 100;
+const MAX = 50;
 const isAnime = (t: Title) => t.anime === 1 || t.type === 'anime';
 
+// the first MAX anime of a list, read 100 titles at a time
 async function items(list: { key: string; se?: number; ep?: number }[]) {
-  const ts = await titlesOf(list.map((x) => x.key)), out: Item[] = [], seen = new Set<number>();
-  for (const x of list) {
-    const t = ts.get(x.key);
-    if (!t || !isAnime(t)) continue;
-    const a = await anilistOf(t.key, x.se ?? -1, x.ep ?? -1);
-    if (!a || seen.has(a.id)) continue;
-    seen.add(a.id);
-    out.push({ anilistId: a.id, key: t.key, title: t.title, year: t.year, poster: t.poster, ...(a.ep > 0 ? { episode: a.ep } : {}) });
-    if (out.length >= LIST_MAX) break;
+  const out: Item[] = [], seen = new Set<number>();
+  for (let i = 0; i < list.length && out.length < MAX; i += 100) {
+    const part = list.slice(i, i + 100), ts = await titlesOf(part.map((x) => x.key));
+    for (const x of part) {
+      const t = ts.get(x.key);
+      if (!t || !isAnime(t)) continue;
+      const a = await anilistOf(t.key, x.se ?? -1, x.ep ?? -1);
+      if (!a || seen.has(a.id)) continue;
+      seen.add(a.id);
+      out.push({ anilistId: a.id, key: t.key, title: t.title, year: t.year, poster: t.poster, ...(a.ep > 0 ? { episode: a.ep } : {}) });
+      if (out.length >= MAX) break;
+    }
   }
   return out;
 }
+const keyed = (keys: string[]) => keys.map((key) => ({ key }));
+type Group = { id: string; name: string; owner?: string; items: Item[] };
 export async function animeOf(uid: string) {
   const plan = await q.all<{ key: string }>('select key from watchlist where user_id = ? order by added_at desc', uid);
-  const lists = [];
-  for (const l of await q.all<{ id: string; name: string }>('select id, name from lists where user_id = ? order by position, created_at', uid)) {
-    const its = await items(((await listKeys(uid, l.id)) || []).map((key) => ({ key })));
-    if (its.length) lists.push({ id: l.id, name: l.name, items: its });
+  const lists: Group[] = [], discover: Group[] = [];
+  for (const l of await appLists(uid)) {
+    const its = await items(keyed(l.keys));
+    if (its.length) lists.push({ id: l.id, name: l.name, ...(l.owner ? { owner: l.owner } : {}), items: its });
   }
-  return { upNext: await items(await upNextKeys(uid, 60)), plan: await items(plan), lists };
+  for (const id of ['watched', 'rated'] as const) {
+    const b = await builtinKeys(uid, id), its = await items(keyed(b.keys));
+    if (its.length) lists.push({ id, name: b.name, items: its });
+  }
+  const fy = await items(keyed(((await forYouOf(uid))?.suggested || []).map((s) => s.key)));
+  if (fy.length) discover.push({ id: 'foryou', name: 'For you', items: fy });
+  const { rows } = await rowsNow();
+  for (const r of ROWS.filter((x) => rowType(x.id) === 'anime')) {
+    const its = await items(keyed(rowKeys(rows, r.id)));
+    if (its.length) discover.push({ id: r.id, name: r.title, items: its });
+  }
+  return { upNext: await items(await upNextKeys(uid, 60)), plan: await items(plan), lists, discover };
 }
 
 // state: playing | stopped | watched

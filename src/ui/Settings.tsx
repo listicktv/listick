@@ -309,9 +309,9 @@ function SeanimeRow({ a, done }: { a: Account; done: (p: Promise<string | null>)
           : <TwoTap d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" label="Replace the Seanime key" cls="rm" fn={make} />}
       </div>
       {key && (!last || open) && <Steps name="Seanime" steps={[
-        { text: <>Extensions › <b>Add extension</b>, manifest URL</>, copy: { value: SEANIME_PLUGIN, what: 'manifest URL' } },
-        { text: <>Plugin settings › <b>Listick address</b></>, copy: { value: location.origin, what: 'address' } },
-        { text: <>Plugin settings › <b>API key</b></>, copy: { value: key, what: 'key', show: masked(key) } },
+        { text: <>Extensions › <b>Add extensions</b> › Install from URL</>, copy: { value: SEANIME_PLUGIN, what: 'manifest URL' } },
+        { text: <>Listick › Preferences › <b>Listick address</b></>, copy: { value: location.origin, what: 'address' } },
+        { text: <>Listick › Preferences › <b>API key</b></>, copy: { value: key, what: 'key', show: masked(key) } },
       ]} />}
     </>
   );

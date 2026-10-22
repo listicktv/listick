@@ -414,3 +414,11 @@ export async function rowLists(uid: string) {
 // the catalogs addon: every list of yours (which ones show in Stremio is chosen on the addon's page), and one's titles
 export const stremioLists = (uid: string) => q.all<{ id: string; name: string }>('select id, name from lists where user_id = ? order by position, created_at', uid);
 export async function listKeys(uid: string, id: string) { const l = await listRow(uid, id); return l ? keysOf(l) : null; }
+// apps (Seanime): your lists, then the ones you follow, with their titles
+export async function appLists(uid: string) {
+  const own = await q.all<Row & { owner?: string }>('select * from lists where user_id = ? order by position, created_at', uid);
+  const followed = await q.all<Row & { owner: string }>(`${OTHERS} and l.id in (select list_id from list_follows where user_id = ?) order by l.created_at desc`, uid, uid);
+  return Promise.all([...own, ...followed].map(async (l) => ({ id: l.id, name: l.name, owner: l.owner ?? null, keys: await keysOf(l) })));
+}
+export const builtinKeys = async (uid: string, id: 'watched' | 'rated') =>
+  ({ name: BUILTIN[id][0], keys: (await q.all<{ key: string }>(BUILTIN[id][1], uid)).map((r) => r.key) });
