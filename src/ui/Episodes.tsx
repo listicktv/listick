@@ -67,7 +67,11 @@ async function rateIt(d: Title, n: number | null, season?: number, episode?: num
 type St = { season: number | null; allEps: boolean; home: number };
 export function EpisodesPane({ d, st, set, cls }: { d: Title; st: St; set: (s: Partial<St>) => void; cls: string }) {
   const { reloadTitle, pickDay, backRef } = useTitle();
-  const seasons = d.seasons!, by = d.you?.bySeason || {};
+  // a show TheTVDB splits differently: its seasons (the default, remembered per show) or TMDB's
+  const [order, setOrderNow] = useState<'tvdb' | 'tmdb'>(() => { try { return localStorage.getItem(`ep-order:${d.key}`) === 'tmdb' ? 'tmdb' : 'tvdb'; } catch { return 'tvdb'; } });
+  const tv = !!d.seasonsTvdb?.length && order === 'tvdb';
+  const setOrder = (o: 'tvdb' | 'tmdb') => { setOrderNow(o); try { localStorage.setItem(`ep-order:${d.key}`, o); } catch { /* private window */ } set({ season: null, allEps: false }); };
+  const seasons = tv ? d.seasonsTvdb! : d.seasons!, by = (tv ? d.you?.bySeasonTvdb : d.you?.bySeason) || {};
   // start where you are: the latest season you have watched in, else the first
   const watchedIn = seasons.filter((s) => s.n > 0 && by[s.n]).map((s) => s.n);
   const season = st.season != null && seasons.some((s) => s.n === st.season) ? st.season
@@ -75,14 +79,14 @@ export function EpisodesPane({ d, st, set, cls }: { d: Title; st: St; set: (s: P
   const cur = seasons.find((x) => x.n === season)!;
   const seasonName = (x: typeof cur) => (x.n ? `Season ${x.n}` : 'Specials'), done = (x: typeof cur) => by[x.n] || 0;
 
-  const [res, setRes] = useState<{ d: Title; season: number; list?: Episode[]; err?: string } | null>(null);
+  const [res, setRes] = useState<{ d: Title; season: number; tv: boolean; list?: Episode[]; err?: string } | null>(null);
   useEffect(() => {
     let live = true;
-    getJ<{ episodes: Episode[] }>(`/api/title/${encodeURIComponent(d.key)}/season/${season}`)
-      .then((r) => live && setRes({ d, season, list: r.episodes }), (e: Error) => live && setRes({ d, season, err: e.message }));
+    getJ<{ episodes: Episode[] }>(`/api/title/${encodeURIComponent(d.key)}/season/${season}${tv ? '?order=tvdb' : ''}`)
+      .then((r) => live && setRes({ d, season, tv, list: r.episodes }), (e: Error) => live && setRes({ d, season, tv, err: e.message }));
     return () => { live = false; };
-  }, [d, season]);
-  const got = res && res.d === d && res.season === season ? res : null, episodes = got?.list;
+  }, [d, season, tv]);
+  const got = res && res.d === d && res.season === season && res.tv === tv ? res : null, episodes = got?.list;
   // an episode's page, open over the list (only within its season); Back and Escape leave it first
   const [opened, setOpened] = useState<{ season: number; ep: number; home: number } | null>(null);
   const viewing = opened?.season === season && opened.home === st.home && episodes?.some((e) => e.ep === opened.ep) ? opened.ep : null;
@@ -102,8 +106,17 @@ export function EpisodesPane({ d, st, set, cls }: { d: Title; st: St; set: (s: P
 
   // at: when you watched them; times: each one's own (their air dates); unknown: the date isn't known (at only stands in)
   const markEpisodes = async (eps: number[], watched: boolean, at?: number | null, times?: (number | null)[]) => {
-    const err = await postJ(`/api/mark/${encodeURIComponent(d.key)}`, { season, episodes: eps, watched, ...(at ? { at } : {}), ...(times ? { times } : {}) });
-    if (err) { alert(`Couldn't save: ${err}`); return false; }
+    // each at its TMDB place
+    const groups = new Map<number, { eps: number[]; times: (number | null)[] }>();
+    eps.forEach((n, i) => {
+      const e = episodes?.find((x) => x.ep === n), se = e?.se ?? season;
+      const g = groups.get(se) || groups.set(se, { eps: [], times: [] }).get(se)!;
+      g.eps.push(e?.tep ?? n); g.times.push(times ? times[i] : null);
+    });
+    for (const [se, g] of groups) {
+      const err = await postJ(`/api/mark/${encodeURIComponent(d.key)}`, { season: se, episodes: g.eps, watched, ...(at ? { at } : {}), ...(times ? { times: g.times } : {}) });
+      if (err) { alert(`Couldn't save: ${err}`); return false; }
+    }
     await reloadTitle();
   };
 
@@ -144,9 +157,9 @@ export function EpisodesPane({ d, st, set, cls }: { d: Title; st: St; set: (s: P
   return (
     <div className={`tc-eps ${cls}${st.allEps ? ' all' : ''}`}>
       <div className="tc-shead">
-        <SeasonPick seasons={seasons} cur={cur} label={seasonName} done={done} pick={(n) => set({ season: n, allEps: false })} />
+        <SeasonPick seasons={seasons} cur={cur} label={seasonName} done={done} pick={(n) => set({ season: n, allEps: false })} order={d.seasonsTvdb?.length ? { tv, set: setOrder } : undefined} />
         <div className="tc-sacts">
-          {(d.type !== 'anime' || seasons.length > 1) && (
+          {!tv && (d.type !== 'anime' || seasons.length > 1) && (
             <RateCircle key={`s${cur.n}`} cls="tc-erate season" state={sr ? ' on' : avg ? ' avg' : ''} v={sr || avg || 0} current={sr || 0}
               label={sr ? `Your rating of ${seasonName(cur)}` : avg ? 'Episode average · drag to rate' : 'Drag to rate'} save={(n) => rateIt(d, n, cur.n, -1)} />
           )}
@@ -191,7 +204,8 @@ export function EpisodesPane({ d, st, set, cls }: { d: Title; st: St; set: (s: P
 
 type Season = NonNullable<Title['seasons']>[number];
 // the season title and its menu
-function SeasonPick({ seasons, cur, label, done, pick }: { seasons: Season[]; cur: Season; label: (x: Season) => string; done: (x: Season) => number; pick: (n: number) => void }) {
+function SeasonPick({ seasons, cur, label, done, pick, order }: { seasons: Season[]; cur: Season; label: (x: Season) => string; done: (x: Season) => number; pick: (n: number) => void;
+  order?: { tv: boolean; set: (o: 'tvdb' | 'tmdb') => void } }) {
   const [open, setOpen] = useState(false);
   const [room, setRoom] = useState(300);
   const box = useRef<HTMLDivElement>(null);
@@ -212,12 +226,21 @@ function SeasonPick({ seasons, cur, label, done, pick }: { seasons: Season[]; cu
   const count = (x: Season) => (x.episodes ? `${done(x)}/${x.episodes}` : '');
   return (
     <div className="tc-spick" ref={box} onKeyDown={(e) => { if (open && e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }}>
-      <button type="button" className={`tc-spill${open ? ' open' : ''}`} aria-haspopup="listbox" aria-expanded={open} disabled={seasons.length < 2} onClick={toggle}>
+      <button type="button" className={`tc-spill${open ? ' open' : ''}`} aria-haspopup="listbox" aria-expanded={open} disabled={seasons.length < 2 && !order} onClick={toggle}>
         <b>{label(cur)}</b><span className="tc-scount">{count(cur)}</span>
-        {seasons.length > 1 && <Icon d="M6 9l6 6 6-6" size={14} />}
+        {(seasons.length > 1 || order) && <Icon d="M6 9l6 6 6-6" size={14} />}
       </button>
       {open && (
         <div className="tc-smenu" role="listbox" style={{ maxHeight: room }}>
+          {order && (
+            <div className="tc-stabs" role="tablist" aria-label="Seasons from">
+              {(['tmdb', 'tvdb'] as const).map((o) => (
+                <button key={o} type="button" role="tab" aria-selected={(o === 'tvdb') === order.tv} className={(o === 'tvdb') === order.tv ? 'on' : ''} onClick={() => order.set(o)}>
+                  <img src={`/icons/${o}.svg`} alt="" />{o.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          )}
           {seasons.map((x) => (
             <button key={x.n} type="button" role="option" aria-selected={x.n === cur.n} className={x.n === cur.n ? 'on' : ''} onClick={() => { setOpen(false); pick(x.n); }}>
               <span className="l">{label(x)}</span><span className="tc-scount">{count(x)}</span>
@@ -353,7 +376,7 @@ function useEpisode(d: Title, e: Episode, episodes: Episode[], season: number, m
   };
   const retime = async (t: number) => {
     if (t === e.watched!.at) return false;
-    const err = await postJ(`/api/retime/${encodeURIComponent(d.key)}`, { season, episode: e.ep, from: e.watched!.at, at: t });
+    const err = await postJ(`/api/retime/${encodeURIComponent(d.key)}`, { season: e.se ?? season, episode: e.tep ?? e.ep, from: e.watched!.at, at: t });
     if (err) { alert(`Couldn't save: ${err}`); return false; }
     await reloadTitle();
   };
@@ -436,7 +459,7 @@ function EpisodeView({ d, episodes, at, season, where, markEpisodes, open, dir }
           {!ep.upcoming && (
             <div className="tc-evact">
               <RateCircle cls="tc-erate" state={e.mine ? ' on' : ''} v={e.mine || 0} current={e.mine || 0} label={e.mine ? `Your rating ${e.mine.toFixed(1)}` : 'Drag to rate'}
-                save={(n) => rateIt(d, n, season, e.ep)} />
+                save={(n) => rateIt(d, n, e.se ?? season, e.tep ?? e.ep)} />
             </div>
           )}
           <div className="tc-evact">

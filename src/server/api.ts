@@ -176,7 +176,7 @@ async function internal(req: Request, url: URL, method: string, uid: string) {
     if (sm) {
       const key = decodeURIComponent(sm[1]);
       if (!KEY.test(key) || key.startsWith('tmdb:movie:')) return json(req, 400, { error: 'bad key' });
-      return json(req, 200, { episodes: await season(key, Number(sm[2]), uid) });
+      return json(req, 200, { episodes: await season(key, Number(sm[2]), uid, url.searchParams.get('order') === 'tvdb') });
     }
     const m = p.match(/^\/title\/([^/]+)$/);
     if (m) {

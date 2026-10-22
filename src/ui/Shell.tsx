@@ -62,7 +62,7 @@ function PhoneSettings() {
 // the pages, in the side menu and the phone's menu circle: Home is yours, the other three browse their kind
 export const PAGES: { href: string; name: string; icon: string; kind: TitleType | null }[] = [
   { href: '/', name: 'Home', icon: PATHS.home, kind: null }, { href: '/movies', name: 'Movies', icon: PATHS.movie, kind: 'movie' },
-  { href: '/tv', name: 'TV', icon: PATHS.tv, kind: 'tv' }, { href: '/anime', name: 'Anime', icon: PATHS.anime, kind: 'anime' },
+  { href: '/tv', name: 'Shows', icon: PATHS.tv, kind: 'tv' }, { href: '/anime', name: 'Anime', icon: PATHS.anime, kind: 'anime' },
 ];
 const LISTS = { href: '/lists', name: 'Lists', icon: PATHS.lists }, STATS = { href: '/stats', name: 'Stats', icon: PATHS.stats };
 

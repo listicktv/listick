@@ -8,6 +8,7 @@ import { canonEp, kitsuOfMal, kitsuTitle, resolve, tmdbTitle } from '../mapping'
 import { addPlay, collapseDoubles } from '../plays';
 import { tmdb } from '../sources';
 import { getTitle } from '../titles';
+import { tmdbEpisode, tmdbPlace, type EpisodeIds } from '../tvdb';
 import type { TmdbPage } from '../types';
 import { alert } from '../alert';
 import { msg } from '../util';
@@ -21,8 +22,8 @@ export type Ref = { tmdb?: { type: 'movie' | 'tv'; id: number }; kitsu?: number;
 type Counts = { plays: number; ratings: number; watchlist: number; unmatched: number; seen: number };
 export type Ctx = {
   uid: string;
-  play: (ref: Ref, se: number, ep: number, at: number, approx?: number) => Promise<void>;
-  rate: (ref: Ref, se: number, ep: number, rating: number, at: number) => Promise<void>;
+  play: (ref: Ref, se: number, ep: number, at: number, approx?: number, ids?: EpisodeIds) => Promise<void>;
+  rate: (ref: Ref, se: number, ep: number, rating: number, at: number, ids?: EpisodeIds) => Promise<void>;
   want: (ref: Ref, at: number) => Promise<void>;
   // a film's release day at 19:00 UTC, where an import knows it was watched but not when (approx 1, like a first rating's)
   released: (ref: Ref) => Promise<number | null>;
@@ -94,22 +95,31 @@ function context(uid: string, source: Source, counts: Counts, progress: (force?:
     })().catch(() => null));
     return keys.get(id)!;
   };
-  // where a play or rating of an episode sits: Kitsu entries count their own episodes under season 1, placed on TMDB
-  const place = async (ref: Ref, se: number, ep: number) => {
+  // where a play or rating of an episode sits: Kitsu entries count their own episodes under season 1, placed on TMDB; a show's
+  // episode by its own id when the source gives one, else its number, moved to TMDB's when TMDB has no such episode
+  const place = async (ref: Ref, se: number, ep: number, ids?: EpisodeIds) => {
     const key = await keyOf(ref);
     if (!key) { counts.unmatched++; return null; }
-    return key.startsWith('kitsu:') ? canonEp(key, se < 0 ? se : 1, ep) : { key, se, ep };
+    if (key.startsWith('kitsu:')) return canonEp(key, se < 0 ? se : 1, ep);
+    if (se > 0 && key.startsWith('tmdb:tv:')) {
+      const id = key.split(':')[2];
+      const byId = ids ? await tmdbEpisode(ids).catch(() => null) : null;
+      if (byId && String(byId.show) === id) return { key, se: byId.se, ep: byId.ep };
+      const p = await tmdbPlace(id, se, ep).catch(() => null);
+      if (p) return { key, ...p };
+    }
+    return { key, se, ep };
   };
   const step = async () => { counts.seen++; await progress(); };
   return {
     uid,
-    async play(ref, se, ep, at, approx = 0) {
-      const p = await place(ref, se, ep);
+    async play(ref, se, ep, at, approx = 0, ids) {
+      const p = await place(ref, se, ep, ids);
       if (p) counts.plays += await addPlay(uid, p.key, p.se, p.ep, at, source, approx);
       await step();
     },
-    async rate(ref, se, ep, rating, at) {
-      const p = await place(ref, se, ep);
+    async rate(ref, se, ep, rating, at, ids) {
+      const p = await place(ref, se, ep, ids);
       if (p) counts.ratings += (await q.run(`insert into ratings (user_id, key, season, episode, rating, rated_at, source) values (?, ?, ?, ?, ?, ?, ?)
         on conflict do nothing`, uid, p.key, p.se, p.ep, Math.round(Math.min(10, Math.max(1, rating)) * 10) / 10, at, source)).changes;
       await step();

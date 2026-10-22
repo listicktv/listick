@@ -5,12 +5,12 @@ import type { Ref, Tile, TitleType } from './media';
 
 export type Season = { n: number; name: string; episodes: number | null; year: number | null };
 export type Play = { at: number; approx?: number | null; source?: string; plays?: number };
-export type Episode = { ep: number; name: string | null; air: string | null; runtime: number | null; still: string | null; overview: string | null; tvdb?: boolean;
+export type Episode = { ep: number; name: string | null; air: string | null; runtime: number | null; still: string | null; overview: string | null; tvdb?: boolean; se?: number; tep?: number;
   watched?: Play | null; mine?: number | null };
 export type Title = {
   key: string; type: TitleType; title: string; label: string | null; year: number | null; poster: string | null; backdrop: string | null;
   rating: number | null; ratingSrc: string | null; overview: string | null; url: string | null; genres: string[]; runtime: number | null;
-  released: string | null; status: string | null; tagline: string | null; seasons: Season[] | null;
+  released: string | null; status: string | null; tagline: string | null; seasons: Season[] | null; seasonsTvdb?: Season[] | null;
   next: { season?: number; ep?: number; date: string | null } | null; people: { label: string; names: string[] } | null;
   cast: { name: string | undefined; role: string | null; photo: string | null }[]; imdb: string | null;
   scores?: { imdb: string | null; votes: string | null; rt: string | null; mc: string | null; awards: string | null; pages?: { rt: string | null; mc: string | null } } | null;
@@ -18,7 +18,7 @@ export type Title = {
   anime?: boolean; mal?: { score: number | null; rank: number | null; url: string }; kitsu?: { score: number | null; url: string }; facts?: Record<string, string | number | null>;
   episodes?: number | null; format?: string | null; malUrl?: string | null;
   watchlist: boolean; upNext: string | null; similar: Tile[]; collectionItems: Tile[];
-  you?: { plays?: number; episodes?: number; bySeason?: Record<number, number>; rating?: number | null; first?: number | null; last?: number | null;
+  you?: { plays?: number; episodes?: number; bySeason?: Record<number, number>; bySeasonTvdb?: Record<number, number>; rating?: number | null; first?: number | null; last?: number | null;
     moviePlays?: Play[]; seasonRatings?: Record<number, number>; seasonAvg?: Record<number, number> };
 };
 

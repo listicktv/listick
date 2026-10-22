@@ -61,7 +61,7 @@ export interface Detail {
   facts: Record<string, string | number | null>;
   episodes?: number | null; format?: string | null; malUrl?: string | null;
 }
-export interface Episode { ep: number; name: string | null; air: string | null; runtime: number | null; still: string | null; overview: string | null; tvdb?: boolean }
+export interface Episode { ep: number; name: string | null; air: string | null; runtime: number | null; still: string | null; overview: string | null; tvdb?: boolean; se?: number; tep?: number }
 
 import type { AirEp, UpNext } from './upnext';
 

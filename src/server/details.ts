@@ -6,7 +6,7 @@ import { langOf, namesOf, posterAt } from './names';
 import { TMDB_IMG, getJSON, kitsu, mal, tmdb } from './sources';
 import { watchKeys } from './store';
 import { cleanSynopsis, fillFromTmdb, fromKitsu, fromTmdb, getTitle, saveTitles } from './titles';
-import { fillFromTvdb } from './tvdb';
+import { fillFromTvdb, tvdbSplit, tvdbSplitKnown } from './tvdb';
 import type { Detail, Episode, KitsuList, KitsuOne, MalAnime, Omdb, Title, TmdbCollection, TmdbDetails, TmdbSeasonDetails, Uid } from './types';
 import { HOUR, env } from './util';
 
@@ -55,12 +55,44 @@ export async function details(key: string, uid: Uid = null) {
   if (n) value = { ...value, title: n.title || value.title, poster: posterAt(n.poster, 'w780') || value.poster, overview: n.overview || value.overview };
   // similar leaves out the collection's own films (they have their row)
   const similarKeys = (value.similarKeys || []).filter((k) => k !== key && !(value.collectionKeys || []).includes(k));
-  return { ...value, watchlist: wl.has(key), you: await activity(key, uid), upNext: await nextUp({ key, type: value.type, anime: value.anime }, uid),
+  // a show TheTVDB splits differently: its seasons too, with how many of each you've watched
+  const [src, kind, id] = key.split(':');
+  // anime waits for it; other shows get it on a later open
+  let split = null;
+  if (src === 'tmdb' && kind === 'tv') {
+    if (isAnime(value)) split = await tvdbSplit(id).catch(() => null);
+    else { const known = tvdbSplitKnown(id); if (known === undefined) void tvdbSplit(id, true).catch(() => null); else split = known; }
+  }
+  const you = await activity(key, uid);
+  if (split && uid) {
+    const seen = new Set((await q.all<{ season: number; episode: number }>('select distinct season, episode from history where user_id = ? and key = ? and season > 0', uid, key)).map((r) => `${r.season}:${r.episode}`));
+    Object.assign(you, { bySeasonTvdb: Object.fromEntries(split.map((s) => [s.n, s.eps.filter((e) => seen.has(`${e.se}:${e.tep}`)).length])) });
+  }
+  return { ...value, seasonsTvdb: split ? split.map((s) => ({ n: s.n, name: `Season ${s.n}`, episodes: s.eps.length, year: s.year })) : null,
+    watchlist: wl.has(key), you, upNext: await nextUp({ key, type: value.type, anime: value.anime }, uid),
     collectionItems: await cardsOf(uid, value.collectionKeys || [], wl), similar: await cardsOf(uid, similarKeys, wl) };
 }
 // one season's episodes (TMDB for shows; Kitsu's list for anime) with your plays of each
 const seasonCache = new Map<string, { at: number; value: Episode[] }>();
-export async function season(key: string, n: number, uid: Uid) {
+// a season as TheTVDB numbers it: each episode TMDB's, at its TMDB place (se, tep), with your plays and rating there
+async function tvdbSeasonOf(key: string, n: number, uid: Uid): Promise<Episode[]> {
+  const split = (await tvdbSplit(key.split(':')[2]).catch(() => null))?.find((s) => s.n === n);
+  if (!split) return [];
+  const base = new Map<number, Map<number, Episode>>();
+  for (const se of new Set(split.eps.map((e) => e.se))) base.set(se, new Map((await season(key, se, null)).map((e) => [e.ep, e])));
+  const plays = uid ? await q.all<{ season: number; episode: number; at: number; n: number; approx: number; source: string }>(`select season, episode, max(watched_at) at, count(*) n,
+    max(approx) approx, (array_agg(source order by watched_at desc))[1] source from history where user_id = ? and key = ? and season > 0 group by season, episode`, uid, key) : [];
+  const rated = uid ? await q.all<{ season: number; episode: number; rating: number }>('select season, episode, rating from ratings where user_id = ? and key = ? and season > 0 and episode >= 0', uid, key) : [];
+  const play = new Map(plays.map((r) => [`${r.season}:${r.episode}`, r])), mine = new Map(rated.map((r) => [`${r.season}:${r.episode}`, r.rating]));
+  return split.eps.flatMap((x) => {
+    const e = base.get(x.se)?.get(x.tep);
+    if (!e) return [];
+    const p = play.get(`${x.se}:${x.tep}`);
+    return [{ ...e, ep: x.ep, se: x.se, tep: x.tep, watched: p ? { at: p.at, plays: p.n, approx: p.approx, source: p.source } : null, mine: mine.get(`${x.se}:${x.tep}`) ?? null }];
+  });
+}
+export async function season(key: string, n: number, uid: Uid, tvdbOrder = false): Promise<Episode[]> {
+  if (tvdbOrder) return tvdbSeasonOf(key, n, uid);
   const ck = `${key}|${n}`;
   let c = seasonCache.get(ck);
   if (!c || Date.now() - c.at > 6 * HOUR) {
