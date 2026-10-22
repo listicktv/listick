@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { getJ } from './lib/api';
+import { Icon } from './lib/icons';
 import type { Tile } from './lib/media';
 
 // how many cards a slide row shows at once: posters 9 / 6 / 5 / 3, wide cards 5 / 4 / 3 / 2 (desktop / tablet / large phone or
@@ -15,7 +16,7 @@ const idle = (fn: () => void) => setTimeout(() => ('requestIdleCallback' in wind
 
 type More = { id: string; total: number; batch: number } | null;
 // cls: the section's class (default group, or group trend-group); a null title leaves the head with the ‹ › alone; href: the
-// title opens the row as a page of its own (/row/<id>, a list)
+// grid circle beside the arrows opens the row as a page of its own (/row/<id>, a list)
 type Props<T> = { id: string; title: ReactNode; href?: string; titleId?: string; note?: ReactNode; hidden?: boolean; trend?: boolean; cls?: string; railClass: string;
   items: T[]; keyOf: (x: T) => string; card: (x: T) => ReactNode; more?: More;
   // a row moved to other titles (a picker switch) goes back to its start
@@ -109,10 +110,14 @@ export function Group<T>({ id, title, href, titleId, note, hidden, trend, cls, r
   return (
     <section className={cls || (trend ? 'group trend-group' : 'group')} id={cls ? undefined : `${id}-group`} hidden={hidden}>
       <div className="group-head">
-        {title === null ? <span /> : <h2 className="sh" id={titleId}>{href ? <Link href={href} className="sh-open">{title}<span className="sh-go" aria-hidden="true">›</span></Link> : title}</h2>}{note}
-        <div className="rail-nav" hidden={nav.includes('h')}>
-          <button type="button" className="rbtn" aria-label="Previous" disabled={nav.includes('p')} onClick={() => void go(-1)}>‹</button>
-          <button type="button" className="rbtn" aria-label="Next" disabled={nav.includes('n')} onClick={() => void go(1)}>›</button>
+        {title === null ? <span /> : <h2 className="sh" id={titleId}>{title}</h2>}{note}
+        <div className="rail-nav" hidden={!href && nav.includes('h')}>
+          {href && <Link href={href} className="rbtn" aria-label="See all"><Icon d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z" size={15} /></Link>}
+          {href && !nav.includes('h') && <span className="rsep" aria-hidden="true" />}
+          {!nav.includes('h') && <>
+            <button type="button" className="rbtn" aria-label="Previous" disabled={nav.includes('p')} onClick={() => void go(-1)}><Icon d="M15 6l-6 6 6 6" size={16} width={2.2} /></button>
+            <button type="button" className="rbtn" aria-label="Next" disabled={nav.includes('n')} onClick={() => void go(1)}><Icon d="M9 6l6 6-6 6" size={16} width={2.2} /></button>
+          </>}
         </div>
       </div>
       <div ref={r} className={railClass} id={id} onScroll={onScroll}>

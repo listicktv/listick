@@ -606,12 +606,14 @@ button.day:hover:not(.today) { background: var(--on); }
 /* in a slide row the lift is gentler, and the first card grows from its left edge so the row doesn't clip it */
 @media (hover: hover) { .rail .wcard:hover { transform: scale(1.04); } .rail > .wcard:first-child { transform-origin: left center; } }
 /* ‹ › by a row's title: small, so the title row keeps its height */
-.rail-nav { display: flex; gap: 4px; margin: -4px 0 -4px auto; align-self: center; }
+.rail-nav { display: flex; align-items: center; gap: 6px; margin: -4px 0 -4px auto; align-self: center; }
 .rail-nav[hidden] { display: none; }
-.rbtn { width: 22px; height: 22px; display: grid; place-items: center; border: 0; border-radius: 6px; background: none; color: var(--text);
-  font-size: var(--fs-18); line-height: 1; cursor: pointer; padding: 0 0 2px; }
+.rbtn { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--text); padding: 0;
+  cursor: pointer; box-shadow: inset 0 0 0 1.5px var(--line-2); transition: box-shadow 0.15s, color 0.15s, opacity 0.15s; }
 .rbtn:disabled { opacity: 0.3; cursor: default; }
-.rbtn:not(:disabled):hover { color: var(--accent); }
+.rbtn:not(:disabled):is(:hover, :focus-visible) { color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.rsep { width: 1px; height: 18px; margin: 0 4px; background: var(--line-2); }
+@media (max-width: 800px) { .rbtn { width: 26px; height: 26px; } .rail-nav { gap: 5px; } .rsep { height: 15px; margin: 0 3px; } }
 /* poster slide rows across the full width (3 and a peek on the phone, 6 on tablet, 9 on desktop) */
 .ptrack { gap: 8px; grid-auto-columns: calc((100% - 2 * 8px) / 3); }
 @media (min-width: 801px) { .ptrack { gap: 10px; grid-auto-columns: calc((100% - 5 * 10px) / 6); } }
@@ -2195,9 +2197,6 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
 }
 /* a row or list as its own page (Shelf.tsx): a row's title is its link, with a › that leans on hover; the titles as big posters,
    two across on a phone */
-.sh-open { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
-.sh-go { color: var(--accent); font-size: 1.35em; line-height: 0.8; transition: transform 0.15s; }
-.sh-open:is(:hover, :focus-visible) { color: var(--text); } .sh-open:is(:hover, :focus-visible) .sh-go { transform: translateX(3px); }
 .shelf { display: flex; flex-direction: column; gap: 22px; }
 /* the big posters' circles: the title page poster's size */
 .shelf-grid .dialhost .tdial { right: 10px; bottom: 10px; width: 42px; height: 42px; }
