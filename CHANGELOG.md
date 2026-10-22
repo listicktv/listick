@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/listicktv/listick/compare/v0.8.0...v0.8.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* connection setup steps folded until opened ([facdb32](https://github.com/listicktv/listick/commit/facdb320f950223ed47e76c7331f76799a5937c1))
+
 ## [0.8.0](https://github.com/listicktv/listick/compare/v0.7.0...v0.8.0) (2026-10-22)
 
 
