@@ -559,18 +559,22 @@ button.day:hover:not(.today) { background: var(--on); }
 .wcard.has-prog .txt { bottom: 14px; }
 @media (min-width: 1181px) { .wcard .wprog { left: 7px; right: 7px; } }   /* lined up with the text, which sits at 7 px there */
 @media (max-width: 800px) { .wcard .t { font-size: var(--fs-12); } .wcard .s { font-size: 9.5px; } .wcard .txt { left: 8px; right: 8px; bottom: 7px; } }
-.wcard .wnew.now { display: flex; align-items: center; gap: 5px; }
-.tc-nexttag.now { display: flex; align-items: center; gap: 5px; }
-.tcard .trate.now { display: flex; gap: 4px; }
-.tcard .trate.now::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #0b1020; animation: wnow 1.6s ease-in-out infinite; }
-.tc-nexttag.now::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #0b1020; animation: wnow 1.6s ease-in-out infinite; }
+.wcard .wnew.playing { display: flex; align-items: center; gap: 5px; }
+.tc-nexttag.playing { display: flex; align-items: center; gap: 5px; }
+.tcard .trate.playing { display: flex; align-items: center; gap: 4px; }
+.tcard .trate.playing::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #0b1020; animation: wnow 1.6s ease-in-out infinite; }
+@media (max-width: 800px) {
+  .tcard .trate.playing { top: 5px; left: 5px; height: 13px; padding: 0 4px; gap: 3px; font-size: 7.5px; letter-spacing: 0.02em; }
+  .tcard .trate.playing::before { width: 4px; height: 4px; }
+}
+.tc-nexttag.playing::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #0b1020; animation: wnow 1.6s ease-in-out infinite; }
 .tc-now { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 7px; border-radius: 6px; background: var(--accent); color: #0b1020;
   font: 700 var(--fs-11) var(--body-font); letter-spacing: 0.04em; text-transform: uppercase; }
 .tc-now::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #0b1020; animation: wnow 1.6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { :is(.tc-nexttag.now, .tc-now)::before { animation: none; } }
-.wcard .wnew.now::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #0b1020; animation: wnow 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { :is(.tc-nexttag.playing, .tc-now)::before { animation: none; } }
+.wcard .wnew.playing::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #0b1020; animation: wnow 1.6s ease-in-out infinite; }
 @keyframes wnow { 50% { opacity: 0.25; } }
-@media (prefers-reduced-motion: reduce) { .wcard .wnew.now::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .wcard .wnew.playing::before { animation: none; } }
 .wcard .wnew { position: absolute; top: 7px; left: 7px; padding: 2px 6px; border-radius: 5px; background: var(--accent); color: #0b1020;
   font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; }
 /* an empty landscape row keeps the row's height, so the side panel still lines up */
@@ -1422,6 +1426,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
   .tc-postwrap.dialhost { border-radius: 8px; }
   .tc-postwrap .tdial, .tc-postwrap .tdial-shade { display: none; }
   .tc-h { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tc-now { align-self: center; margin-top: 6px; }
   .tc-title { margin: 14px 0 0; font-size: var(--fs-20); line-height: 1.2; }
   .tc-meta { justify-content: center; font-size: var(--fs-12); gap: 4px 6px; }
   .tc-cert { font-size: var(--fs-10); }
@@ -2435,7 +2440,8 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
   .tc-next { display: grid; gap: 0; padding: 0; background: none; box-shadow: none; }
   .tc-nstill { grid-area: 1 / 1 / 3 / 2; border-radius: 14px; overflow: hidden; -webkit-mask-image: none; mask-image: none; }
   .tc-nstill .tc-markwrap { right: 10px; bottom: 10px; z-index: 3; }
-  .tc-nstill .tc-nexttag { display: none; }
+  .tc-nstill .tc-nexttag:not(.playing) { display: none; }
+  .tc-nstill .tc-nexttag { left: 10px; top: 10px; z-index: 2; }
   .tc-ntx { display: contents; }
   .tc-nhead { grid-area: 2 / 1 / 3 / 2; z-index: 1; padding: 40px 56px 10px 12px; border-radius: 0 0 14px 14px; background: linear-gradient(to top, rgba(11, 16, 32, 0.95), transparent); pointer-events: none; }
   .tc-nname { pointer-events: auto; font-size: var(--fs-18); white-space: normal; }

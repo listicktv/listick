@@ -266,7 +266,7 @@ function NextCard({ d, e, episodes, season, markEpisodes, open }: { d: Title; e:
         <button type="button" className="tc-nopen" aria-label={e.name || `Episode ${e.ep}`} onClick={() => open(e.ep)}>
           {(e.still || d.backdrop) && <img src={e.still || d.backdrop!} alt="" className={e.still ? undefined : 'fb'} />}
         </button>
-        <span className={`tc-nexttag${playing(d, e, season) ? ' now' : ''}`}>{playing(d, e, season) ? 'Watching' : ep.upcoming ? airs(e.air) : 'Next up'}</span>
+        <span className={`tc-nexttag${playing(d, e, season) ? ' playing' : ''}`}>{playing(d, e, season) ? 'Watching' : ep.upcoming ? airs(e.air) : 'Next up'}</span>
         <div className="tc-markwrap">
           <button ref={mkRef} type="button" className={`tc-mark${ep.ask.armed ? ' confirm' : ''}`} aria-label={ep.tickLabel} title={ep.tickLabel} disabled={ep.upcoming}
             onClick={() => ep.tick(mkRef.current)}>
@@ -331,7 +331,7 @@ function StripTile({ d, e, episodes, season, markEpisodes, open, next }: { d: Ti
           {(e.still || d.backdrop) && <img src={e.still || d.backdrop!} alt="" loading="lazy" className={e.still ? undefined : 'fb'} />}
           {e.overview && <span className="tc-sov"><b>{[ep.upcoming ? airs(e.air) : epDay(e.air), e.runtime ? `${e.runtime}m` : null].filter(Boolean).join(' · ')}</b><span>{e.overview}</span></span>}
         </button>
-        {playing(d, e, season) && <span className="tc-nexttag now">Watching</span>}
+        {playing(d, e, season) && <span className="tc-nexttag playing">Watching</span>}
         {ep.upcoming ? <span className="tc-sair">{epDay(e.air)}</span> : (
           <div className="tc-markwrap">
             <button ref={mkRef} type="button" className={`tc-mark${e.watched ? ' on' : ''}${ep.ask.armed ? ' confirm' : ''}`} aria-label={ep.tickLabel} title={ep.tickLabel}

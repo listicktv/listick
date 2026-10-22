@@ -171,7 +171,7 @@ export function WideCard({ w, logo = true, cls = '', children }: { w: Wide; logo
       <span className="txt"><span className="t">{w.title}</span>
         <span className="s">{logo && <img className="media-logo" src={mediaMark(accent)} alt="" />}{w.sub.replace(/(\d) (d|h|min|s|%)(?!\w)/g, '$1$2')}</span></span>
       {!!w.pct && w.pct > 0 && <span className="wprog"><span style={{ width: `${w.pct}%` }} /></span>}
-      {w.watching ? <span className="wnew now">WATCHING</span> : w.isNew && <span className="wnew">NEW</span>}
+      {w.watching ? <span className="wnew playing">WATCHING</span> : w.isNew && <span className="wnew">NEW</span>}
       {children}
     </div>
   );
@@ -283,7 +283,7 @@ export function TrendCard({ t, dismiss }: { t: Tile; dismiss?: (key: string) => 
     <div className="tcard" aria-label={`${t.title}${t.label ? ` · ${t.label}` : ''}${t.year ? ` (${t.year})` : ''}${t.why ? ` · ${t.why}` : ''}`}>
       <PosterArt t={t} dismiss={t.dismiss && dismiss ? () => dismiss(t.key) : null}>
         <img alt="" loading="lazy" decoding="async" src={t.poster || undefined} className="opens" {...opens} />
-        {now ? <span className="trate now">WATCHING</span> : t.tag && <span className="trate">{t.tag}</span>}
+        {now ? <span className="trate playing">WATCHING</span> : t.tag && <span className="trate">{t.tag}</span>}
       </PosterArt>
       <div className="names"><span className="name">{t.title}</span><span className="host mono">{t.note || [t.year, t.label].filter(Boolean).join(' · ')}</span></div>
     </div>
