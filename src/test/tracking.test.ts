@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import zlib from 'node:zlib';
 import { describe, test } from 'node:test';
-import { decodeWatched, epOf, seriesOf } from '@/server/tracking';
+import { decodeWatched, epOf, seriesOf, stillPlaying } from '@/server/tracking';
 
 // a watched record as Stremio writes it: "<anchor video>:<videos up to it>:<base64 zlib bitmap>", bit i = the i-th video
 const record = (anchor: string, watched: boolean[]) => {
@@ -32,5 +32,15 @@ describe('video ids', () => {
   test('the series of a video', () => {
     assert.equal(seriesOf('tt0903747:2:5'), 'tt0903747');
     assert.equal(seriesOf('kitsu:7442:12'), 'kitsu:7442');
+  });
+});
+
+describe('still playing', () => {
+  const MIN = 60000, now = Date.parse('2026-10-22T19:00:00Z');
+  test('Stremio activity in the last 20 minutes, under 90 % watched, waits', () => {
+    assert.equal(stillPlaying({ video: 'tt1:1:3', watched: 41 * MIN, duration: 52 * MIN, at: now - 2 * MIN }, now), true, 'flagged watched at 80 %, still open');
+    assert.equal(stillPlaying({ video: 'tt1:1:3', watched: 41 * MIN, duration: 52 * MIN, at: now - 25 * MIN }, now), false, 'left 25 minutes ago');
+    assert.equal(stillPlaying({ video: 'tt1:1:3', watched: 48 * MIN, duration: 52 * MIN, at: now - 2 * MIN }, now), false, 'past 90 %');
+    assert.equal(stillPlaying({ video: null, watched: 0, duration: 0, at: now }, now), false, 'nothing open');
   });
 });

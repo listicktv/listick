@@ -103,6 +103,8 @@ async function keyOfMovie(key: string) {
 // what was last seen of a Stremio library item (sync_state 'stremio')
 type StremioSeen = { video: string | null; watched: number; duration: number; at: number; full: boolean; seen: string | null };
 // items: { id, type, video, watched, duration (ms), at (ms), full, seen (Stremio's watched record) }
+export const stillPlaying = (s: { video: string | null; watched: number; duration: number; at: number }, now = Date.now()) =>
+  !!s.video && now - s.at < 20 * 60000 && !(s.duration && s.watched >= s.duration * 0.9);
 async function observeStremio(uid: string, items: StremioObserve[]) {
   const since = await trackingSince(uid);
   let added = 0;
@@ -110,6 +112,7 @@ async function observeStremio(uid: string, items: StremioObserve[]) {
     const prev = await getState<StremioSeen>(uid, 'stremio', x.id);
     const cur: StremioSeen = { video: x.video || null, watched: x.watched || 0, duration: x.duration || 0, at: x.at, full: !!x.full, seen: x.seen || null };
     if (prev && JSON.stringify(prev) === JSON.stringify(cur)) continue;
+    if (stillPlaying(cur)) continue;
     await setState(uid, 'stremio', x.id, cur);
     // movies: Stremio keeps the real last-watched date, so a watched movie we have no play of is added at any age. A movie
     // opened from Listick's catalogs is in Stremio's library as tmdb:<id> (its video the IMDb id), not tt<id>
