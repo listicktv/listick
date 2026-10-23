@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.4](https://github.com/listicktv/listick/compare/v0.9.3...v0.9.4) (2026-10-23)
+
+
+### Bug Fixes
+
+* AniList and MAL Sync send each episode ([6343553](https://github.com/listicktv/listick/commit/634355389d1aa22031bb10e89e1bfd234597d606))
+
 ## [0.9.3](https://github.com/listicktv/listick/compare/v0.9.2...v0.9.3) (2026-10-23)
 
 
