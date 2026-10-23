@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0](https://github.com/listicktv/listick/compare/v0.8.1...v0.9.0) (2026-10-23)
+
+
+### Features
+
+* AniList and MyAnimeList sync in Settings ([2bb954b](https://github.com/listicktv/listick/commit/2bb954b14b2644e7140fb962499122a76a430bc5))
+* ANILIST_CLIENT_ID and ANILIST_CLIENT_SECRET; MAL_CLIENT_ID also turns on MyAnimeList Sync ([2bb954b](https://github.com/listicktv/listick/commit/2bb954b14b2644e7140fb962499122a76a430bc5))
+* Settings › Connections › AniList and MyAnimeList: connect, Sync now, disconnect, last sync ([2bb954b](https://github.com/listicktv/listick/commit/2bb954b14b2644e7140fb962499122a76a430bc5))
+* started and completed dates from History on synced entries ([2bb954b](https://github.com/listicktv/listick/commit/2bb954b14b2644e7140fb962499122a76a430bc5))
+* Sync copies anime progress from History, only raising an entry (more episodes or Completed) ([2bb954b](https://github.com/listicktv/listick/commit/2bb954b14b2644e7140fb962499122a76a430bc5))
+
 ## [0.8.1](https://github.com/listicktv/listick/compare/v0.8.0...v0.8.1) (2026-10-22)
 
 
