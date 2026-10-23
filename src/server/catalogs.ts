@@ -99,11 +99,17 @@ function pickOk(t: Title, f: string | null) {
   return genresOf(t).includes(f);
 }
 // what Stremio opens each title as: its IMDb id (Cinemeta and stream addons know it), else a Kitsu entry's kitsu:<id> (the
-// Kitsu addon), else tmdb:<id>. A TMDB title's IMDb id is asked of TMDB once and kept in titles.imdb ('' when it has none)
+// Kitsu addon), else tmdb:<id>. A TMDB title's IMDb id is asked of TMDB once and kept in titles.imdb ('' when it has none);
+// a recent title without one is asked again once a day
+const imdbRetried = new Map<string, number>();
+const RETRY_MS = 86400000;
 async function stremioIds(ts: Title[]) {
   const keys = ts.filter((t) => t.key.startsWith('tmdb:')).map((t) => t.key);
   const known = new Map((await q.all<{ key: string; imdb: string | null }>('select key, imdb from titles where key = any(?)', keys)).map((r) => [r.key, r.imdb]));
-  await inParallel(keys.filter((k) => known.get(k) == null), 8, async (k) => {
+  const recent = new Set(ts.filter((t) => t.year == null || t.year >= new Date().getFullYear() - 1).map((t) => t.key));
+  const ask = (k: string) => known.get(k) == null || (known.get(k) === '' && recent.has(k) && Date.now() - (imdbRetried.get(k) ?? 0) > RETRY_MS);
+  await inParallel(keys.filter(ask), 8, async (k) => {
+    imdbRetried.set(k, Date.now());
     const [, kind, id] = k.split(':');
     const x = await tmdb<{ imdb_id?: string | null }>(`/${kind}/${id}/external_ids`).catch(() => null);
     if (!x) return;
