@@ -26,7 +26,7 @@ different hosts.
     sources' scores for smart lists)
   - `rows.ts` (shared and streaming rows), `foryou.ts`, `upnext.ts` (Up next and the calendar), `stats.ts`, `region.ts`
   - `tracking.ts` and `live.ts` (Stremio turned into plays), `mapping.ts` (Fribb's anime mapping), `titles.ts`, `names.ts`
-  - `catalogs.ts` (the public API's lists)
+  - `catalogs.ts` (the public API's lists), `listsync.ts` (Sync to AniList and MyAnimeList)
   - `import/`: history from export files (Trakt, Simkl, Letterboxd, MyAnimeList, AniList) or Kitsu by username, queued in
     `imports` and run by the worker
   - `sources.ts` (every outside call, counted), `store.ts` (users and per-user state), `types.ts`

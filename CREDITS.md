@@ -7,7 +7,8 @@
 - [JustWatch](https://www.justwatch.com), through TMDB: streaming availability.
 - [Kitsu](https://kitsu.app): anime.
 - [TVmaze](https://www.tvmaze.com): air times.
-- [MyAnimeList](https://myanimelist.net) (optional): anime scores and rankings.
+- [MyAnimeList](https://myanimelist.net) (optional): anime scores and rankings, and Sync of anime progress.
+- [AniList](https://anilist.co) (optional): Sync of anime progress, and episode counts and sequels for it.
 - [OMDb](https://www.omdbapi.com) (optional): IMDb, Rotten Tomatoes and Metacritic scores. Not endorsed by IMDb.
 - [TheTVDB](https://thetvdb.com) (optional): TV categories for lists, and episode names, stories and images TMDB lacks.
 - [Wikidata](https://www.wikidata.org): links to Rotten Tomatoes and Metacritic.

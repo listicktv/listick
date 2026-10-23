@@ -11,6 +11,7 @@ import { calendarOf } from './calendar';
 import { alert } from './alert';
 import { letterboxd, malXml, simklExport, traktExport, unzip } from './import/files';
 import { kitsuLibrary } from './import/kitsu';
+import { PROVIDERS, configured, connectUrl, disconnect, finishConnect, listStatus, pendingUser, sync, type Provider } from './listsync';
 import { countries, isCountry, options, prefsOf, regionOf, setPrefs } from './region';
 import { MEDIA, builtinOf, copyList, createList, deleteList, follow, isBuiltin, listOf, listsOf, membership, pickSearch, preview, refreshList, rowLists, setItem, updateList, type Filters, type Media } from './lists';
 import { statsOf, type Period } from './stats';
@@ -130,7 +131,8 @@ async function account(uid: string) {
   return { ...pubUser(u), email: u.email || null, mail: mailOn(), stremio: u.stremio_key ? (u.stremio_user || 'connected') : null,
     apiKeys: APPS.map(({ id, name }) => ({ id, name, key: keys[id] || null })),
     jellyfin: keys.jellyfin ? { template: JELLYFIN_TEMPLATE, last: await getState<{ at: number; name: string }>(uid, 'jellyfin', 'last') } : null,
-    seanime: keys.seanime ? { last: await getState<{ at: number; name: string }>(uid, 'seanime', 'last') } : null };
+    seanime: keys.seanime ? { last: await getState<{ at: number; name: string }>(uid, 'seanime', 'last') } : null,
+    lists: Object.fromEntries(await Promise.all(PROVIDERS.filter(configured).map(async (x) => [x, await listStatus(uid, x)]))) };
 }
 // Stremio's own sign-in (the request its apps send, stremio-core's AuthRequest::Login): only the session key it returns is kept
 async function stremioLogin(email: string, password: string) {
@@ -442,6 +444,33 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
     if (!APPS.some((x) => x.id === addon)) return json(req, 404, { error: 'no such app' });
     await q.run(`insert into api_keys (user_id, addon, token, created_at) values (?, ?, ?, ?)
       on conflict (user_id, addon) do update set token = excluded.token, created_at = excluded.created_at`, g.user.id, addon, crypto.randomBytes(18).toString('base64url'), Date.now());
+    return json(req, 200, await account(g.user.id));
+  }
+  // AniList / MyAnimeList: connect (their sign-in, back at done/), sync now, disconnect
+  m = p.match(/^\/api\/lists\/(connect|done)\/(anilist|mal)$/);
+  if (m && req.method === 'GET') {
+    const provider = m[2] as Provider;
+    if (m[1] === 'connect') {
+      const g = await reader(req); if (g.error) return g.error;
+      const to = await connectUrl(g.user.id, provider);
+      if (!to) return json(req, 400, { error: `${provider} is not set up on this Listick` });
+      return new Response(null, { status: 302, headers: { location: to } });
+    }
+    const state = url.searchParams.get('state') || '';
+    const u = await getUser(await pendingUser(state));
+    if (!u) return json(req, 400, { error: 'sign-in expired: connect again' });
+    try {
+      const name = await finishConnect(u.id, provider, url.searchParams.get('code'), state);
+      console.log(`lists: ${provider} connected as ${name} for ${u.name}`);
+    } catch (e) { console.error(`lists: ${provider} connect: ${msg(e)}`); return json(req, 400, { error: `couldn't connect ${provider}: connect again` }); }
+    return new Response(null, { status: 302, headers: { location: '/settings/connections' } });
+  }
+  m = p.match(/^\/api\/lists\/(sync|disconnect)\/(anilist|mal)$/);
+  if (m) {
+    const g = await guard(req); if (g.error) return g.error;
+    const provider = m[2] as Provider;
+    if (m[1] === 'disconnect') await disconnect(g.user.id, provider);
+    else void sync(g.user.id, provider);
     return json(req, 200, await account(g.user.id));
   }
   // your name (the greeting only)

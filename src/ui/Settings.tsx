@@ -3,8 +3,9 @@
 // sections are a row of chips above it). Account: username (signs you in), name (the greeting), email and password, each
 // changed in place from its pencil circle, and signing out. Appearance: this device's look. Region & services: your country
 // and the services you pay for there (smart lists start with them). Connections: Stremio tracks what you
-// watch, and so do Jellyfin and Seanime (Plex, Emby and Kodi to come). Import: bring your history from another service's export (Kitsu: by
-// username). Your data: all of it as a file, or the account deleted.
+// watch, and so do Jellyfin and Seanime (Plex, Emby and Kodi to come); AniList and MyAnimeList get your anime progress on
+// Sync. Import: bring your history from another service's export (Kitsu: by username). Your data: all of it as a file, or
+// the account deleted.
 // API access: one key per app, and the calendar feed's link. The section is in the address (/settings/import), so a link opens on it. Each change
 // goes to Listick and the section redraws from its answer.
 import Link from 'next/link';
@@ -18,7 +19,10 @@ import { say } from './lib/format';
 import { Icon, PATHS } from './lib/icons';
 
 type Account = { name: string; firstName: string | null; email: string | null; stremio: string | null; apiKeys?: { id: string; name: string; key: string | null }[];
-  jellyfin?: { template: string; last: { at: number; name: string } | null } | null; seanime?: { last: { at: number; name: string } | null } | null };
+  jellyfin?: { template: string; last: { at: number; name: string } | null } | null; seanime?: { last: { at: number; name: string } | null } | null;
+  lists?: Partial<Record<ListId, ListState>> };
+type ListId = 'anilist' | 'mal';
+type ListState = { user: string | null; expired: boolean; running: boolean; last: { at: number; wrote: number; error?: string } | null };
 type Run = { source: string; status: 'queued' | 'running' | 'done' | 'failed'; counts?: Record<string, number>; error?: string | null };
 type Imports = { sources: { id: string; name: string; what: string; file: string; user?: boolean }[]; runs: Run[]; onboard?: boolean };
 
@@ -137,7 +141,7 @@ function AccountPane({ section }: { section: Exclude<SectionId, 'appearance' | '
   const refresh = useCallback(() => loadAccount().then(show), [show]);
   useEffect(() => { let live = true; void loadAccount().then((r) => { if (live) show(r); }); return () => { live = false; }; }, [show]);
   // a run in progress: the counts refresh while the section is open
-  const running = !!im?.runs.some((x) => x.status === 'queued' || x.status === 'running');
+  const running = !!im?.runs.some((x) => x.status === 'queued' || x.status === 'running') || Object.values(a?.lists || {}).some((x) => x.running);
   useEffect(() => { if (!running) return; const t = setTimeout(refresh, 4000); return () => clearTimeout(t); }, [running, im, refresh]);
 
   if (err) return <p className="acct-note">{`Couldn't load your account (${err}).`}</p>;
@@ -179,6 +183,7 @@ function AccountPane({ section }: { section: Exclude<SectionId, 'appearance' | '
         {!on && <StremioForm done={refresh} />}
         <JellyfinRow a={a} done={done} />
         <SeanimeRow a={a} done={done} />
+        {(Object.keys(a.lists || {}) as ListId[]).map((id) => <ListRow key={id} id={id} s={a.lists![id]!} done={done} />)}
         {/* the players to come, each as its own connection later */}
         <h3 className="set-sub">Coming soon</h3>
         {SOON.map(([name, logo]) => (
@@ -264,7 +269,8 @@ function Steps({ name, steps }: { name: string; steps: Step[] }) {
 const SetupToggle = ({ name, open, set }: { name: string; open: boolean; set: (o: boolean) => void }) => (
   <ACircle d={open ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} label={`${open ? 'Hide' : 'Show'} the ${name} setup`} cls={open ? 'on' : ''} aria-expanded={open} onClick={() => set(!open)} />
 );
-const playLine = (last: { at: number; name: string }) => `${last.name} · ${new Date(last.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
+const stamp = (at: number) => new Date(at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const playLine = (last: { at: number; name: string }) => `${last.name} · ${stamp(last.at)}`;
 
 // Jellyfin: a key in a webhook address, the steps to set up its Webhook plugin, and the last play it sent
 function JellyfinRow({ a, done }: { a: Account; done: (p: Promise<string | null>) => Promise<void> }) {
@@ -313,6 +319,24 @@ function SeanimeRow({ a, done }: { a: Account; done: (p: Promise<string | null>)
         { text: <>Listick › Preferences › <b>API key</b></>, copy: { value: key, what: 'key', show: masked(key) } },
       ]} />}
     </>
+  );
+}
+
+// AniList / MyAnimeList
+const LISTS: Record<ListId, { name: string; logo: string | null }> = { anilist: { name: 'AniList', logo: 'anilist.svg' }, mal: { name: 'MyAnimeList', logo: null } };
+const SYNC = 'M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3M18 3v4h-4M6 21v-4h4';
+function ListRow({ id, s, done }: { id: ListId; s: ListState; done: (p: Promise<string | null>) => Promise<void> }) {
+  const { name, logo } = LISTS[id], on = !!s.user && !s.expired;
+  const state = !s.user ? 'not connected' : s.expired ? `${s.user} · sign in again` : s.running ? `${s.user} · syncing…` : !s.last ? s.user
+    : `${s.user} · ${s.last.error ? 'sync failed' : `${s.last.wrote} updated`} · ${stamp(s.last.at)}`;
+  return (
+    <div className="acct-detail">
+      <span className={`acct-c logo${on ? ' on' : ''}`} aria-hidden="true">{logo ? <img src={`/icons/${logo}`} alt="" /> : <b className="acct-g">MAL</b>}</span>
+      <div className="acct-detail-t"><b>{name}</b><span className={`acct-state${on ? ' on' : ''}`}>{state}</span></div>
+      {on && <ACircle d={SYNC} label={`Sync to ${name}`} cls="on" disabled={s.running} onClick={() => done(postJ(`/api/lists/sync/${id}`, {}))} />}
+      {on ? <TwoTap d={PATHS.cross} label={`Disconnect ${name}`} cls="rm" fn={() => done(postJ(`/api/lists/disconnect/${id}`, {}))} />
+        : <ACircle d={PATHS.plus} label={`Connect ${name}`} cls="on" onClick={() => go(`/api/lists/connect/${id}`)} />}
+    </div>
   );
 }
 

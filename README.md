@@ -1,7 +1,8 @@
 # Listick
 
 Track what you watch: movies, shows and anime. History, ratings, smart lists, Up next, an airing calendar, stats,
-tracking from Stremio, Jellyfin and Seanime, and imports from Trakt, Simkl, Letterboxd, MyAnimeList, AniList and Kitsu.
+tracking from Stremio, Jellyfin and Seanime, anime progress synced to AniList and MyAnimeList, and imports from Trakt,
+Simkl, Letterboxd, MyAnimeList, AniList and Kitsu.
 Self-hosted, with invite-only sign-up, so you can share it with family and friends.
 
 ![Home: History, Up next, Plan to watch and the airing calendar](docs/screenshots/home.webp)
@@ -37,6 +38,16 @@ Every other setting is optional and described in [`.env.example`](.env.example).
 - Set `APP_ORIGIN` to your URL, for example `https://listick.example.com`.
 - Set `LISTICK_OWNER_NAME` and `LISTICK_OWNER_PASSWORD` before the first start, so nobody else can claim the admin account.
 - Behind more than one proxy (for example Cloudflare and then your own), set `LISTICK_TRUSTED_PROXIES=2`.
+
+## AniList and MyAnimeList Sync
+
+Settings › Connections › AniList or MyAnimeList: connect, then **Sync now** copies your anime progress from History to
+that list, with started and completed dates. An entry is only raised (more episodes, or Completed), never lowered.
+
+- AniList: an API client at [anilist.co/settings/developer](https://anilist.co/settings/developer) with the redirect URL
+  `<APP_ORIGIN>/api/lists/done/anilist`; set `ANILIST_CLIENT_ID` and `ANILIST_CLIENT_SECRET`.
+- MyAnimeList: an app at [myanimelist.net/apiconfig](https://myanimelist.net/apiconfig) with the redirect URL
+  `<APP_ORIGIN>/api/lists/done/mal`; set `MAL_CLIENT_ID`, and `MAL_CLIENT_SECRET` for a web-type app.
 
 ## Update and back up
 
