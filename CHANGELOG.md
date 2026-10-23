@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/listicktv/listick/compare/v0.9.1...v0.9.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* Stremio plays recorded when they end, on any day ([9877f0e](https://github.com/listicktv/listick/commit/9877f0e903048860a10138b20fdc955f15eb5198))
+
 ## [0.9.1](https://github.com/listicktv/listick/compare/v0.9.0...v0.9.1) (2026-10-23)
 
 
