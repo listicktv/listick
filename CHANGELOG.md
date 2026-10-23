@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.3](https://github.com/listicktv/listick/compare/v0.9.2...v0.9.3) (2026-10-23)
+
+
+### Bug Fixes
+
+* patched esbuild for drizzle-kit ([402db6a](https://github.com/listicktv/listick/commit/402db6a482ef03db2e450da95f4110f7826eecf5))
+
 ## [0.9.2](https://github.com/listicktv/listick/compare/v0.9.1...v0.9.2) (2026-10-23)
 
 
