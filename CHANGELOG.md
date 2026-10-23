@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.1](https://github.com/listicktv/listick/compare/v0.9.0...v0.9.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* catalogs ask TMDB again for a recent title's missing IMDb id ([458e3b7](https://github.com/listicktv/listick/commit/458e3b7405fd3c60ccc764ad0dea35613ca339b5))
+* Stremio catalogs switch a title from 2025 on from tmdb: to its IMDb id once TMDB has one (checked once a day) ([458e3b7](https://github.com/listicktv/listick/commit/458e3b7405fd3c60ccc764ad0dea35613ca339b5))
+
 ## [0.9.0](https://github.com/listicktv/listick/compare/v0.8.1...v0.9.0) (2026-10-23)
 
 
