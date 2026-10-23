@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import zlib from 'node:zlib';
 import { describe, test } from 'node:test';
-import { decodeWatched, epOf, seriesOf, stillPlaying } from '@/server/tracking';
+import { decodeWatched, epOf, played, seriesOf, stillOpen } from '@/server/tracking';
 
 // a watched record as Stremio writes it: "<anchor video>:<videos up to it>:<base64 zlib bitmap>", bit i = the i-th video
 const record = (anchor: string, watched: boolean[]) => {
@@ -35,12 +35,17 @@ describe('video ids', () => {
   });
 });
 
-describe('still playing', () => {
-  const MIN = 60000, now = Date.parse('2026-10-22T19:00:00Z');
-  test('Stremio activity in the last 20 minutes, under 90 % watched, waits', () => {
-    assert.equal(stillPlaying({ video: 'tt1:1:3', watched: 41 * MIN, duration: 52 * MIN, at: now - 2 * MIN }, now), true, 'flagged watched at 80 %, still open');
-    assert.equal(stillPlaying({ video: 'tt1:1:3', watched: 41 * MIN, duration: 52 * MIN, at: now - 25 * MIN }, now), false, 'left 25 minutes ago');
-    assert.equal(stillPlaying({ video: 'tt1:1:3', watched: 48 * MIN, duration: 52 * MIN, at: now - 2 * MIN }, now), false, 'past 90 %');
-    assert.equal(stillPlaying({ video: null, watched: 0, duration: 0, at: now }, now), false, 'nothing open');
+describe('Stremio progress', () => {
+  const MIN = 60000;
+  test('open while its position is past the start; Stremio sets it back to 0 or 1 at the end', () => {
+    assert.equal(stillOpen({ video: 'tt1:1:3', offset: 20 * MIN }), true, 'stopped part-way, any day');
+    assert.equal(stillOpen({ video: 'tt1:1:4', offset: 1 }), false, 'ended, moved on to the next episode');
+    assert.equal(stillOpen({ video: 'tt1:1:3', offset: 0 }), false, 'ended, no next episode');
+    assert.equal(stillOpen({ video: null, offset: 0 }), false, 'nothing open');
+  });
+  test('played: over 70 % of it, the time adding up across sessions', () => {
+    assert.equal(played({ watched: 37 * MIN, duration: 52 * MIN }), true);
+    assert.equal(played({ watched: 10 * MIN, duration: 52 * MIN }), false, 'seeking ahead adds no time played');
+    assert.equal(played({ watched: 0, duration: 0 }), false);
   });
 });

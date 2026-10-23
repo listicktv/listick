@@ -101,24 +101,26 @@ async function keyOfMovie(key: string) {
   return await getTitle(key) ? key : null;
 }
 // what was last seen of a Stremio library item (sync_state 'stremio')
-type StremioSeen = { video: string | null; watched: number; duration: number; at: number; full: boolean; seen: string | null };
-// items: { id, type, video, watched, duration (ms), at (ms), full, seen (Stremio's watched record) }
-export const stillPlaying = (s: { video: string | null; watched: number; duration: number; at: number }, now = Date.now()) =>
-  !!s.video && now - s.at < 20 * 60000 && !(s.duration && s.watched >= s.duration * 0.9);
+type StremioSeen = { video: string | null; watched: number; offset?: number; duration: number; at: number; full: boolean; seen: string | null };
+// items: { id, type, video, watched (time played), offset (position), duration (ms), at (ms), full, seen (Stremio's watched record) }
+// over 70 % played: Stremio's watched tick
+export const played = (s: { watched: number; duration: number }) => !!s.duration && s.watched > s.duration * 0.7;
+// Stremio sets the position back to 0, or 1 on the next video, at the end
+export const stillOpen = (s: { video: string | null; offset?: number }) => !!s.video && (s.offset ?? 0) > 1;
 async function observeStremio(uid: string, items: StremioObserve[]) {
   const since = await trackingSince(uid);
   let added = 0;
   for (const x of items) {
     const prev = await getState<StremioSeen>(uid, 'stremio', x.id);
-    const cur: StremioSeen = { video: x.video || null, watched: x.watched || 0, duration: x.duration || 0, at: x.at, full: !!x.full, seen: x.seen || null };
+    const cur: StremioSeen = { video: x.video || null, watched: x.watched || 0, offset: x.offset || 0, duration: x.duration || 0, at: x.at, full: !!x.full, seen: x.seen || null };
     if (prev && JSON.stringify(prev) === JSON.stringify(cur)) continue;
-    if (stillPlaying(cur)) continue;
     await setState(uid, 'stremio', x.id, cur);
+    const open = stillOpen(cur);
     // movies: Stremio keeps the real last-watched date, so a watched movie we have no play of is added at any age. A movie
     // opened from Listick's catalogs is in Stremio's library as tmdb:<id> (its video the IMDb id), not tt<id>
     if (x.type === 'movie') {
       const tmdb = /^tmdb:\d+$/.test(x.id) ? `tmdb:movie:${x.id.slice(5)}` : null, imdb = /^tt\d+$/.test(x.id) ? x.id : /^tt\d+$/.test(cur.video || '') ? cur.video! : null;
-      if ((!tmdb && !imdb) || !cur.full) continue;
+      if ((!tmdb && !imdb) || !cur.full || open) continue;
       if (prev?.full && prev.at === cur.at) continue;
       const key = tmdb ? await keyOfMovie(tmdb) : await keyOfSeries(imdb!, true);
       if (!key) continue;
@@ -138,22 +140,19 @@ async function observeStremio(uid: string, items: StremioObserve[]) {
     let fresh: string[] = [];
     if (prev) {
       if (cur.at < since) continue;
-      // newly ticked episodes since last time, in series order, the last one at the last-watched time
+      // newly ticked episodes since last time, in series order, the last one at the last-watched time; not the open one
       const before = new Set(decodeWatched(prev.seen, vids));
-      fresh = vids.map((v) => v.id).filter((v) => now.has(v) && !before.has(v));
+      fresh = vids.map((v) => v.id).filter((v) => now.has(v) && !before.has(v) && !(open && v === cur.video));
       for (const [i, v] of fresh.entries()) added += await record(v, cur.at - (fresh.length - 1 - i) * 60000);
-      // and an episode you finished or left after half of it, whether or not Stremio ticks it now: one ticked long ago is a
-      // rewatch, which Stremio's watched record can't show
-      if (prev.video && prev.video !== cur.video && !fresh.includes(prev.video) && prev.at >= since && (prev.full || (prev.duration && prev.watched / prev.duration >= 0.5)))
+      // the episode moved on from, rewatches too
+      if (prev.video && prev.video !== cur.video && !fresh.includes(prev.video) && prev.at >= since && played(prev))
         added += await record(prev.video, prev.at);
     } else if (Date.now() - cur.at < 30 * 86400000) {
       added += await fillGaps(uid, vids, now, cur, series, key);
     }
-    // the episode open now, watched to the end (a play within 2 h of it is the same one, so repeats are skipped). Stremio
-    // zeroes its time watched when it ends and only ticks it, so an episode ticked long ago shows its end only as that drop
-    // from over half
-    const ended = prev && prev.video === cur.video && cur.at > prev.at && !cur.watched && prev.duration && prev.watched / prev.duration >= 0.5;
-    if ((cur.full || ended) && cur.video && cur.at >= since && !fresh.includes(cur.video)) added += await record(cur.video, cur.at);
+    // the open episode played to its end
+    const ended = prev && prev.video === cur.video && stillOpen(prev) && !open && played(cur);
+    if (ended && cur.video && cur.at >= since && !fresh.includes(cur.video)) added += await record(cur.video, cur.at);
   }
   return added;
 }

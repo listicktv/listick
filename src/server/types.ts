@@ -73,7 +73,7 @@ export interface ContinueCard extends StremioCard {
   video?: string | null; pct: number; resume?: boolean; airedAt?: number; nextAir?: StremioEp | null;
   place?: PlacedVideo | null; ids?: string[];
 }
-export interface StremioObserve { id: string; type: string; video: string | null; watched: number; duration: number; at: number; full: boolean; seen: string | null }
+export interface StremioObserve { id: string; type: string; video: string | null; watched: number; offset: number; duration: number; at: number; full: boolean; seen: string | null }
 export interface StremioLive {
   history: StremioCard[]; last: StremioCard | null; continue: ContinueCard[];
   now: StremioEp | null; watched7: number; observe: StremioObserve[];

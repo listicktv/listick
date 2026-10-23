@@ -20,7 +20,7 @@ const noSeason = (t: string | null | undefined) => (t || '').replace(/[\s:]+(Sea
 // ---------- Stremio ----------
 type LibraryItem = {
   _id: string; name?: string; type: string; poster?: string;
-  state?: { lastWatched?: string; video_id?: string; timeWatched: number; duration: number; flaggedWatched?: number | boolean; watched?: string };
+  state?: { lastWatched?: string; video_id?: string; timeWatched: number; timeOffset?: number; duration: number; flaggedWatched?: number | boolean; watched?: string };
 };
 type WatchState = NonNullable<LibraryItem['state']>;
 type SeriesVid = { season: number; ep: number };
@@ -75,7 +75,7 @@ export async function stremio(authKey: string | null, tag: string): Promise<Stre
   // for Listick's tracking: every title in the library, as Stremio has it now (movies of any age fill gaps;
   // series only within 30 days)
   const observe: StremioObserve[] = (d.result || []).filter((x) => x.state?.lastWatched && !/^mdblist/.test(x._id)).map((x) => ({ id: x._id, type: x.type,
-    video: x.state!.video_id || null, watched: x.state!.timeWatched || 0, duration: x.state!.duration || 0, at: watchedAt(x), full: isFull(x.state!),
+    video: x.state!.video_id || null, watched: x.state!.timeWatched || 0, offset: x.state!.timeOffset || 0, duration: x.state!.duration || 0, at: watchedAt(x), full: isFull(x.state!),
     seen: x.state!.watched || null }));
   return { history, last: history[0] || null, continue: cont.slice(0, 15), now: nowPlaying, watched7, observe };
 }
