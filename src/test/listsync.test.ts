@@ -79,10 +79,11 @@ describe('AniList / MyAnimeList Sync', () => {
     const s = await synced('anilist');
     assert.equal(s.user, 'ann-al');
     assert.equal(s.last.wrote, 2);
-    assert.deepEqual(saved.sort((a, b) => Number(a.id) - Number(b.id)), [
+    assert.deepEqual(saved.sort((a, b) => Number(a.id) - Number(b.id) || Number(a.p) - Number(b.p)), [
+      ...[6, 7, 8, 9, 10, 11].map((p) => ({ id: 999, p, s: 'CURRENT' })),
       { id: 999, p: 12, s: 'COMPLETED', sa: fuzzy(at + H), ca: fuzzy(at + 12 * H) },
       { id: 1000, p: 2, s: 'CURRENT', sa: fuzzy(at + 13 * H) },
-    ], 'Solo already at 3 is left alone');
+    ], 'one update per episode on an entry in the list; Solo already at 3 is left alone');
   });
 
   test('MyAnimeList: connects with PKCE, then writes only what its list lacks', async () => {
@@ -90,9 +91,10 @@ describe('AniList / MyAnimeList Sync', () => {
     assert.equal(to.searchParams.get('code_challenge_method'), 'plain');
     const s = await synced('mal');
     assert.equal(s.user, 'ann-mal');
-    const writes = bodies.filter((b) => b.url.includes('my_list_status')).map((b) => [b.url.split('/anime/')[1].split('/')[0], b.body]).sort();
-    assert.deepEqual(writes, [['100', { status: 'watching', num_watched_episodes: '2', start_date: day(at + 13 * H) }], ['30', { status: 'watching', num_watched_episodes: '3', start_date: day(at + H) }]],
-      'a completed entry stays');
+    const writes = bodies.filter((b) => b.url.includes('my_list_status')).map((b) => [b.url.split('/anime/')[1].split('/')[0], b.body]);
+    assert.deepEqual(writes.sort((a, b) => String(a[0]).localeCompare(String(b[0]))), [['100', { status: 'watching', num_watched_episodes: '2', start_date: day(at + 13 * H) }],
+      ['30', { status: 'watching', num_watched_episodes: '2' }], ['30', { status: 'watching', num_watched_episodes: '3', start_date: day(at + H) }]],
+      'one update per episode on an entry in the list; a completed entry stays');
   });
 
   test('a done/ without its connect is refused', async () => {

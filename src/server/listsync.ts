@@ -14,7 +14,7 @@ type OAuthToken = { access_token: string; refresh_token?: string; expires_in: nu
 type Span = { first: number; last: number };
 type Want = { anilist: number; mal: number | null; eps: Map<number, Span> };
 type Desired = { anilist: number; mal: number | null; title: string | null; progress: number; total: number | null; done: boolean; started: number; finished: number };
-type Write = { id: number; title: string | null; progress: number; status: 'completed' | 'watching'; started: string | null; completed: string | null };
+type Write = { id: number; title: string | null; from: number | null; progress: number; status: 'completed' | 'watching'; started: string | null; completed: string | null };
 type Current = { progress?: number; num_episodes_watched?: number; status: string; startedAt?: { year: number | null }; start_date?: string };
 type Last = { at: number; wrote: number; error?: string };
 type ListStatus = { user: string | null; expired: boolean; running: boolean; last: Last | null };
@@ -174,11 +174,12 @@ function plan(p: Provider, want: Desired[], cur: Map<number, Current>) {
     const c = cur.get(id), have = (p === 'anilist' ? c?.progress : c?.num_episodes_watched) ?? 0;
     if (c && (FINISHED[p].includes(c.status) || have > w.progress || (have === w.progress && !w.done))) continue;
     const hasStart = p === 'anilist' ? !!c?.startedAt?.year : !!c?.start_date;
-    out.push({ id, title: w.title, progress: w.progress, status: w.done ? 'completed' : 'watching', started: hasStart ? null : day(w.started), completed: w.done ? day(w.finished) : null });
+    out.push({ id, title: w.title, from: c ? have : null, progress: w.progress, status: w.done ? 'completed' : 'watching', started: hasStart ? null : day(w.started), completed: w.done ? day(w.finished) : null });
   }
   return out;
 }
 export const WAIT = { anilist: 2500, mal: 1000 };
+const STEPS = 25;
 async function write(p: Provider, x: Write, token: string) {
   if (p === 'anilist') {
     const dates = [x.started && 'startedAt:$sa', x.completed && 'completedAt:$ca'].filter(Boolean).join(',');
@@ -201,6 +202,9 @@ export async function sync(uid: string, p: Provider) {
     const token = await accessToken(uid, p);
     if (!token) throw new Error('not connected');
     for (const x of plan(p, await desired(uid), await listNow(uid, p, token))) {
+      // one update per episode, up to STEPS
+      if (x.from != null)
+        for (let ep = Math.max(x.from, x.progress - STEPS) + 1; ep < x.progress; ep++) await write(p, { ...x, progress: ep, status: 'watching', started: null, completed: null }, token);
       await write(p, x, token); wrote++;
       console.log(`lists: ${p} ${x.title || x.id} -> ${x.progress} ${x.status}`);
     }
