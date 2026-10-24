@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/listicktv/listick/compare/v0.9.4...v0.10.0) (2026-10-24)
+
+
+### Features
+
+* Continue watching for Jellyfin and Seanime ([89fd3a8](https://github.com/listicktv/listick/commit/89fd3a80092090e41586bcec24e6d3c4860549c3))
+* Up next follows a rewatch of a finished show, tagged REWATCH ([89fd3a8](https://github.com/listicktv/listick/commit/89fd3a80092090e41586bcec24e6d3c4860549c3))
+* what's playing in Stremio, Jellyfin and Seanime shows in Up next ([89fd3a8](https://github.com/listicktv/listick/commit/89fd3a80092090e41586bcec24e6d3c4860549c3))
+
+
+### Bug Fixes
+
+* Stremio shows as watching within a minute and stops 4 minutes after its last save ([89fd3a8](https://github.com/listicktv/listick/commit/89fd3a80092090e41586bcec24e6d3c4860549c3))
+
 ## [0.9.4](https://github.com/listicktv/listick/compare/v0.9.3...v0.9.4) (2026-10-23)
 
 
