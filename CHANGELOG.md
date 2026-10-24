@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/listicktv/listick/compare/v0.10.0...v0.10.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* Stremio stays watching past 70 % until the video ends ([a5ced1f](https://github.com/listicktv/listick/commit/a5ced1f0c4a4086b60e4212f3759cf61228ad0c6))
+
 ## [0.10.0](https://github.com/listicktv/listick/compare/v0.9.4...v0.10.0) (2026-10-24)
 
 
