@@ -38,6 +38,8 @@ const vidParts = (vid: string | null | undefined): [number | null, number | null
 const cleanName = (n: string | null | undefined) => (n || '').replace(/\s*\((?:19|20)\d{2}\)\s*$/, '');
 const isFull = (st: WatchState) => !!st.flaggedWatched || (!!st.duration && st.timeWatched >= st.duration * FULL);
 const watchedAt = (x: LibraryItem) => Date.parse(x.state!.lastWatched!);
+// saved in the last 4 minutes and still open: unfinished, or past 70 % (ticked) but not at its end (Stremio puts the position back to 0 there)
+const isPlaying = (x: LibraryItem, now: number) => now - watchedAt(x) < STREMIO_LIVE && (!isFull(x.state!) || (x.state!.timeOffset || 0) > 0);
 // authKey: the user's Stremio session key; tag: who, so each library's episode lists are cached on their own
 export async function stremio(authKey: string | null, tag: string): Promise<StremioLive | null> {
   if (!authKey) return null;
@@ -66,10 +68,9 @@ export async function stremio(authKey: string | null, tag: string): Promise<Stre
     const st = x.state!, [season, ep] = vidParts(st.video_id);
     const pct = st.duration ? Math.round((st.timeWatched / st.duration) * 100) : 0;
     const base = { title: cleanName(x.name), poster: x.poster || null, at: watchedAt(x), url: link(x), type: x.type, id: x._id };
-    if (!isFull(st) && (st.timeWatched >= 120000 || now - watchedAt(x) < STREMIO_LIVE)) cont.push(abs(x._id, { ...base, video: st.video_id || null, season, ep, pct, resume: true }));
+    if ((!isFull(st) && st.timeWatched >= 120000) || isPlaying(x, now)) cont.push(abs(x._id, { ...base, video: st.video_id || null, season, ep, pct, resume: true }));
   }
-  // watching now: an unfinished item saved in the last 4 minutes
-  const cur = items.find((x) => !isFull(x.state!) && now - watchedAt(x) < STREMIO_LIVE);
+  const cur = items.find((x) => isPlaying(x, now));
   const nowPlaying = cur ? abs(cur._id, { title: cleanName(cur.name), type: cur.type, season: vidParts(cur.state!.video_id)[0], ep: vidParts(cur.state!.video_id)[1] }) : null;
   const watched7 = items.filter((x) => isFull(x.state!) && watchedAt(x) > now - 7 * 86400000).length;
   // for Listick's tracking: every title in the library, as Stremio has it now (movies of any age fill gaps;
