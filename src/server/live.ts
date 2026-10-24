@@ -1,5 +1,6 @@
 // The live source for tracking and the page: Stremio's library (the worker polls it), per user by their Stremio key. A failed
 // refresh keeps the last value.
+import { STREMIO_LIVE } from '@/lib/cards';
 import { fetchJSON } from './sources';
 import { safe } from './util';
 import type { CinemetaVideo, ContinueCard, StremioCard, StremioEp, StremioLive, StremioObserve } from './types';
@@ -59,17 +60,16 @@ export async function stremio(authKey: string | null, tag: string): Promise<Stre
     return abs(x._id, { title: cleanName(x.name), type: x.type, season, ep, at: watchedAt(x), poster: x.poster || null, url: link(x), id: x._id });
   });
   const now = Date.now(), since = now - 60 * 86400000;
-  // continue watching: a started episode or movie (2 min to 90 %); Up next comes from the History (upnext.ts)
+  // continue watching: a started episode or movie (2 min to 90 %), and one playing now; Up next comes from the History (upnext.ts)
   const cont: ContinueCard[] = [];
   for (const x of items.filter((i) => watchedAt(i) > since)) {
     const st = x.state!, [season, ep] = vidParts(st.video_id);
     const pct = st.duration ? Math.round((st.timeWatched / st.duration) * 100) : 0;
     const base = { title: cleanName(x.name), poster: x.poster || null, at: watchedAt(x), url: link(x), type: x.type, id: x._id };
-    if (!isFull(st) && st.timeWatched >= 120000) cont.push(abs(x._id, { ...base, video: st.video_id || null, season, ep, pct, resume: true }));
+    if (!isFull(st) && (st.timeWatched >= 120000 || now - watchedAt(x) < STREMIO_LIVE)) cont.push(abs(x._id, { ...base, video: st.video_id || null, season, ep, pct, resume: true }));
   }
-  // "watching now": Stremio has no live status, but it saves progress every few minutes while playing,
-  // so an unfinished item touched in the last 10 minutes is taken as playing
-  const cur = items.find((x) => !isFull(x.state!) && x.state!.timeWatched > 0 && now - watchedAt(x) < 10 * 60000);
+  // watching now: an unfinished item saved in the last 4 minutes
+  const cur = items.find((x) => !isFull(x.state!) && now - watchedAt(x) < STREMIO_LIVE);
   const nowPlaying = cur ? abs(cur._id, { title: cleanName(cur.name), type: cur.type, season: vidParts(cur.state!.video_id)[0], ep: vidParts(cur.state!.video_id)[1] }) : null;
   const watched7 = items.filter((x) => isFull(x.state!) && watchedAt(x) > now - 7 * 86400000).length;
   // for Listick's tracking: every title in the library, as Stremio has it now (movies of any age fill gaps;

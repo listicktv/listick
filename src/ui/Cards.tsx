@@ -171,7 +171,7 @@ export function WideCard({ w, logo = true, cls = '', children }: { w: Wide; logo
       <span className="txt"><span className="t">{w.title}</span>
         <span className="s">{logo && <img className="media-logo" src={mediaMark(accent)} alt="" />}{w.sub.replace(/(\d) (d|h|min|s|%)(?!\w)/g, '$1$2')}</span></span>
       {!!w.pct && w.pct > 0 && <span className="wprog"><span style={{ width: `${w.pct}%` }} /></span>}
-      {w.watching ? <span className="wnew playing">WATCHING</span> : w.isNew && <span className="wnew">NEW</span>}
+      {w.watching ? <span className="wnew playing">WATCHING</span> : w.rewatch ? <span className="wnew">REWATCH</span> : w.isNew && <span className="wnew">NEW</span>}
       {children}
     </div>
   );

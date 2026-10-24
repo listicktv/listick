@@ -268,7 +268,7 @@ export const forgetLive = (uid: string) => { savedLive.delete(uid); return q.run
 export async function refreshLive(u: User) {
   const uid = u.id;
   // cached per user and per key, so a changed key or name starts fresh
-  const sr: StremioLive | null = u.stremio_key ? await cached(`stremio:${uid}:${u.stremio_key.slice(0, 8)}`, 120000, () => stremio(u.stremio_key, uid)) : null;
+  const sr: StremioLive | null = u.stremio_key ? await cached(`stremio:${uid}:${u.stremio_key.slice(0, 8)}`, 30000, () => stremio(u.stremio_key, uid)) : null;
   const videos = (sr?.continue || []).map((c) => c.video).filter((v): v is string => !!v && !(v in placed));
   if (videos.length) { const got = await safe(() => places(videos)); if (got) for (const v of videos) placed[v] = got[v] || null; }
   if (sr?.continue) for (const c of sr.continue) c.place = (c.video && placed[c.video]) || null;

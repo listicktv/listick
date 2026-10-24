@@ -2,6 +2,7 @@
 import { cardsOf, viewsOf } from './cards';
 import { q } from './db';
 import { forYouOf } from './foryou';
+import { resumeCards } from './resume';
 import { watchingCards } from './watching';
 import { asTmdb } from './mapping';
 import { ROWS, SERVICES, SERVICE_ROWS, listOf, liveServices, rowType, rowsNow, serviceRowKind } from './rows';
@@ -52,7 +53,7 @@ async function hideDone(uid: string, sr: LiveValue['stremio']) {
 // and For you
 export async function pageData(uid: string, query: URLSearchParams) {
   const l = await liveOf(uid);
-  return { stremio: await hideDone(uid, l.stremio), watching: await watchingCards(uid), upNext: l.upNext || [], schedule: l.schedule || [], media: await summary(uid, query),
+  return { stremio: await hideDone(uid, l.stremio), watching: await watchingCards(uid), resume: await resumeCards(uid), upNext: l.upNext || [], schedule: l.schedule || [], media: await summary(uid, query),
     forYou: await forYouOf(uid) };
 }
 // the home page's two pickers, each with Movies | Shows | Anime: a group of the general rows (Everyone, Kids) (In theaters stays a row of its own) and a

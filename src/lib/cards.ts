@@ -1,6 +1,8 @@
 // One card per title: the newest wins. Cards with ids (Continue watching: Kitsu -> IMDb, from Listick) match by id, as names
 // differ and repeat; the others by name. Shared by the page's rows and the server's count of what's waiting.
 type Card = { ids?: string[]; title: string; at: number };
+// Stremio saves progress every 3 minutes while playing and on pause or close: an unfinished item saved in the last 4 minutes is playing
+export const STREMIO_LIVE = 4 * 60000;
 const titleKey = (t: string) => t.toLowerCase().replace(/\(\d{4}\)|season \d+|\bs\d+\b|[^a-z0-9]/g, '');
 const sameTitle = (a: Card, b: Card) => (a.ids?.length && b.ids?.length ? a.ids.some((id) => b.ids!.includes(id)) : titleKey(a.title) === titleKey(b.title));
 export function oneCardPerTitle<T extends Card>(list: T[]): T[] {

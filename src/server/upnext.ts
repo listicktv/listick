@@ -2,7 +2,8 @@
 // came in (Stremio, a mark here, an import). Up next is the episode after the furthest one watched once it has aired; one still
 // to air waits (it is in the calendar) and comes back, NEW, when it airs. The calendar is their episodes airing this month and
 // next. Episodes and air dates come from TMDB (Kitsu for anime only Kitsu has), exact air times from TVmaze where it knows the
-// show. The worker works it out (refreshLive) when the History changes, and hourly otherwise.
+// show. A show watched to its last aired episode and started again follows the rewatch (the episode after the latest play,
+// marked rewatch). The worker works it out (refreshLive) when the History changes, and hourly otherwise.
 import { q } from './db';
 import { season } from './details';
 import { tvSeasons } from './mapping';
@@ -10,10 +11,12 @@ import { getJSON, tmdb } from './sources';
 import type { Episode, TitleType } from './types';
 import { HOUR, safe } from './util';
 
-export type UpNext = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; se: number; ep: number; at: number; airedAt: number | null };
+export type UpNext = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; se: number; ep: number; at: number; airedAt: number | null;
+  rewatch?: boolean };
 export type AirEp = { key: string; title: string; poster: string | null; season: number | null; ep: number; at: number; dayOnly: boolean; watched: boolean; anime: boolean };
 type Follow = { upNext: UpNext[]; schedule: AirEp[] };
-type Followed = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; anime: number | null; season: number; episode: number; last: number };
+type Followed = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; anime: number | null; season: number; episode: number; last: number;
+  ls: number; le: number };
 
 const day = (t: number) => new Date(t).toLocaleDateString('sv-SE');   // YYYY-MM-DD in TZ, as TMDB's and Kitsu's air dates
 // Kitsu lists an airing season's episodes before they air, without a date: one counts as out once a later one has aired
@@ -65,21 +68,25 @@ async function nextOf(key: string, se: number, ep: number) {
 
 async function build(uid: string): Promise<Follow> {
   const since = Date.now() - 60 * 86400000, now = Date.now(), today = day(now);
-  // the furthest episode watched of each title played lately (specials and films left out), the latest played first
-  const followed = (await q.all<Followed>(`with recent as (select key, max(watched_at) last from history where user_id = ? and season > 0 group by key having max(watched_at) > ?)
-    select distinct on (h.key) h.key, h.season, h.episode, r.last, t.type, t.title, t.poster, t.backdrop, t.anime
-    from history h join recent r on r.key = h.key join titles t on t.key = h.key
-    where h.user_id = ? and h.season > 0 order by h.key, h.season desc, h.episode desc`, uid, since, uid)).sort((a, b) => b.last - a.last).slice(0, 30);
+  // the furthest episode watched of each title played lately (specials and films left out) and the latest one played, the latest
+  // played first
+  const followed = (await q.all<Followed>(`with recent as (select key, max(watched_at) last from history where user_id = ? and season > 0 group by key having max(watched_at) > ?),
+    latest as (select distinct on (key) key, season ls, episode le from history where user_id = ? and season > 0 order by key, watched_at desc)
+    select distinct on (h.key) h.key, h.season, h.episode, r.last, l.ls, l.le, t.type, t.title, t.poster, t.backdrop, t.anime
+    from history h join recent r on r.key = h.key join latest l on l.key = h.key join titles t on t.key = h.key
+    where h.user_id = ? and h.season > 0 order by h.key, h.season desc, h.episode desc`, uid, since, uid, uid)).sort((a, b) => b.last - a.last).slice(0, 30);
   const from = day(new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()), to = day(new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0).getTime());
   const upNext: UpNext[] = [], schedule: AirEp[] = [];
   for (const f of followed) {
     await safe(async () => {
       const stamps = f.key.startsWith('tmdb:tv:') ? await airTimes(f.key) : new Map<string, number>();
       const at = (se: number, e: Episode) => stamps.get(`${se}:${e.ep}`) ?? (e.air ? Date.parse(`${e.air}T12:00:00`) : null);
+      const isOut = (x: NonNullable<Awaited<ReturnType<typeof nextOf>>>) => (stamps.has(`${x.se}:${x.e.ep}`) ? at(x.se, x.e)! <= now : aired(x.list, x.e, today));
       const n = await nextOf(f.key, f.season, f.episode);
-      if (n) {
-        const t = at(n.se, n.e), out = stamps.has(`${n.se}:${n.e.ep}`) ? t! <= now : aired(n.list, n.e, today);
-        if (out) upNext.push({ key: f.key, type: f.type, title: f.title, poster: f.poster, backdrop: f.backdrop, se: n.se, ep: n.e.ep, at: f.last, airedAt: t });
+      if (n && isOut(n)) upNext.push({ key: f.key, type: f.type, title: f.title, poster: f.poster, backdrop: f.backdrop, se: n.se, ep: n.e.ep, at: f.last, airedAt: at(n.se, n.e) });
+      else if (f.ls < f.season || (f.ls === f.season && f.le < f.episode)) {
+        const r = await nextOf(f.key, f.ls, f.le);
+        if (r && isOut(r)) upNext.push({ key: f.key, type: f.type, title: f.title, poster: f.poster, backdrop: f.backdrop, se: r.se, ep: r.e.ep, at: f.last, airedAt: at(r.se, r.e), rewatch: true });
       }
       // the calendar: this season's and the next one's episodes airing this month or next, each marked if you watched it
       const seasons = [f.season, ...(n && n.se !== f.season ? [n.se] : [])];

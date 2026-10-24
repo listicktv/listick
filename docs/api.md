@@ -66,7 +66,7 @@ Listick's template). The key is in the address; a wrong key gets `404`. The body
 | `series`, `year`, `season`, `episode`, `episodeEnd` | `SeriesName`, `Year`, `SeasonNumber`, `EpisodeNumber`, `EpisodeNumberEnd` | an episode without ids |
 | `name` | `Name` | the last play shown in Settings |
 | `done`, `played` | `PlayedToCompletion`, `Played` | `True` or `False` |
-| `position`, `runtime` | `PlaybackPositionTicks`, `RunTimeTicks` | how far it is |
+| `position`, `runtime` | `PlaybackPositionTicks`, `RunTimeTicks` | how far it is; 2 minutes to 90 % in goes to Continue watching |
 
 The reply is `{ "ok": true, "recorded": <plays added> }`, or `{ "ok": true, "playing": true }` for a start or progress event.
 
@@ -81,4 +81,5 @@ Titles without an AniList mapping are left out.
 ### `POST /api/v1/anime/play` (`plays`)
 
 An episode by AniList id: `{ "anilistId": 154587, "episode": 29, "state": "watched" }`. `state`: `playing` (watching now,
-optional `progress` 0-100), `stopped` or `watched` (a play). Answers `{ "ok": true, "recorded": 1 }`; unknown id: `404`.
+optional `progress` 0-100), `stopped` or `watched` (a play). A `progress` of 5 to 90 %, sent while playing or last before
+`stopped`, goes to Continue watching. Answers `{ "ok": true, "recorded": 1 }`; unknown id: `404`.

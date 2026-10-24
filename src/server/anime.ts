@@ -6,6 +6,7 @@ import { appLists, builtinKeys } from './lists';
 import { anilistOf, placeOfAnilist } from './mapping';
 import { addPlay } from './plays';
 import { ROWS, listOf as rowKeys, rowType, rowsNow } from './rows';
+import { saveResume } from './resume';
 import { getState, setState } from './store';
 import { getTitle, titlesOf } from './titles';
 import type { Title } from './types';
@@ -60,13 +61,21 @@ export async function animePlay(uid: string, app: string, b: Record<string, unkn
   const id = b.anilistId, ep = b.episode, state = b.state;
   if (!Number.isInteger(id) || !Number.isInteger(ep) || (ep as number) < 1 || (ep as number) > 5000 || !['playing', 'stopped', 'watched'].includes(state as string))
     return { code: 400, body: { error: 'anilistId, episode (1-5000), state: playing, stopped or watched' } };
-  if (state === 'stopped') { await setState(uid, app, 'now', null); return { code: 200, body: { ok: true } }; }
+  if (state === 'stopped') {
+    // Continue watching: the last progress sent, 5 to 90 % in
+    const n = await getState<Now | null>(uid, app, 'now');
+    if (n && n.pct != null && n.pct >= 5 && n.pct < 90) await saveResume(uid, app, { key: n.key, se: n.se, ep: n.ep, pct: n.pct, at: Date.now() });
+    await setState(uid, app, 'now', null);
+    return { code: 200, body: { ok: true } };
+  }
   const place = await placeOfAnilist(id as number, ep as number);
   if (!place) return { code: 404, body: { error: 'no such anime' } };
   const at = Date.now();
   if (state === 'playing') {
     const pct = typeof b.progress === 'number' && Number.isFinite(b.progress) ? Math.max(0, Math.min(100, Math.round(b.progress))) : null;
     await setState(uid, app, 'now', { ...place, pct, at, until: at + 10 * 60000 } satisfies Now);
+    // Continue watching: 5 to 90 % in
+    if (pct != null && pct >= 5 && pct < 90) await saveResume(uid, app, { key: place.key, se: place.se, ep: place.ep, pct, at });
     return { code: 200, body: { ok: true, playing: true } };
   }
   await setState(uid, app, 'now', null);

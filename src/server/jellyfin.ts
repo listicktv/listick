@@ -3,6 +3,7 @@
 // show's name and number
 import { resolve } from './mapping';
 import { addPlay } from './plays';
+import { saveResume } from './resume';
 import { tmdb } from './sources';
 import { getState, setState } from './store';
 import { fromTmdb, saveTitles } from './titles';
@@ -43,12 +44,21 @@ async function episodePlace(h: Hook) {
   return { key: await saved('tv', show.id), se: p?.se ?? se, ep: p?.ep ?? ep };
 }
 
+const placeOf = (h: Hook) => (h.type === 'Movie' ? movieKey(h).then((key) => (key ? { key, se: -1, ep: -1 } : null)) : h.type === 'Episode' ? episodePlace(h) : Promise.resolve(null));
+const pctOf = (h: Hook) => { const pos = num(h.position), len = num(h.runtime); return pos != null && len ? Math.min(100, Math.round((pos / len) * 100)) : null; };
+// Continue watching: 2 min to 90 % in (ticks: 10 000 a millisecond)
+async function keepPlace(uid: string, h: Hook, place: { key: string; se: number; ep: number }, at: number) {
+  const pct = pctOf(h);
+  if ((num(h.position) ?? 0) >= 120000 * 10000 && pct != null && pct < 90) await saveResume(uid, 'jellyfin', { ...place, pct, at });
+}
+
 // what's playing: a start or progress event keeps it for 10 minutes (a start, without progress events, for its length)
 async function playing(uid: string, h: Hook) {
-  const place = h.type === 'Movie' ? await movieKey(h).then((key) => (key ? { key, se: -1, ep: -1 } : null)) : h.type === 'Episode' ? await episodePlace(h) : null;
+  const place = await placeOf(h);
   if (!place) return { ok: false, error: 'not found' };
   const pos = num(h.position), len = num(h.runtime), at = Date.now();
-  const pct = pos != null && len ? Math.min(100, Math.round((pos / len) * 100)) : null;
+  const pct = pctOf(h);
+  await keepPlace(uid, h, place, at);
   const left = len && h.event === 'PlaybackStart' ? Math.max(0, len - (pos || 0)) / 10000 : 0;
   await setState(uid, 'jellyfin', 'now', { ...place, pct, at, until: at + Math.max(10 * 60000, left) } satisfies Now);
   return { ok: true, playing: true };
@@ -62,6 +72,7 @@ export async function jellyfinEvent(uid: string, h: Hook | null) {
   if (h && (h.event === 'PlaybackStart' || h.event === 'PlaybackProgress')) return playing(uid, h);
   if (h?.event === 'PlaybackStop') await setState(uid, 'jellyfin', 'now', null);
   const finished = !!h && (h.event === 'PlaybackStop' ? yes(h.done) : h.event === 'UserDataSaved' ? yes(h.played) : false);
+  if (h?.event === 'PlaybackStop' && !finished) { const place = await placeOf(h); if (place) await keepPlace(uid, h, place, Date.now()); }
   if (!h || !finished) return { ok: true, recorded: 0 };
   const at = Date.now();
   let recorded = 0, name: string;
