@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.11.0](https://github.com/listicktv/listick/compare/v0.10.1...v0.11.0) (2026-10-25)
+
+
+### Features
+
+* History cards show the run of episodes watched in a row, as S1 E16–17 ([b87df44](https://github.com/listicktv/listick/commit/b87df440a31c46d5004b1fb6e42861480aecbed7))
+
+
+### Bug Fixes
+
+* an episode Stremio queues after the last one ends no longer shows as watching ([b87df44](https://github.com/listicktv/listick/commit/b87df440a31c46d5004b1fb6e42861480aecbed7))
+* History cards drop the Listick logo ([b87df44](https://github.com/listicktv/listick/commit/b87df440a31c46d5004b1fb6e42861480aecbed7))
+* History run of episodes, Stremio queued episode ([b87df44](https://github.com/listicktv/listick/commit/b87df440a31c46d5004b1fb6e42861480aecbed7))
+
 ## [0.10.1](https://github.com/listicktv/listick/compare/v0.10.0...v0.10.1) (2026-10-24)
 
 
