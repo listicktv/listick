@@ -5,16 +5,24 @@ stats, tracking from Stremio, Jellyfin and Seanime, anime progress synced to Ani
 Simkl, Letterboxd, MyAnimeList, AniList and Kitsu.
 Self-hosted, with invite-only sign-up, so you can share it with family and friends.
 
-![Home: History, Up next, Plan to watch and the airing calendar](docs/screenshots/home.webp)
+![Home: History, Up next and Plan to watch](docs/screenshots/home.webp)
 
 <p>
-  <img src="docs/screenshots/title.webp" alt="A title's details" width="32.5%">
-  <img src="docs/screenshots/stats.webp" alt="Stats" width="32.5%">
-  <img src="docs/screenshots/lists.webp" alt="Lists and smart lists" width="32.5%">
+  <img src="docs/screenshots/movies.webp" alt="Movies: the trending carousel and rows" width="49%">
+  <img src="docs/screenshots/title.webp" alt="A title with its episodes" width="49%">
+  <img src="docs/screenshots/stats.webp" alt="Stats" width="49%">
+  <img src="docs/screenshots/lists.webp" alt="Lists and smart lists" width="49%">
+</p>
+<p>
+  <img src="docs/screenshots/smart-basics.webp" alt="Smart list builder: basics" width="32.5%">
+  <img src="docs/screenshots/smart-scores.webp" alt="Smart list builder: scores" width="32.5%">
+  <img src="docs/screenshots/smart-streaming.webp" alt="Smart list builder: streaming services" width="32.5%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/phone-home.webp" alt="Home on a phone" width="30%">
-  <img src="docs/screenshots/phone-title.webp" alt="A title on a phone" width="30%">
+  <img src="docs/screenshots/phone-home.webp" alt="Home on a phone" width="24%">
+  <img src="docs/screenshots/phone-title.webp" alt="A title on a phone" width="24%">
+  <img src="docs/screenshots/phone-rate.webp" alt="Rating on a phone" width="24%">
+  <img src="docs/screenshots/phone-episodes.webp" alt="Episodes on a phone" width="24%">
 </p>
 
 ## Requirements

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   // the tab's title and the home-screen app's name follow APP_NAME at runtime (App.tsx, site.webmanifest)
   title: "Listick",
   description: "Track what you watch",
-  icons: { icon: { url: "/icons/listick.svg?v=1", type: "image/svg+xml" }, apple: "/icons/listick-180.png?v=1" },
+  icons: { icon: { url: "/icons/listick.svg?v=2", type: "image/svg+xml" }, apple: "/icons/listick-180.png?v=2" },
   manifest: "/site.webmanifest",
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#0b1020" };

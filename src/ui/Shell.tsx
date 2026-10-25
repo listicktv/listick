@@ -66,8 +66,7 @@ export const PAGES: { href: string; name: string; icon: string; kind: TitleType 
 ];
 const LISTS = { href: '/lists', name: 'Lists', icon: PATHS.lists }, STATS = { href: '/stats', name: 'Stats', icon: PATHS.stats };
 
-// tablet and desktop: the side menu, the window's full height: the logo (as big as the circles, its ring as thick) at the top,
-// the pages, and Settings and your account at the foot, each named under its circle; Appearance is beside the search
+// tablet and desktop: the side menu: the logo, the pages capsule, Settings and your account
 export function Rail() {
   const path = usePathname();
   return (
@@ -75,13 +74,13 @@ export function Rail() {
       <Link className="rail-logo" href="/" aria-label="Listick home"><Logo ring={6.5} /></Link>
       <div className="rail-pages">
         {PAGES.map((p) => (
-          <Link key={p.href} href={p.href} className={`rail-tab${path === p.href ? ' active' : ''}`} aria-current={path === p.href ? 'page' : undefined} title={p.name}>
+          <Link key={p.href} href={p.href} className={`rail-tab${path === p.href ? ' active' : ''}`} aria-current={path === p.href ? 'page' : undefined}>
             <span className="rail-i"><Icon d={p.icon} size={20} width={1.9} /></span><span className="rail-t">{p.name}</span>
           </Link>
         ))}
         <span className="rail-sep" />
         {[LISTS, STATS].map((p) => (
-          <Link key={p.href} href={p.href} className={`rail-tab${path.startsWith(p.href) ? ' active' : ''}`} aria-current={path.startsWith(p.href) ? 'page' : undefined} title={p.name}>
+          <Link key={p.href} href={p.href} className={`rail-tab${path.startsWith(p.href) ? ' active' : ''}`} aria-current={path.startsWith(p.href) ? 'page' : undefined}>
             <span className="rail-i"><Icon d={p.icon} size={20} width={1.9} /></span><span className="rail-t">{p.name}</span>
           </Link>
         ))}

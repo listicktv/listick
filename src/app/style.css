@@ -932,59 +932,51 @@ a.tc-score:focus-visible img { transform: scale(1.15); }
 .tc-details .meter-v.txt { font-family: inherit; font-size: var(--fs-13); font-weight: 600; white-space: nowrap; }
 .tc-details .meter-v.acc { color: var(--accent); }
 
-/* tablet and desktop: the side menu (88 px), the window's full height on the left, one centred column: the logo, then the
-   pages and Settings and your name at the foot, each a circle with its name under it (56 px, the open one with an accent
-   ring, as the carousel's buttons). Search stays at the top right; the phone has its tab bar instead */
+/* side menu (tablet and desktop) */
 .siderail { display: none; }
 @media (min-width: 801px) {
-  :root { --rail-w: 88px; }
+  :root { --rail-w: 88px; --ri: 46px; }
   .siderail { position: fixed; z-index: 30; left: 0; top: 0; bottom: 0; width: var(--rail-w); box-sizing: border-box; display: flex; flex-direction: column;
-    align-items: stretch; gap: 14px; padding: 16px 4px; border-width: 0 1px 0 0; border-radius: 0; }
-  /* no panel behind it: the circles stand on the page itself */
+    align-items: center; gap: 14px; padding: 20px 0; border-width: 0; border-radius: 0; }
   .siderail.glass { background: none; border-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
-  .rail-logo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 14px; color: var(--text); text-decoration: none; }
-  /* sized by its disc (64 of the mark's 66.6 units) to the circles' 56 px; the tick badge reaches past it */
-  .rail-logo img { width: 58px; height: 58px; display: block; margin-left: 1.75px; transition: transform 0.12s; }   /* the badge sits right of the disc: this centres the disc */
+  .rail-logo { display: flex; color: var(--text); text-decoration: none; }
+  .rail-logo img { width: 52px; height: 52px; display: block; margin-left: 1.6px; transition: transform 0.12s; }
   .rail-logo:is(:hover, :focus-visible) img { transform: scale(1.08); }
-  .rail-pages, .rail-foot { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
-  .rail-pages { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
-  .rail-sep { height: 1px; margin: 6px 16px; background: var(--line); flex-shrink: 0; }
-  .rail-tab { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; box-sizing: border-box; padding: 6px 2px; border: 0; border-radius: 12px;
-    background: transparent; color: var(--text-2); font: 600 var(--fs-11)/1.2 var(--body-font); text-align: center; text-decoration: none; cursor: pointer; transition: background 0.15s, color 0.15s; }
-  /* each page's circle: the posters' action circle (light ring, navy face), as the account's */
-  .rail-i { flex-shrink: 0; width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; color: #f2f5fb;
-    background: radial-gradient(circle, #121726 0 22.5px, rgba(255, 255, 255, 0.28) 23px); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); transition: background 0.15s; }
-  .rail-i svg { width: 22px; height: 22px; }
-  .siderail .acct-btn { padding: 6px 2px; }   /* .acct-btn's own padding: 0 would put its circle off the others' line */
-  /* your initial in the same 56 px circle with a 5 px ring (red while armed to sign out) */
-  .siderail .acct-btn .avatar { flex-shrink: 0; width: 56px; height: 56px; font-size: var(--fs-18); background: radial-gradient(circle, #121726 0 22.5px, rgba(255, 255, 255, 0.28) 23px); }
-  .siderail .acct-btn:hover .avatar { background: radial-gradient(circle, #121726 0 22.5px, var(--accent) 23px); }
-  .siderail .acct-btn.armed .avatar { background: radial-gradient(circle, #121726 0 22.5px, var(--down-text) 23px) !important; }
-  .siderail .acct-btn.armed .avatar svg { width: 22px; height: 22px; }
-  .rail-t { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rail-tab:is(:hover, :focus-visible) { background: var(--on); color: var(--text); }
-  .rail-tab:is(:hover, :focus-visible) .rail-i, .rail-tab.active .rail-i { background: radial-gradient(circle, #121726 0 22.5px, var(--accent) 23px); }
-  .rail-tab.active { color: var(--accent); font-weight: 700; }
-  .rail-tab.active .rail-i { color: var(--accent); }
-  .siderail .acct-btn.armed { color: var(--down-text); }
+  /* capsules */
+  .rail-pages, .rail-foot { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--glass); -webkit-backdrop-filter: blur(var(--blur)) saturate(150%); backdrop-filter: blur(var(--blur)) saturate(150%); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+  .rail-pages { margin-block: auto; }
+  .rail-foot { padding: 6px; }
+  .rail-sep { width: 22px; height: 1px; margin: 4px 0; background: rgba(255, 255, 255, 0.14); flex-shrink: 0; }
+  .rail-tab { position: relative; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--text-2);
+    font: 600 var(--fs-13)/1 var(--body-font); text-decoration: none; cursor: pointer; }
+  .rail-i { width: var(--ri); height: var(--ri); display: grid; place-items: center; box-sizing: border-box; border-radius: 50%; border: 2.5px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .rail-i svg { width: 21px; height: 21px; }
+  .rail-tab:is(:hover, :focus-visible) .rail-i { background: var(--hover); color: var(--text); }
+  .rail-tab.active .rail-i { background: #121726; border-color: var(--accent); color: var(--accent); }
+  /* hover names */
+  .rail-t { position: absolute; left: calc(100% + 16px); top: 50%; transform: translateY(-50%); padding: 7px 11px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--glass-solid); color: var(--text); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; }
+  .rail-tab:is(:hover, :focus-visible) .rail-t, .siderail .acct-btn.armed .rail-t { opacity: 1; }
+  /* account */
+  .siderail .acct-btn .avatar { width: var(--ri); height: var(--ri); font-size: var(--fs-15); box-shadow: none; background: #121726; border: 2px solid rgba(255, 255, 255, 0.28); }
+  .siderail .acct-btn:hover .avatar { background: #121726; border-color: var(--accent); }
+  .siderail .acct-btn.armed .avatar, .siderail .acct-btn.armed:hover .avatar { background: #121726 !important; border-color: var(--down-text); }
+  .siderail .acct-btn.armed .avatar svg { width: 20px; height: 20px; }
+  .siderail .acct-btn.armed .rail-t { color: var(--down-text); }
   .wall { padding-left: calc(var(--rail-w) + 32px); }
   .top-row { display: flex; align-items: center; }
   .top-row .dateline, .top-btns { display: none; }
   .top-tools { display: flex; }
 }
-/* a short window (a laptop, a tablet on its side): 42 px circles and smaller steps, so the whole menu fits without scrolling */
+/* short windows */
 @media (min-width: 801px) and (max-height: 880px) {
-  .siderail { gap: 12px; padding-block: 14px; }
+  :root { --ri: 40px; }
+  .siderail { gap: 10px; padding-block: 14px; }
   .rail-logo img { width: 44px; height: 44px; }
-  .rail-logo { margin-bottom: 8px; }
-  .rail-tab, .siderail .acct-btn { gap: 3px; padding-block: 4px; }
-  .rail-i, .siderail .acct-btn .avatar { width: 42px; height: 42px; font-size: var(--fs-15); }
-  .rail-i { background: radial-gradient(circle, #121726 0 16.5px, rgba(255, 255, 255, 0.28) 17px); }
-  .rail-tab:is(:hover, :focus-visible) .rail-i, .rail-tab.active .rail-i { background: radial-gradient(circle, #121726 0 16.5px, var(--accent) 17px); }
-  .siderail .acct-btn .avatar { background: radial-gradient(circle, #121726 0 16.5px, rgba(255, 255, 255, 0.28) 17px); }
-  .siderail .acct-btn:hover .avatar { background: radial-gradient(circle, #121726 0 16.5px, var(--accent) 17px); }
-  .siderail .acct-btn.armed .avatar { background: radial-gradient(circle, #121726 0 16.5px, var(--down-text) 17px) !important; }
-  .rail-i svg, .siderail .acct-btn.armed .avatar svg { width: 18px; height: 18px; }
+  .rail-pages, .rail-foot { gap: 4px; padding: 6px; }
+  .rail-i svg { width: 19px; height: 19px; }
 }
 @media (min-width: 801px) and (max-width: 1180px) {
   .wall { padding-left: calc(var(--rail-w) + 20px); padding-right: 24px; }
@@ -1534,7 +1526,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
   .signin-scrim { align-items: center; justify-content: safe center; gap: 22px; padding: 44px 20px calc(32px + env(safe-area-inset-bottom)); }
   .signin-h { order: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px;
     font-size: var(--fs-14); line-height: 1.4; font-weight: 500; letter-spacing: 0; color: var(--text-2); }
-  .signin-h::before { content: ""; order: -2; width: 76px; height: 76px; margin-bottom: 14px; background: url("/icons/listick.svg?v=1") center / contain no-repeat;
+  .signin-h::before { content: ""; order: -2; width: 76px; height: 76px; margin-bottom: 14px; background: url("/icons/listick.svg?v=2") center / contain no-repeat;
     filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45)); }
   .signin-h br { display: none; }
   .signin-domain { order: -1; font-size: 28px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; color: var(--text); margin-bottom: 4px; }
@@ -2609,17 +2601,14 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .ptabs { visib
   .l-strips { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-/* short screens (a phone on its side): the side menu's circles without names, scrolling when they still don't fit */
+/* very short windows */
 @media (min-width: 801px) and (max-height: 620px) {
-  .siderail { gap: 4px; padding-block: 8px; overflow-y: auto; scrollbar-width: none; }
+  :root { --ri: 34px; }
+  .siderail { gap: 6px; padding-block: 8px; overflow-y: auto; scrollbar-width: none; }
   .siderail::-webkit-scrollbar { display: none; }
-  .rail-logo { margin-bottom: 2px; } .rail-logo img { width: 36px; height: 36px; }
+  .rail-logo img { width: 34px; height: 34px; }
   .rail-t { display: none; }
-  .rail-tab, .siderail .acct-btn { padding-block: 2px; }
-  .rail-i, .siderail .acct-btn .avatar { width: 38px; height: 38px; }
-  .rail-i, .siderail .acct-btn .avatar { background: radial-gradient(circle, #121726 0 14.5px, rgba(255, 255, 255, 0.28) 15px); }
-  .rail-tab:is(:hover, :focus-visible) .rail-i, .rail-tab.active .rail-i, .siderail .acct-btn:hover .avatar { background: radial-gradient(circle, #121726 0 14.5px, var(--accent) 15px); }
-  .siderail .acct-btn.armed .avatar { background: radial-gradient(circle, #121726 0 14.5px, var(--down-text) 15px) !important; }
+  .rail-pages, .rail-foot { gap: 2px; padding: 4px; }
   .rail-i svg { width: 17px; height: 17px; }
 }
 .acct-g { font: 700 var(--fs-14) var(--head-font); }
