@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.12.0](https://github.com/listicktv/listick/compare/v0.11.0...v0.12.0) (2026-10-25)
+
+
+### Features
+
+* desktop menu capsules and refreshed logo ([d43e976](https://github.com/listicktv/listick/commit/d43e976d0774968612cd0feb37035443c6da2097))
+
+
+### Bug Fixes
+
+* thicker rings on the selected side menu page and account ([d53bcf6](https://github.com/listicktv/listick/commit/d53bcf6f14ac328670b61300af7ab190ab789d66))
+
 ## [0.11.0](https://github.com/listicktv/listick/compare/v0.10.1...v0.11.0) (2026-10-25)
 
 
