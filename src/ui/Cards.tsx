@@ -6,9 +6,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { getJ, postJ } from './lib/api';
 import { useHome, usePhone } from './lib/home';
-import { Icon, mediaMark, PATHS } from './lib/icons';
+import { Icon, PATHS } from './lib/icons';
 import { openAddTo } from './lib/lists';
-import { useLook } from './lib/look';
 import { prefetch } from './lib/title';
 import { APP_NAME, cards, staleFor, syncCards, touchKey, type Ref, type Tile, type TilePatch, type Wide } from './lib/media';
 
@@ -157,9 +156,8 @@ function RateDial({ was, show, reset, save, close }: { was: number; show: (v: nu
 }
 
 // History, Up next and Plan to watch: a small 16:9 card, the title and episode on a dark fade over the image, progress along
-// its bottom edge. Clicking opens the title panel. History cards carry Listick's logo (in the picked accent); the others leave it out
-export function WideCard({ w, logo = true, cls = '', children }: { w: Wide; logo?: boolean; cls?: string; children?: ReactNode }) {
-  const { accent } = useLook();
+// its bottom edge. Clicking opens the title panel
+export function WideCard({ w, cls = '', children }: { w: Wide; cls?: string; children?: ReactNode }) {
   const opens = useOpens(w.ref);
   const [tall, setTall] = useState(!w.wide);
   return (
@@ -169,7 +167,7 @@ export function WideCard({ w, logo = true, cls = '', children }: { w: Wide; logo
       <span className="shade" />
       {/* compact on the card: "2d", "20h", "35%" ("S1 E10 · 10h ago"); its aria-label keeps the full text */}
       <span className="txt"><span className="t">{w.title}</span>
-        <span className="s">{logo && <img className="media-logo" src={mediaMark(accent)} alt="" />}{w.sub.replace(/(\d) (d|h|min|s|%)(?!\w)/g, '$1$2')}</span></span>
+        <span className="s">{w.sub.replace(/(\d) (d|h|min|s|%)(?!\w)/g, '$1$2')}</span></span>
       {!!w.pct && w.pct > 0 && <span className="wprog"><span style={{ width: `${w.pct}%` }} /></span>}
       {w.watching ? <span className="wnew playing">WATCHING</span> : w.rewatch ? <span className="wnew">REWATCH</span> : w.isNew && <span className="wnew">NEW</span>}
       {children}
@@ -204,7 +202,7 @@ export function ResumeCard({ w }: { w: Wide }) {
   if (gone) return null;
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();   // Enter / Space act on the circle
   return (
-    <WideCard w={w} logo={false} cls={`${ask.armed ? ' asking' : ''}${leaving ? ' leaving' : ''}`}>
+    <WideCard w={w} cls={`${ask.armed ? ' asking' : ''}${leaving ? ' leaving' : ''}`}>
       <button type="button" className="pdial second" aria-label="Mark watched" onKeyDown={stop}
         onClick={(e) => { e.stopPropagation(); if (ask.armed) void leave(true); }}><span className="face"><PIcon name="watched" /></span></button>
       <button type="button" className={`pdial${ask.armed ? ' confirm' : ' acts'}`} aria-label={ask.armed ? 'Remove from Continue watching' : 'Actions'} onKeyDown={stop}
@@ -220,7 +218,7 @@ export function PlanCard({ w }: { w: Wide }) {
   const ask = useTwoTap();
   const [leaving, setLeaving] = useState(false), [gone, setGone] = useState(false);
   const key = w.ref && 'key' in w.ref ? w.ref.key : null;
-  if (!key) return <WideCard w={w} logo={false} />;
+  if (!key) return <WideCard w={w} />;
   if (gone) return null;
   const remove = async () => {
     setLeaving(true); touchKey(key);
@@ -231,7 +229,7 @@ export function PlanCard({ w }: { w: Wide }) {
     setGone(true); reload(800);
   };
   return (
-    <WideCard w={w} logo={false} cls={leaving ? ' leaving' : ''}>
+    <WideCard w={w} cls={leaving ? ' leaving' : ''}>
       <button type="button" className={`pdial${ask.armed ? ' confirm' : ''}`} aria-label={ask.armed ? 'Remove from Plan to watch?' : 'Remove from Plan to watch'}
         onKeyDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); ask.tap(remove); }}>
         <span className="face">{ask.armed ? <PIcon name="close" /> : <PIcon name="bookmark" filled />}</span>

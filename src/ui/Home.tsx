@@ -193,8 +193,8 @@ export function Home({ view, kind }: { view: (body: ReactNode) => ReactNode; kin
           {fresh && <Start />}
           <Group id="hist" title="HISTORY" href="/lists/watched" hidden={ready && !hist.length} railClass="grid wcards rail" items={hist} keyOf={wideKey} card={(w) => <HistCard w={w} />} />
           <Group id="resume" title="CONTINUE WATCHING" hidden={!resume.length} railClass="grid wcards rail" items={resume} keyOf={wideKey}
-            card={(w) => (w.cw ? <ResumeCard w={w} /> : <WideCard w={w} logo={false} />)} />
-          <Group id="cw" title="UP NEXT" hidden={ready && !upNext.length} railClass="grid wcards rail" items={upNext} keyOf={wideKey} card={(w) => <WideCard w={w} logo={false} />} />
+            card={(w) => (w.cw ? <ResumeCard w={w} /> : <WideCard w={w} />)} />
+          <Group id="cw" title="UP NEXT" hidden={ready && !upNext.length} railClass="grid wcards rail" items={upNext} keyOf={wideKey} card={(w) => <WideCard w={w} />} />
           {plans.map(({ k, name, items }) => (
             <Group key={k} id={`plan-${k}`} title={`PLAN TO WATCH · ${name.toUpperCase()}`} href={`/lists/plan?kind=${k}`} hidden={!items.length} railClass="grid wcards rail" items={items} keyOf={wideKey} card={(w) => <PlanCard w={w} />} />
           ))}

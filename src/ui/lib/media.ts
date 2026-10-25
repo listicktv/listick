@@ -20,7 +20,7 @@ type StContinue = StCard & { pct: number; resume?: boolean; video?: string | nul
   place?: { key: string; type: TitleType; se: number; ep: number; title: string; poster: string | null; backdrop: string | null } | null };
 type UpNext = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; se: number; ep: number; at: number; airedAt: number | null; rewatch?: boolean };
 export type AirEp = { key: string; title: string; poster: string | null; season: number | null; ep: number; at: number; dayOnly: boolean; watched: boolean; anime: boolean };
-type Play = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; at: number; season: number; episode: number; mine?: number | null; source: string };
+type Play = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; at: number; season: number; episode: number; from?: number; mine?: number | null; source: string };
 type Planned = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; addedAt: number; label?: string | null; year?: number | null; anime?: boolean };
 export type Summary = {
   stremio?: { continue?: StContinue[]; history?: StCard[] } | null;
@@ -79,7 +79,7 @@ const SOURCE_APP: Record<string, string> = { stremio: 'stremio', anilist: 'anili
 export function historyItems(S: Summary) {
   if (S.media?.recent) return oneCardPerTitle(S.media.recent.map((h) => ({ app: SOURCE_APP[h.source] || 'imported', ref: { key: h.key }, title: h.title,
     poster: h.poster, wide: h.backdrop, at: h.at, play: { key: h.key, season: h.season, episode: h.episode, mine: h.mine },
-    sub: `${h.type === 'movie' ? 'Movie' : h.season >= 0 ? (h.type === 'anime' ? `E${h.episode}` : `S${h.season} E${h.episode}`) : ''} · ${ago(h.at)} ago` })));
+    sub: `${h.type === 'movie' ? 'Movie' : h.season >= 0 ? `${h.type === 'anime' ? '' : `S${h.season} `}E${h.from != null && h.from < h.episode ? `${h.from}–${h.episode}` : h.episode}` : ''} · ${ago(h.at)} ago` })));
   const out: Wide[] = [];
   for (const h of S.stremio?.history || []) out.push({ app: 'stremio', ref: imdbRef(h.id), title: h.title, poster: h.poster, wide: stremioWide(h.id), url: h.url, at: h.at,
     sub: `${h.type === 'movie' ? 'Movie' : epLabel(h)} · ${ago(h.at)} ago` });

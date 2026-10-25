@@ -540,7 +540,7 @@ button.day:hover:not(.today) { background: var(--on); }
 .grid.wcards > :nth-child(n+5) { display: none; }
 @media (min-width: 801px) { .grid.wcards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; } }
 @media (min-width: 1181px) { .grid.wcards { grid-template-columns: repeat(5, minmax(0, 1fr)); } .grid.wcards > :nth-child(5) { display: block; } .grid.wcards > :nth-child(n+6) { display: none; } }
-@media (min-width: 801px) { .wcard .t { font-size: var(--fs-12); } .wcard .s { font-size: var(--fs-10); gap: 5px; } .wcard .s img { width: 13px; height: 13px; } .wcard .txt { left: 8px; right: 8px; bottom: 7px; } }
+@media (min-width: 801px) { .wcard .t { font-size: var(--fs-12); } .wcard .s { font-size: var(--fs-10); gap: 5px; } .wcard .txt { left: 8px; right: 8px; bottom: 7px; } }
 .wcard { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 10px; -webkit-mask-image: linear-gradient(#000, #000); mask-image: linear-gradient(#000, #000); background: var(--tile);
   color: #fff; text-decoration: none; }
 .wcard:has(> .bg[src]) { background: none; }
@@ -552,7 +552,6 @@ button.day:hover:not(.today) { background: var(--on); }
 .wcard .txt { position: absolute; left: 10px; right: 10px; bottom: 9px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .wcard .t { font-size: var(--fs-13); font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wcard .s { display: flex; align-items: center; gap: 6px; font-size: var(--fs-10); color: rgba(255, 255, 255, 0.78); white-space: nowrap; overflow: hidden; }
-.wcard .s img { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; object-fit: contain; }
 /* progress floats inside the card, clear of its rounded corners; the text moves up to make room */
 .wcard .wprog { position: absolute; left: 8px; right: 8px; bottom: 6px; height: 3px; border-radius: 3px; overflow: hidden; background: rgba(255, 255, 255, 0.22); }
 .wcard .wprog span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }

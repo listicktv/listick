@@ -27,18 +27,25 @@ export async function search(text: string, uid: Uid) {
 }
 
 // the History row: every title watched in the last N days, newest first, with its latest play, the play count and your rating
-// of that play (the episode, or the movie)
+// of that play (the episode, or the movie); from: the first episode of its run
 async function recent(uid: string, days = 30) {
   type R = { key: string; season: number; episode: number; watched_at: number; source: string; title: string; label: string | null; type: TitleType; poster: string | null; backdrop: string | null };
   const rows = await q.all<R>(`select h.key, h.season, h.episode, h.watched_at, h.source, t.title, t.label, t.type, t.poster, t.backdrop
     from history h join titles t using (key) where h.user_id = ? and h.watched_at >= ? and h.approx != 1 order by h.watched_at desc`, uid, Date.now() - days * 86400000);
   const mine = new Map((await q.all<{ key: string; season: number; episode: number; rating: number }>('select key, season, episode, rating from ratings where user_id = ?', uid)).map((r) => [`${r.key}|${r.season}|${r.episode}`, r.rating]));
-  const out = new Map<string, Omit<R, 'watched_at'> & { at: number; plays: number; mine: number | null }>();
+  const out = new Map<string, Omit<R, 'watched_at'> & { at: number; plays: number; mine: number | null; from: number }>();
+  const run = new Map<string, { at: number; open: boolean }>();
   for (const r of rows) {
-    const o = out.get(r.key);
-    if (o) { o.plays++; continue; }
+    const o = out.get(r.key), f = run.get(r.key);
+    if (o && f) {
+      o.plays++;
+      if (f.open && r.episode >= 0 && r.season === o.season && r.episode === o.from - 1 && f.at - r.watched_at < 3 * HOUR) { o.from = r.episode; f.at = r.watched_at; }
+      else f.open = false;
+      continue;
+    }
     out.set(r.key, { key: r.key, title: r.title, label: r.label, type: r.type, poster: r.poster, backdrop: r.backdrop,
-      season: r.season, episode: r.episode, at: r.watched_at, source: r.source, plays: 1, mine: mine.get(`${r.key}|${r.season}|${r.episode}`) || null });
+      season: r.season, episode: r.episode, at: r.watched_at, source: r.source, plays: 1, mine: mine.get(`${r.key}|${r.season}|${r.episode}`) || null, from: r.episode });
+    run.set(r.key, { at: r.watched_at, open: true });
   }
   return [...out.values()].slice(0, 40);
 }

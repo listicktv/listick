@@ -38,8 +38,8 @@ const vidParts = (vid: string | null | undefined): [number | null, number | null
 const cleanName = (n: string | null | undefined) => (n || '').replace(/\s*\((?:19|20)\d{2}\)\s*$/, '');
 const isFull = (st: WatchState) => !!st.flaggedWatched || (!!st.duration && st.timeWatched >= st.duration * FULL);
 const watchedAt = (x: LibraryItem) => Date.parse(x.state!.lastWatched!);
-// saved in the last 4 minutes and still open: unfinished, or past 70 % (ticked) but not at its end (Stremio puts the position back to 0 there)
-const isPlaying = (x: LibraryItem, now: number) => now - watchedAt(x) < STREMIO_LIVE && (!isFull(x.state!) || (x.state!.timeOffset || 0) > 0);
+// saved in the last 4 minutes, its position past 1
+const isPlaying = (x: LibraryItem, now: number) => now - watchedAt(x) < STREMIO_LIVE && (x.state!.timeOffset || 0) > 1;
 // authKey: the user's Stremio session key; tag: who, so each library's episode lists are cached on their own
 export async function stremio(authKey: string | null, tag: string): Promise<StremioLive | null> {
   if (!authKey) return null;
