@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/listicktv/listick/compare/v0.12.0...v0.12.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* keep running when the database restarts ([5fdfab9](https://github.com/listicktv/listick/commit/5fdfab942f177adcef3f834b9acfb337b84b7806))
+
 ## [0.12.0](https://github.com/listicktv/listick/compare/v0.11.0...v0.12.0) (2026-10-25)
 
 
