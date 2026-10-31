@@ -29,7 +29,7 @@ const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // a ringed circle: the face, a ring of --c filled to fill %, anything inside
-function Ring({ size = 48, w = 4, fill = 100, c, on, children, style }: { size?: number; w?: number; fill?: number; c?: string; on?: boolean; children?: ReactNode; style?: CSSProperties }) {
+export function Ring({ size = 48, w = 4, fill = 100, c, on, children, style }: { size?: number; w?: number; fill?: number; c?: string; on?: boolean; children?: ReactNode; style?: CSSProperties }) {
   return <span className={`st-ring${on ? ' on' : ''}`} style={{ '--s': `${size}px`, '--w': `${w}px`, '--fill': `${fill}%`, ...(c ? { '--c': c } : {}), ...style } as CSSProperties}>{children}</span>;
 }
 

@@ -7,7 +7,7 @@ import { JELLYFIN_TEMPLATE, jellyfinEvent } from './jellyfin';
 import { mailOn, ORIGINS, LINK_ORIGIN } from './mail';
 import { exportOf } from './account';
 import { animeOf, animePlay } from './anime';
-import { calendarOf } from './calendar';
+import { calendarOf, plannedOf } from './calendar';
 import { alert } from './alert';
 import { letterboxd, malXml, simklExport, traktExport, unzip } from './import/files';
 import { kitsuLibrary } from './import/kitsu';
@@ -23,7 +23,7 @@ import { canonKey, resolve } from './mapping';
 import { hero, landingPosters, pageData, rowAll, search, shelves } from './page';
 import { insertPlay, mark, rate, retime } from './plays';
 import { makeUser, noUsers, placeholderEmail } from './owner';
-import { allUsers, getState, getUser, ownerId, setProfile, setState } from './store';
+import { allUsers, getState, getUser, liveOf, ownerId, setProfile, setState } from './store';
 import { KEY, getTitle } from './titles';
 import { forgetLive } from './tracking';
 import { appName, env, HOUR, msg, safe } from './util';
@@ -699,6 +699,12 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
     const per = url.searchParams.get('period') || '12m';
     if (!/^(12m|all|\d{4})$/.test(per)) return json(req, 400, { error: 'period: 12m, all or a year' });
     return json(req, 200, await statsOf(g.user.id, per as Period));
+  }
+  // the Airing page; ?plan=1: Plan to watch dates
+  if (p === '/api/airing' && req.method === 'GET') {
+    const g = await reader(req); if (g.error) return g.error;
+    if (url.searchParams.get('plan')) return json(req, 200, { planned: (await plannedOf(g.user.id)).map(({ key, name, what, poster, movie, start }) => ({ key, name, what, poster, movie, at: start })) });
+    return json(req, 200, { schedule: (await liveOf(g.user.id)).schedule || [] });
   }
   if (p === '/api/summary' && req.method === 'GET') { const g = await reader(req); return g.error || json(req, 200, await pageData(g.user.id, url.searchParams)); }
   // title details, id resolving, search and a row in full: read-only

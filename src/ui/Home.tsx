@@ -203,8 +203,6 @@ export function Home({ view, kind }: { view: (body: ReactNode) => ReactNode; kin
             empty={<div className="wempty">Your watchlist will show here: movies, shows and anime you add from Movies, TV, Anime, search or a title.</div>} />
         </div>
         <aside className="side" hidden={!airs}>
-          {/* an empty title row as tall as History's, so the calendar's box starts level with History's cards */}
-          <div className="group-head cal-gh" aria-hidden="true"><h2 className="sh">&nbsp;</h2></div>
           <Airing S={S} />
         </aside>
       </div>

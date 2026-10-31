@@ -65,6 +65,7 @@ export const PAGES: { href: string; name: string; icon: string; kind: TitleType 
   { href: '/tv', name: 'Shows', icon: PATHS.tv, kind: 'tv' }, { href: '/anime', name: 'Anime', icon: PATHS.anime, kind: 'anime' },
 ];
 const LISTS = { href: '/lists', name: 'Lists', icon: PATHS.lists }, STATS = { href: '/stats', name: 'Stats', icon: PATHS.stats };
+const CAL = { href: '/calendar', name: 'Calendar', icon: PATHS.cal };
 
 // tablet and desktop: the side menu: the logo, the pages capsule, Settings and your account
 export function Rail() {
@@ -79,7 +80,7 @@ export function Rail() {
           </Link>
         ))}
         <span className="rail-sep" />
-        {[LISTS, STATS].map((p) => (
+        {[LISTS, CAL, STATS].map((p) => (
           <Link key={p.href} href={p.href} className={`rail-tab${path.startsWith(p.href) ? ' active' : ''}`} aria-current={path.startsWith(p.href) ? 'page' : undefined}>
             <span className="rail-i"><Icon d={p.icon} size={20} width={1.9} /></span><span className="rail-t">{p.name}</span>
           </Link>

@@ -14,6 +14,7 @@ const Lists = dynamic(() => import('./Lists').then((m) => m.Lists));
 const ListPage = dynamic(() => import('./Lists').then((m) => m.ListPage));
 const RowPage = dynamic(() => import('./Shelf').then((m) => m.RowPage));
 const Stats = dynamic(() => import('./Stats').then((m) => m.Stats));
+const Calendar = dynamic(() => import('./Calendar').then((m) => m.Calendar));
 const Settings = dynamic(() => import('./Settings').then((m) => m.Settings));
 const SignIn = dynamic(() => import('./SignIn').then((m) => m.SignIn));
 const AddToList = dynamic(() => import('./AddToList').then((m) => m.AddToList));
@@ -124,7 +125,7 @@ export function App({ children }: { children?: ReactNode }) {
           <TopBar />
           <div className="offline" id="offline" role="status" hidden={!offline}><span className="dot bad" /><span>Listick isn&apos;t answering; showing the last data.</span></div>
           {me ? (path === '/lists' ? view(<Lists />) : path.startsWith('/lists/') ? view(<ListPage key={path} id={decodeURIComponent(path.slice(7))} />)
-            : path.startsWith('/row/') ? view(<RowPage key={path} id={decodeURIComponent(path.slice(5))} />) : path === '/stats' ? view(<Stats />) : path.startsWith('/settings') ? view(<Settings />) : <Home view={view} kind={kind} />) : view(null)}
+            : path.startsWith('/row/') ? view(<RowPage key={path} id={decodeURIComponent(path.slice(5))} />) : path === '/stats' ? view(<Stats />) : path === '/calendar' ? view(<Calendar />) : path.startsWith('/settings') ? view(<Settings />) : <Home view={view} kind={kind} />) : view(null)}
         </div>
       </div>
       <PhoneTabs />
