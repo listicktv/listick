@@ -47,6 +47,29 @@ Every other setting is optional and described in [`.env.example`](.env.example).
 - Set `LISTICK_OWNER_NAME` and `LISTICK_OWNER_PASSWORD` before the first start, so nobody else can claim the admin account.
 - Behind more than one proxy (for example Cloudflare and then your own), set `LISTICK_TRUSTED_PROXIES=2`.
 
+## On a VPS
+
+Debian 13 or Ubuntu 24.04, with a domain pointing at the server.
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo apt install caddy
+mkdir listick && cd listick
+curl -fsSLO https://raw.githubusercontent.com/listicktv/listick/main/compose.yaml
+curl -fsSL https://raw.githubusercontent.com/listicktv/listick/main/.env.example -o .env
+```
+
+1. In `.env`, set `TMDB_ACCESS_TOKEN`, `APP_ORIGIN=https://listick.example.com`, `LISTICK_OWNER_NAME`,
+   `LISTICK_OWNER_PASSWORD` and `POSTGRES_PASSWORD`.
+2. In `compose.yaml`, change the port to `"127.0.0.1:3000:3000"`.
+3. Replace `/etc/caddy/Caddyfile` with:
+   ```
+   listick.example.com {
+       reverse_proxy 127.0.0.1:3000
+   }
+   ```
+4. `sudo systemctl reload caddy && docker compose up -d`
+
 ## AniList and MyAnimeList Sync
 
 Settings › Connections › AniList or MyAnimeList: connect, then **Sync now** copies your anime progress from History to
