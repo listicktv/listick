@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/listicktv/listick/compare/v0.12.1...v0.13.0) (2026-10-31)
+
+
+### Features
+
+* Airing calendar page ([e05fa20](https://github.com/listicktv/listick/commit/e05fa20ed03edd1637f30434ffa7c13913e1069e))
+
 ## [0.12.1](https://github.com/listicktv/listick/compare/v0.12.0...v0.12.1) (2026-10-26)
 
 
