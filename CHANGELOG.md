@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.14.0](https://github.com/listicktv/listick/compare/v0.13.0...v0.14.0) (2026-11-01)
+
+
+### Features
+
+* phone and title view redesign, History page ([a665a9a](https://github.com/listicktv/listick/commit/a665a9a4e2dbce01f5bdc1aadf1f6b93bea90e92))
+
+
+### Bug Fixes
+
+* track Stremio shows opened through the TMDB addon ([126a45e](https://github.com/listicktv/listick/commit/126a45e2d597b321d320b965b9e078bc04f25095))
+
+
+### Performance Improvements
+
+* Home refreshes only while its tab is in sight; the carousel loads only the slides around the one shown ([a665a9a](https://github.com/listicktv/listick/commit/a665a9a4e2dbce01f5bdc1aadf1f6b93bea90e92))
+* rows render near-screen cards first; Lists page queries run in parallel ([a665a9a](https://github.com/listicktv/listick/commit/a665a9a4e2dbce01f5bdc1aadf1f6b93bea90e92))
+* sessions cached in a cookie for 60 s ([54a6394](https://github.com/listicktv/listick/commit/54a63948e824f3ad7da62490bd58a54b598dec9a))
+* worker jobs keep their schedule across restarts ([54a6394](https://github.com/listicktv/listick/commit/54a63948e824f3ad7da62490bd58a54b598dec9a))
+
 ## [0.13.0](https://github.com/listicktv/listick/compare/v0.12.1...v0.13.0) (2026-10-31)
 
 
