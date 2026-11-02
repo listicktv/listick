@@ -58,6 +58,8 @@ const GROUPS = [['basics', 'Basics', 'M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v
   ['people', 'People & studios', PATHS.people], ['library', 'Your library', PATHS.tick], ['sharing', 'Sharing', ICON.share]] as const;
 type Group = (typeof GROUPS)[number][0];
 const GROUP_ICON = Object.fromEntries(GROUPS.map(([k, , ic]) => [k, ic])) as Record<Group, string>;
+// library and Latest releases lists
+const libraryOnly = (f: Filters) => !!(f.home?.length || f.myFrom || f.myTo || f.watched);
 // the last Latest releases circle off takes its settings and its own orders with it
 const homePatch = (f: Filters, home: NonNullable<Filters['home']>): Partial<Filters> => (home.length ? { home }
   : { home: undefined, homeWithin: undefined, homeCinema: undefined, ...(f.sort === 'release' || f.sort === 'releaseOld' ? { sort: undefined } : {}) });
@@ -74,43 +76,44 @@ function describe(media: Media, f: Filters, n: { svc?: (id: number | string) => 
   const when = f.when || (f.yearFrom || f.yearTo ? 'years' : 'any'), picked = (f.services || []).filter((x): x is number => typeof x === 'number');
   const langs = f.languages?.length ? f.languages : f.language ? [f.language] : [], lands = f.countries?.length ? f.countries : f.country ? [f.country] : [];
   const D = (g: Group, t: string, patch: Partial<Filters> | null, no?: boolean): Desc => [g, t, patch, no];
+  const lib = libraryOnly(f), svcs = !lib || !!f.home?.includes('streaming');
   const ext = (k: Src): Partial<Filters> => { const e = { ...f.ext, [k]: undefined }; return { ext: Object.values(e).some(Boolean) ? e : undefined }; };
   return [
     D('basics', KIND[media][0], null),
     ...(f.myFrom || f.myTo || f.watched ? [D('basics', 'From your library', null)] : []),
-    ...(f.reach && f.reach !== 'anywhere' ? [D('basics', f.reach === 'streaming' ? 'On its services' : films ? 'Released there' : 'Made there', { reach: undefined })] : []),
+    ...(!lib && f.reach && f.reach !== 'anywhere' ? [D('basics', f.reach === 'streaming' ? 'On its services' : films ? 'Released there' : 'Made there', { reach: undefined })] : []),
     ...(f.row ? [D('basics', 'On Home', { row: undefined })] : []),
     ...(f.home || []).map((x) => D('basics', `Latest: ${label(HOME.map(([v, nm]) => [v, nm] as [string, string]), x)}`, homePatch(f, f.home!.filter((y) => y !== x)))),
     ...(f.home?.length ? [D('basics', `Last ${label(WITHIN, f.homeWithin || 90)}`, f.homeWithin ? { homeWithin: undefined } : null)] : []),
     ...(f.home?.length && f.homeCinema ? [D('basics', 'From cinemas', { homeCinema: undefined })] : []),
-    ...(f.mood ? [D('genres', label(MOODS.map(([v, nm]) => [v, nm] as [string, string]), f.mood), { mood: undefined })] : []),
+    ...(!lib && f.mood ? [D('genres', label(MOODS.map(([v, nm]) => [v, nm] as [string, string]), f.mood), { mood: undefined })] : []),
     ...(media === 'tv' && f.tvdbGenre ? [D('genres', `${label(TVDB_CATS, f.tvdbGenre)} · TheTVDB`, { tvdbGenre: undefined })] : []),
     ...(f.genres || []).map((g) => D('genres', g, { genres: f.genres!.filter((x) => x !== g) })),
     ...(f.without || []).map((g) => D('genres', g, { without: f.without!.filter((x) => x !== g) }, true)),
     ...(f.match === 'all' && (f.genres || []).length > 1 ? [D('genres', 'All genres', { match: undefined })] : []),
-    ...(f.keywords || []).map((k) => D('genres', k.name, { keywords: f.keywords!.filter((x) => x.id !== k.id) }, k.out)),
+    ...(lib ? [] : f.keywords || []).map((k) => D('genres', k.name, { keywords: f.keywords!.filter((x) => x.id !== k.id) }, k.out)),
     ...(when === 'years' && (f.yearFrom || f.yearTo) ? [D('release', `${f.yearFrom || '…'}–${f.yearTo || '…'}`, { when: undefined, yearFrom: undefined, yearTo: undefined })] : []),
     ...(when !== 'any' && when !== 'years' ? [D('release', label(WHEN, when), { when: undefined })] : []),
     ...(f.decades || []).map((x) => D('release', label(DECADES, x), { decades: f.decades!.filter((y) => y !== x) })),
-    ...(films ? (f.out || []).map((x) => D('release', label(OUT, x), { out: f.out!.filter((y) => y !== x) })) : []),
-    ...(shows ? (f.status || []).map((x) => D('release', label(STATUS, x), { status: f.status!.filter((y) => y !== x) })) : []),
-    ...(shows ? (f.type || []).map((x) => D('release', label(TV_TYPE, x), { type: f.type!.filter((y) => y !== x) })) : []),
-    ...(f.released && f.released !== 'both' ? [D('release', f.released === 'out' ? 'Out now' : 'Coming', { released: undefined })] : []),
+    ...(films && !lib ? (f.out || []).map((x) => D('release', label(OUT, x), { out: f.out!.filter((y) => y !== x) })) : []),
+    ...(shows && !lib ? (f.status || []).map((x) => D('release', label(STATUS, x), { status: f.status!.filter((y) => y !== x) })) : []),
+    ...(shows && !lib ? (f.type || []).map((x) => D('release', label(TV_TYPE, x), { type: f.type!.filter((y) => y !== x) })) : []),
+    ...(!lib && f.released && f.released !== 'both' ? [D('release', f.released === 'out' ? 'Out now' : 'Coming', { released: undefined })] : []),
     ...(f.runtimeFrom || f.runtimeTo ? [D('release', range(f.runtimeFrom, f.runtimeTo, ' min'), { runtimeFrom: undefined, runtimeTo: undefined })] : []),
-    ...(films && f.cert ? [D('release', `Up to ${f.cert}`, { cert: undefined })] : []),
+    ...(films && !lib && f.cert ? [D('release', `Up to ${f.cert}`, { cert: undefined })] : []),
     ...(f.scoreFrom || f.scoreTo ? [D('scores', `TMDB ${range(f.scoreFrom, f.scoreTo)}`, { scoreFrom: undefined, scoreTo: undefined })] : []),
-    ...(f.votes || f.votesTo ? [D('scores', `${f.votes && f.votesTo ? `${votesText(f.votes)}–${votesText(f.votesTo)}` : f.votes ? `${votesText(f.votes)}+` : `up to ${votesText(f.votesTo!)}`} votes`,
+    ...(!lib && (f.votes || f.votesTo) ? [D('scores', `${f.votes && f.votesTo ? `${votesText(f.votes)}–${votesText(f.votesTo)}` : f.votes ? `${votesText(f.votes)}+` : `up to ${votesText(f.votesTo!)}`} votes`,
       { votes: undefined, votesTo: undefined })] : []),
     ...SOURCES.filter(([k]) => f.ext?.[k]).map(([k, nm, , unit]) => D('scores', `${nm} ${f.ext![k]}${unit}+`, ext(k))),
-    ...(f.my ? [D('streaming', 'My services', { my: undefined })] : n.svc ? picked.map((id) => D('streaming', n.svc!(id), { services: picked.filter((x) => x !== id) }))
+    ...(!svcs ? [] : f.my ? [D('streaming', 'My services', { my: undefined })] : n.svc ? picked.map((id) => D('streaming', n.svc!(id), { services: picked.filter((x) => x !== id) }))
       : picked.length ? [D('streaming', `${picked.length} service${picked.length > 1 ? 's' : ''}`, null)] : []),
-    ...(f.how && f.how !== 'flatrate' ? [D('streaming', f.how === 'free' ? 'Free' : 'Rent or buy', { how: undefined })] : []),
-    ...(shows ? (f.networks || []).map((x) => D('streaming', label(NETWORKS, x), { networks: f.networks!.filter((y) => y !== x) })) : []),
-    ...langs.map((l) => D('language', n.lang(l), { language: undefined, languages: langs.filter((x) => x !== l) })),
-    ...lands.map((c) => D('language', `Made in ${n.land(c)}`, { country: undefined, countries: lands.filter((x) => x !== c) })),
-    ...(films ? (f.cast || []).map((k) => D('people', k.name, { cast: f.cast!.filter((x) => x.id !== k.id) })) : []),
-    ...(films ? (f.crew || []).map((k) => D('people', k.name, { crew: f.crew!.filter((x) => x.id !== k.id) })) : []),
-    ...(f.companies || []).map((k) => D('people', k.name, { companies: f.companies!.filter((x) => x.id !== k.id) }, k.out)),
+    ...(!lib && f.how && f.how !== 'flatrate' ? [D('streaming', f.how === 'free' ? 'Free' : 'Rent or buy', { how: undefined })] : []),
+    ...(shows && !lib ? (f.networks || []).map((x) => D('streaming', label(NETWORKS, x), { networks: f.networks!.filter((y) => y !== x) })) : []),
+    ...(lib ? [] : langs).map((l) => D('language', n.lang(l), { language: undefined, languages: langs.filter((x) => x !== l) })),
+    ...(lib ? [] : lands).map((c) => D('language', `Made in ${n.land(c)}`, { country: undefined, countries: lands.filter((x) => x !== c) })),
+    ...(films && !lib ? (f.cast || []).map((k) => D('people', k.name, { cast: f.cast!.filter((x) => x.id !== k.id) })) : []),
+    ...(films && !lib ? (f.crew || []).map((k) => D('people', k.name, { crew: f.crew!.filter((x) => x.id !== k.id) })) : []),
+    ...(lib ? [] : f.companies || []).map((k) => D('people', k.name, { companies: f.companies!.filter((x) => x.id !== k.id) }, k.out)),
     ...(f.hideWatched ? [D('library', 'Hide watched', { hideWatched: undefined })] : []),
     ...(f.hidePlan ? [D('library', 'Hide Plan to watch', { hidePlan: undefined })] : []),
     ...(f.onlyRated ? [D('library', 'Only rated', { onlyRated: undefined })] : []),
@@ -228,6 +231,8 @@ export function Builder({ draft, page, close, saved }: { draft: Draft; page: { g
   const when = f.when || (f.yearFrom || f.yearTo ? 'years' : 'any');
   const setExt = (k: Src, v: number | undefined) => { const ext = { ...f.ext, [k]: v || undefined }; setF({ ext: Object.values(ext).some(Boolean) ? ext : undefined }); };
   const floors = SOURCES.filter(([k]) => f.ext?.[k]).length;
+  const lib = libraryOnly(f), groups = GROUPS.filter(([k]) => !lib || (k !== 'language' && k !== 'people' && (k !== 'streaming' || !!f.home?.includes('streaming'))));
+  const at = groups.some(([k]) => k === g) ? g : 'basics';
   // how many go in (scores picking: how many have passed so far, of the candidates checked)
   const said = loading ? 'Looking…' : !prev ? 'No preview' : floors > 0 ? `${prev.count} of ${prev.pool} pass` : `${prev.count} ${prev.count === 1 ? 'title' : 'titles'}`;
   const langs = f.languages?.length ? f.languages : f.language ? [f.language] : [], lands = f.countries?.length ? f.countries : f.country ? [f.country] : [];
@@ -272,14 +277,14 @@ export function Builder({ draft, page, close, saved }: { draft: Draft; page: { g
         <PkBtn key={m} label={n} data={{}} face={face} on={d.media === m} pressed={d.media === m} onClick={() => setKind(m)} />)}</div></div>}
       {(d.media === 'movie' || d.media === 'animefilm') && latest}
       <div className="b-dds">
-        {!f.home?.length && <Drop label="Order" opts={[['popular', 'Popular'], ['rating', 'Rating'], ['newest', 'Newest'], ['oldest', 'Oldest'], ['az', 'A–Z'], ...(films ? [['box', 'Box office'] as ['box', string]] : []),
-          ['votes', 'Most voted'], ['shuffle', 'Shuffle']]} value={f.sort || 'popular'} set={(sort) => setF({ sort })} />}
+        {!f.home?.length && <Drop label="Order" opts={[['popular', 'Popular'], ['rating', 'Rating'], ['newest', 'Newest'], ['oldest', 'Oldest'], ['az', 'A–Z'], ...(films && !lib ? [['box', 'Box office'] as ['box', string]] : []),
+          ...(lib ? [] : [['votes', 'Most voted'] as ['votes', string]]), ['shuffle', 'Shuffle']]} value={f.sort || 'popular'} set={(sort) => setF({ sort })} />}
         <Drop label="How many" opts={[[20, '20'], [40, '40'], [60, '60'], [100, '100'], [200, '200'], [250, '250'], [500, '500']]} value={f.max || 60} set={(max) => setF({ max })} />
         <Drop label="Refresh" opts={[['daily', 'Daily'], ['weekly', 'Weekly'], ['never', 'Never']]} value={f.refresh || 'daily'} set={(refresh) => setF({ refresh })} />
         {prefs && <Drop label="Country" search opts={prefs.countries.map((c) => [c.id, c.name])} value={region || ''}
           set={(c) => setF({ region: c, cert: undefined, my: c === yours ? f.my : undefined, services: [] })} />}
-        <Drop label="Titles from" opts={[['anywhere', 'Anywhere'], ['released', films ? 'Released there' : 'Made there'], ['streaming', 'On its services']]} value={f.reach || 'anywhere'}
-          set={(reach) => setF({ reach: reach === 'anywhere' ? undefined : reach })} />
+        {!lib && <Drop label="Titles from" opts={[['anywhere', 'Anywhere'], ['released', films ? 'Released there' : 'Made there'], ['streaming', 'On its services']]} value={f.reach || 'anywhere'}
+          set={(reach) => setF({ reach: reach === 'anywhere' ? undefined : reach })} />}
       </div>
       <div className="b-lines">
         <SwitchRow label="Show on Home" on={!!f.row} set={(row) => setF({ row: row || undefined })} />
@@ -287,7 +292,7 @@ export function Builder({ draft, page, close, saved }: { draft: Draft; page: { g
     </>,
     genres: <>
       <div className="b-dds">
-        <Drop label="Mood" opts={[['', 'None'], ...MOODS.map(([v, n]): [string, string] => [v, n])]} value={f.mood || ''} set={mood} />
+        {!lib && <Drop label="Mood" opts={[['', 'None'], ...MOODS.map(([v, n]): [string, string] => [v, n])]} value={f.mood || ''} set={mood} />}
         <Drop label="Genres" multi search opts={page.genres[d.media].map((n): [string, string] => [n, n])} value={f.genres || []}
           set={(genres) => setF({ genres, without: (f.without || []).filter((x) => !genres.includes(x)) })} />
         <Drop label="Leave out" multi search opts={page.genres[d.media].map((n): [string, string] => [n, n])} value={f.without || []} empty="None"
@@ -295,20 +300,20 @@ export function Builder({ draft, page, close, saved }: { draft: Draft; page: { g
         {d.media === 'tv' && keys?.tvdb && <Drop label="TV category (TheTVDB)" opts={[[0, 'None'], ...TVDB_CATS]} value={f.tvdbGenre || 0} set={(c) => setF({ tvdbGenre: c || undefined })} />}
         <Drop label="Match genres" opts={[['any', 'Any of them'], ['all', 'All of them']]} value={f.match || 'any'} set={(match) => setF({ match })} />
       </div>
-      <div className="b-half"><SearchPick kind="keyword" label="Keywords" canOut value={f.keywords || []} set={(keywords) => setF({ keywords: keywords.length ? keywords : undefined })} /></div>
+      {!lib && <div className="b-half"><SearchPick kind="keyword" label="Keywords" canOut value={f.keywords || []} set={(keywords) => setF({ keywords: keywords.length ? keywords : undefined })} /></div>}
     </>,
     release: <div className="b-dds">
       <Drop label="When" opts={WHEN} value={when} set={(w) => setF({ when: w === 'any' ? undefined : w, ...(w !== 'years' ? { yearFrom: undefined, yearTo: undefined } : {}) })} />
       {when === 'years' && <Drop label="From" search opts={[[0, 'Any'], ...YEARS]} value={f.yearFrom || 0} set={(y) => setF({ yearFrom: y || undefined })} />}
       {when === 'years' && <Drop label="To" search opts={[[0, 'Any'], ...YEARS]} value={f.yearTo || 0} set={(y) => setF({ yearTo: y || undefined })} />}
       <Drop label="Decades" multi opts={DECADES} value={f.decades || []} set={(decades) => setF({ decades: decades.length ? decades : undefined })} />
-      <Drop label="Out" opts={[['both', 'Out or coming'], ['out', 'Out now'], ['coming', 'Coming']]} value={f.released || 'both'} set={(released) => setF({ released })} />
-      {films && <Drop label="How it came out" multi opts={OUT} value={f.out || []} set={(out) => setF({ out: out.length ? out : undefined })} />}
-      {shows && <Drop label="Status" multi opts={STATUS} value={f.status || []} set={(status) => setF({ status: status.length ? status : undefined })} />}
-      {shows && <Drop label="Type" multi opts={TV_TYPE} value={f.type || []} set={(type) => setF({ type: type.length ? type : undefined })} />}
+      {!lib && <Drop label="Out" opts={[['both', 'Out or coming'], ['out', 'Out now'], ['coming', 'Coming']]} value={f.released || 'both'} set={(released) => setF({ released })} />}
+      {films && !lib && <Drop label="How it came out" multi opts={OUT.filter(([v]) => v === 'cinema' || v === 'tv' || f.out?.includes(v))} value={f.out || []} set={(out) => setF({ out: out.length ? out : undefined })} />}
+      {shows && !lib && <Drop label="Status" multi opts={STATUS} value={f.status || []} set={(status) => setF({ status: status.length ? status : undefined })} />}
+      {shows && !lib && <Drop label="Type" multi opts={TV_TYPE} value={f.type || []} set={(type) => setF({ type: type.length ? type : undefined })} />}
       <Drop label={films && !shows ? 'Runtime from' : 'Length from'} opts={MINUTES} value={f.runtimeFrom || 0} set={(m) => setF({ runtimeFrom: m || undefined })} />
       <Drop label={films && !shows ? 'Runtime to' : 'Length to'} opts={MINUTES} value={f.runtimeTo || 0} set={(m) => setF({ runtimeTo: m || undefined })} />
-      {films && reg && reg.certs.length > 0 && <Drop label="Age rating" opts={[['', 'Any'], ...reg.certs.map((c): [string, string] => [c, `Up to ${c}`])]}
+      {films && !lib && reg && reg.certs.length > 0 && <Drop label="Age rating" opts={[['', 'Any'], ...reg.certs.map((c): [string, string] => [c, `Up to ${c}`])]}
         value={f.cert || ''} set={(cert) => setF({ cert: cert || undefined })} />}
     </div>,
     scores: <>
@@ -319,7 +324,7 @@ export function Builder({ draft, page, close, saved }: { draft: Draft; page: { g
       </div>
       <div className="b-sliders">
         <Slider range label="TMDB score" steps={SCORE_STEPS} show={tenth} value={[f.scoreFrom, f.scoreTo]} set={([scoreFrom, scoreTo]) => setF({ scoreFrom, scoreTo })} />
-        <Slider range label="Votes" steps={VOTE_STEPS} show={votesText} value={[f.votes, f.votesTo]} set={([votes, votesTo]) => setF({ votes, votesTo })} />
+        {!lib && <Slider range label="Votes" steps={VOTE_STEPS} show={votesText} value={[f.votes, f.votesTo]} set={([votes, votesTo]) => setF({ votes, votesTo })} />}
         {keys && SOURCES.filter(([, , , , need]) => !need || keys[need]).map(([k, n, st, unit]) =>
           <Slider key={k} label={n} steps={st} show={(v) => `${unit ? v : tenth(v)}${unit}`} value={f.ext?.[k]} set={(v) => setExt(k, v)} />)}
       </div>
@@ -335,8 +340,8 @@ export function Builder({ draft, page, close, saved }: { draft: Draft; page: { g
         {f.my ? null : reg ? <ServiceGrid services={reg.services} on={(id) => picked.includes(id)} toggle={(id) => setF({ services: picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id] })} />
           : <p className="acct-note">Loading the services…</p>}
       </div>
-      <div className="b-dds"><Drop label="How" opts={[['flatrate', 'Subscription'], ['free', 'Free'], ['rent', 'Rent or buy']]} value={f.how || 'flatrate'} set={(how) => setF({ how })} />
-        {shows && <Drop label="Made by" multi search opts={NETWORKS} value={f.networks || []} set={(networks) => setF({ networks: networks.length ? networks : undefined })} />}</div>
+      {!lib && <div className="b-dds"><Drop label="How" opts={[['flatrate', 'Subscription'], ['free', 'Free'], ['rent', 'Rent or buy']]} value={f.how || 'flatrate'} set={(how) => setF({ how })} />
+        {shows && <Drop label="Made by" multi search opts={NETWORKS} value={f.networks || []} set={(networks) => setF({ networks: networks.length ? networks : undefined })} />}</div>}
     </>,
     language: <div className="b-dds">
       {d.media !== 'anime' && d.media !== 'animefilm' && opts && <Drop label="Original language" multi search opts={opts.languages.map((l): [string, string] => [l.id, l.name])} value={langs}
@@ -380,10 +385,10 @@ export function Builder({ draft, page, close, saved }: { draft: Draft; page: { g
             {clear && <button type="button" className="b-x" aria-label={`Remove ${t}`} onClick={clear}><Icon d={PATHS.cross} size={12} width={2.2} /></button>}</span>))}</div>
         {e && <p className="acct-err b-err">{e}</p>}
         <div className="b-body">
-          <nav className="b-nav" aria-label="List options">{GROUPS.map(([k, n, ic]) => (
-            <button key={k} type="button" className={`b-tab${g === k ? ' on' : ''}`} aria-current={g === k} onClick={() => setG(k)}>
+          <nav className="b-nav" aria-label="List options">{groups.map(([k, n, ic]) => (
+            <button key={k} type="button" className={`b-tab${at === k ? ' on' : ''}`} aria-current={at === k} onClick={() => setG(k)}>
               <span className="pk-c"><Icon d={ic} size={18} width={1.9} /></span><span className="b-tn">{n}</span>{count(k) > 0 && <span className="b-n">{count(k)}</span>}</button>))}</nav>
-          <div className="b-pane">{pane[g]}</div>
+          <div className="b-pane">{pane[at]}</div>
           {/* on a phone the preview is a bar at the foot, all of it the button that opens the posters over the settings: the first
               three stacked as on the list cards, the count, a chevron; the scores' progress a line along its top */}
           <aside className={`b-prev${seeing ? ' open' : ''}`}>

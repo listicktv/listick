@@ -148,6 +148,15 @@ function queries(media: Media, f: Filters, mine: number[]) {
 }
 // a library list's candidates: your rated and/or watched titles that fit, in the list's order (popular: what you did last first)
 const library = (f: Filters) => !!(f.myFrom || f.myTo || f.watched || f.home?.length);
+// library switches
+async function libraryRules(uid: string, f: Filters) {
+  const hide = new Set<string>();
+  if (f.hideWatched) for (const r of await q.all<{ key: string }>('select distinct key from history where user_id = ?', uid)) hide.add(r.key);
+  if (f.hidePlan) for (const r of await q.all<{ key: string }>('select key from watchlist where user_id = ?', uid)) hide.add(r.key);
+  const rated = f.onlyRated ? new Set((await q.all<{ key: string }>('select distinct key from ratings where user_id = ?', uid)).map((r) => r.key)) : null;
+  return (k: string) => !hide.has(k) && (!rated || rated.has(k));
+}
+const WITHIN = [30, 90, 180, 365];
 async function libraryPool(uid: string, media: Media, f: Filters) {
   const sets: Map<string, number>[] = [];   // key -> when you last rated or watched it
   const mine = new Map<string, number>();
@@ -165,15 +174,15 @@ async function libraryPool(uid: string, media: Media, f: Filters) {
       : await q.all<{ key: string; at: number }>(`select key, max(watched_at) at from history where user_id = ? group by key having max(watched_at) ${f.watched === 'year' ? '>=' : '<'} ?`, uid, f.watched === 'year' ? y : ago);
     sets.push(new Map(rows.map((r) => [r.key, r.at])));
   }
-  if (f.home?.length) sets.push(await homeReleases(/^[A-Z]{2}$/.test(f.region || '') ? f.region! : 'US', f.home, f.homeWithin || 90, !!f.homeCinema,
+  if (f.home?.length) sets.push(await homeReleases(/^[A-Z]{2}$/.test(f.region || '') ? f.region! : 'US', f.home, WITHIN.includes(f.homeWithin!) ? f.homeWithin! : 90, !!f.homeCinema,
     providersOf(f, f.my ? (await prefsOf(uid)).services : []), media === 'animefilm'));
   const at = sets.reduce((a, b) => new Map([...a].filter(([k]) => b.has(k))));
-  const ts = await titlesOf([...at.keys()]), ws = windows(f), inc = f.genres || [], out = f.without || [];
+  const ts = await titlesOf([...at.keys()]), ws = windows(f), inc = f.genres || [], out = f.without || [], allowed = await libraryRules(uid, f);
   const fits = (t: Title) => {
     const kind = media === 'movie' ? t.type === 'movie' && !t.anime : media === 'tv' ? t.type === 'tv' && !t.anime : media === 'anime' ? (t.type === 'tv' && !!t.anime) || t.type === 'anime'
       : media === 'animefilm' ? t.type === 'movie' && !!t.anime : !t.anime;
     const g = genresOf(t), y = t.year;
-    return kind && (!inc.length || (f.match === 'all' ? inc.every((x) => g.includes(x)) : inc.some((x) => g.includes(x)))) && !out.some((x) => g.includes(x))
+    return kind && allowed(t.key) && (!inc.length || (f.match === 'all' ? inc.every((x) => g.includes(x)) : inc.some((x) => g.includes(x)))) && !out.some((x) => g.includes(x))
       && ws.some((w) => !y || ((!w.gte || y >= Number(w.gte.slice(0, 4))) && (!w.lte || y <= Number(w.lte.slice(0, 4)))))
       && (!f.runtimeFrom || !t.runtime || t.runtime >= f.runtimeFrom) && (!f.runtimeTo || !t.runtime || t.runtime <= f.runtimeTo)
       && (!f.scoreFrom || (t.rating ?? 0) >= f.scoreFrom) && (!f.scoreTo || (t.rating ?? 10) <= f.scoreTo);
@@ -181,7 +190,7 @@ async function libraryPool(uid: string, media: Media, f: Filters) {
   const list = [...at.keys()].map((k) => ts.get(k)).filter((t): t is Title => !!t && fits(t));
   const by: Record<string, (a: Title, b: Title) => number> = {
     rating: (a, b) => (mine.get(b.key) ?? b.rating ?? 0) - (mine.get(a.key) ?? a.rating ?? 0), newest: (a, b) => (b.year || 0) - (a.year || 0),
-    oldest: (a, b) => (a.year || 9999) - (b.year || 9999), az: (a, b) => a.title.localeCompare(b.title), votes: (a, b) => (b.rating ?? 0) - (a.rating ?? 0),
+    oldest: (a, b) => (a.year || 9999) - (b.year || 9999), az: (a, b) => a.title.localeCompare(b.title),
     releaseOld: (a, b) => at.get(a.key)! - at.get(b.key)! };
   if (f.sort === 'shuffle') for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
   if (f.sort !== 'shuffle') list.sort(by[f.sort || ''] || ((a, b) => at.get(b.key)! - at.get(a.key)!));
@@ -194,13 +203,10 @@ async function runSmart(uid: string, media: Media, f: Filters) {
   if (library(f)) { const pool = await libraryPool(uid, media, f); return { ...await pick(pool, f), total: pool.length, pool }; }
   const max = Math.min(500, Math.max(10, f.max || 60)), scored = floorsOf(f).length > 0;
   const want = scored ? Math.min(600, Math.max(max, max * 5)) : f.sort === 'shuffle' ? Math.min(600, Math.max(max, max * 3)) : max;
-  const hide = new Set<string>();
-  if (f.hideWatched) for (const r of await q.all<{ key: string }>('select distinct key from history where user_id = ?', uid)) hide.add(r.key);
-  if (f.hidePlan) for (const r of await q.all<{ key: string }>('select key from watchlist where user_id = ?', uid)) hide.add(r.key);
-  const rated = f.onlyRated ? new Set((await q.all<{ key: string }>('select distinct key from ratings where user_id = ?', uid)).map((r) => r.key)) : null;
+  const allowed = await libraryRules(uid, f);
   if (f.tvdbGenre && media === 'tv' && tvdbOn()) {
     const found = await tvdbCategory(f.tvdbGenre, { sort: f.sort, language: f.languages?.[0] || f.language, country: f.countries?.[0] || f.country, want: Math.min(600, want * 2) });
-    const pool = found.filter((k) => !hide.has(k) && (!rated || rated.has(k))).slice(0, want);
+    const pool = found.filter(allowed).slice(0, want);
     return { ...await pick(pool, f), total: found.length, pool };
   }
   const qs = queries(media, f, f.my ? (await prefsOf(uid)).services : []).map((x) => ({ ...x, keys: [] as string[], done: false }));
@@ -215,7 +221,7 @@ async function runSmart(uid: string, media: Media, f: Filters) {
       // anime keeps only animation; movies and shows leave anime (Japanese animation) out, as Home's rows do
       const ts = await saveTitles(d.results.filter((r) => r.poster_path && (x.anime ? r.genre_ids?.includes(16) : !(r.original_language === 'ja' && r.genre_ids?.includes(16))))
         .map(fromTmdb(x.type)));
-      for (const t of ts) if (!hide.has(t.key) && (!rated || rated.has(t.key))) x.keys.push(t.key);
+      for (const t of ts) if (allowed(t.key)) x.keys.push(t.key);
       if (page >= Math.min(d.total_pages || 1, 500)) x.done = true;
     }
   }
@@ -365,7 +371,9 @@ export const deleteList = (uid: string, id: string) => q.run('delete from lists 
 // a refresh keeps what the list found: what it finds now first, then what it had, cut to its size (How many), so the oldest
 // finds leave as new ones come; changed filters start it over
 const sizeOf = (f: Filters) => Math.min(500, Math.max(10, f.max || 60));
-const merged = (found: string[], had: string[] | null, f: Filters) => [...new Set([...found, ...(had || [])])].slice(0, sizeOf(f));
+// moving windows: When (30 days, 6 months, this year, next 3 months) or Latest releases
+const moving = (f: Filters) => !!f.home?.length || ['30d', '6m', 'year', 'next3'].includes(f.when || '');
+const merged = (found: string[], had: string[] | null, f: Filters) => [...new Set([...found, ...(moving(f) ? [] : had || [])])].slice(0, sizeOf(f));
 export async function refreshList(uid: string, id: string, over = false) {
   const l = await listRow(uid, id);
   if (!l || l.kind !== 'smart' || !l.media) return l;
