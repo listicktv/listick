@@ -1,5 +1,6 @@
 // The shared rows (trending, popular, in theaters, kids, anime) and the streaming services' rows: built by the worker, kept in
 // meta 'rows'; and every row's title cards warmed in the background.
+import { homeReleases } from './athome';
 import { q } from './db';
 import { details } from './details';
 import { asTmdb, fribb, fromMal, loadFribb } from './mapping';
@@ -22,10 +23,10 @@ const tmdbList = async (type: 'movie' | 'tv', path: string, keep: (x: TmdbItem) 
 // the catalogs (catalogs.ts) filter rows by genre, so each row is kept DEEP long; the page shows its first `page` titles
 const DEEP = 100;
 // the first `pages` pages of a TMDB list (20 a page), in order, without repeats
-async function tmdbPages(type: 'movie' | 'tv', path: string, pages = 5, keep: (x: TmdbItem) => boolean = () => true) {
+async function tmdbPages(type: 'movie' | 'tv', path: string, pages = 5, keep: (x: TmdbItem) => boolean = () => true, order?: (a: TmdbItem, b: TmdbItem) => number) {
   const all = await Promise.all(Array.from({ length: pages }, (_, i) => tmdb<TmdbPage>(`${path}${path.includes('?') ? '&' : '?'}page=${i + 1}`).then((d) => d.results, () => [] as TmdbItem[])));
-  const seen = new Set<number>();
-  return all.flat().filter((x) => keep(x) && !seen.has(x.id) && seen.add(x.id)).map(fromTmdb(type));
+  const seen = new Set<number>(), got = all.flat().filter((x) => keep(x) && !seen.has(x.id) && seen.add(x.id));
+  return (order ? got.sort(order) : got).map(fromTmdb(type));
 }
 // shows on the big streaming services (TMDB provider ids): the US ones, plus the main UK ones (BBC, ITV, Channel 4, Sky)
 type Region = 'US' | 'GB';
@@ -185,11 +186,16 @@ const ON_STREAMING = `watch_region=US&with_watch_providers=${STREAMING.US.join('
 // box office: this region's cinema releases of the last ~10 weeks by what they've taken (TMDB's revenue), highest first; 20+
 // votes, as small films' revenue is often missing or stray
 const boxOffice = () => tmdbPages('movie', `/discover/movie?region=${ROW_REGION}&with_release_type=3&primary_release_date.gte=${day(-75)}&primary_release_date.lte=${day(0)}&sort_by=revenue.desc&vote_count.gte=20`, 2);
-// new on streaming: films whose digital release here was in the last 45 days, most popular first
-const newOnStreaming = () => tmdbPages('movie', `/discover/movie?region=${ROW_REGION}&with_release_type=4&release_date.gte=${day(-45)}&release_date.lte=${day(0)}&sort_by=popularity.desc&vote_count.gte=10`, 3, notAnime);
-// new shows: first aired in the last 60 days, on the streaming services, most popular first
+// new on streaming: films whose digital release here was in the last 45 days; the most popular 60, newest digital release first
+async function newOnStreaming() {
+  const list = await tmdbPages('movie', `/discover/movie?region=${ROW_REGION}&with_release_type=4&release_date.gte=${day(-45)}&release_date.lte=${day(0)}&sort_by=popularity.desc&vote_count.gte=10`, 3, notAnime);
+  const at = await homeReleases(ROW_REGION, ['digital'], 45, false);
+  return list.sort((a, b) => (at.get(b.key) ?? 0) - (at.get(a.key) ?? 0));
+}
+// new shows: first aired in the last 60 days, on the streaming services; the most popular 60, newest premiere first
 const hasPoster = (x: TmdbItem) => !!x.poster_path;
-const newShows = () => tmdbPages('tv', `/discover/tv?first_air_date.gte=${day(-60)}&first_air_date.lte=${day(0)}&${ON_STREAMING}&sort_by=popularity.desc&${NO_TALK}`, 3, (x) => notAnime(x) && hasPoster(x));
+const newShows = () => tmdbPages('tv', `/discover/tv?first_air_date.gte=${day(-60)}&first_air_date.lte=${day(0)}&${ON_STREAMING}&sort_by=popularity.desc&${NO_TALK}`, 3, (x) => notAnime(x) && hasPoster(x),
+  (a, b) => (b.first_air_date || '').localeCompare(a.first_air_date || ''));
 // premiering soon: English-language shows starting in the next 60 days (not on a service yet), most anticipated first; only
 // those with a poster (many announced shows have none yet)
 const premieres = () => tmdbPages('tv', `/discover/tv?first_air_date.gte=${day(1)}&first_air_date.lte=${day(60)}&with_original_language=en&sort_by=popularity.desc&${NO_TALK}`, 3, (x) => notAnime(x) && hasPoster(x));
