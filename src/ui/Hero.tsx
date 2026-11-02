@@ -9,15 +9,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { getJ } from './lib/api';
 import { cards, type Tile, type TilePatch, type TitleType } from './lib/media';
 import { titleUrl, type Title } from './lib/title';
-import { useOpens } from './Cards';
+import { PosterArt, useOpens } from './Cards';
+import { usePhone } from './lib/home';
 import { Cert, Scores, StatusDial, YtLogo, metaOf } from './Title';
 
 type Item = Tile & { backdrop: string | null; overview: string | null; genres: string[]; rating: number | null };
 const NAME: Record<TitleType, string> = { movie: 'Movies', tv: 'Shows', anime: 'Anime' };
 // TMDB's wide images come at 780 px; the carousel is the page's width
 const wide = (u: string | null) => u?.replace('/t/p/w780/', '/t/p/w1280/') || undefined;
-// a phone's tall carousel shows the poster instead, which fits it (TMDB's at 780 px)
-const tall = (u: string | null) => u?.replace(/\/t\/p\/w\d+\//, '/t/p/w780/') || undefined;
 // each title's card, asked once per page visit (the scores, age rating and trailer the carousel shows)
 const cardsGot = new Map<string, Promise<Title | null>>();
 const cardOf = (key: string) => {
@@ -64,6 +63,7 @@ export function Hero({ kind }: { kind: TitleType }) {
   }, [at, moving, items.length]);
 
   const opens = useOpens(t ? { key: t.key } : null);
+  const phone = usePhone();
 
   // until the titles come in, the empty shade holds the carousel's place
   if (!t) return <section className="hero" aria-hidden="true"><div className="hero-shade" /></section>;
@@ -79,13 +79,12 @@ export function Hero({ kind }: { kind: TitleType }) {
         if (Math.abs(dx) > 50 && Math.abs(dx) > 1.5 * Math.abs(dy)) { setTrailer(null); setAt((n) => (n + (dx < 0 ? 1 : -1) + items.length) % items.length); }
       }}>
       {items.map((x, n) => drawn(n) && (
-        <picture key={x.key}>
-          {x.poster && <source media="(max-width: 599px)" srcSet={tall(x.poster)} />}
-          <img className={`hero-bg${n === at ? ' on' : ''}`} src={wide(x.backdrop)} alt="" decoding="async" />
-        </picture>
+        <img key={x.key} className={`hero-bg${n === at ? ' on' : ''}`} src={wide(x.backdrop)} alt="" decoding="async" />
       ))}
       <div className="hero-shade opens" onClick={opens.onClick} onPointerEnter={opens.onPointerEnter} />
       <div className="hero-body" onPointerEnter={() => setHeld(true)} onPointerLeave={() => setHeld(false)}>
+        {/* phone poster */}
+        {phone && t.poster && <div className="hero-post"><PosterArt key={t.key} t={t}><img src={t.poster} alt="" className="opens" {...opens} /></PosterArt></div>}
         <span className="hero-kick">Trending {NAME[kind]} · #{at + 1}</span>
         <h2 className="hero-title opens" {...opens}>{t.title}{t.label ? ` · ${t.label}` : ''}</h2>
         <div className="tc-meta hero-meta">{d ? metaOf(d) : [t.year, ...t.genres].filter(Boolean).join(' · ')}{d && <Cert d={d} />}</div>
@@ -94,7 +93,7 @@ export function Hero({ kind }: { kind: TitleType }) {
             {d.trailer && <button type="button" className="tc-ytico" aria-label="Play the trailer" onClick={() => setTrailer((d.trailer!.match(/[?&]v=([\w-]{6,})/) || [])[1] || null)}>
               <YtLogo /><b className="tc-link">Trailer</b>
             </button>}
-            <span className="tc-sep" /><StatusDial key={d.key} d={d} />
+            {!phone && <><span className="tc-sep" /><StatusDial key={d.key} d={d} /></>}
           </Scores>
         )}
         {t.overview && <p className="hero-story">{t.overview}</p>}

@@ -7,8 +7,7 @@ import { Circ, EpisodesPane, PickDay, airAt, fmtDay, timed } from './Episodes';
 import { getJ, postJ } from './lib/api';
 import { DASH, ago } from './lib/format';
 import { useHome, usePhone } from './lib/home';
-import { Icon, PATHS } from './lib/icons';
-import { openAddTo } from './lib/lists';
+import { Icon } from './lib/icons';
 import { TYPE_NAME, type Ref, type Tile } from './lib/media';
 import { Group } from './Rail';
 import { TopBar } from './Shell';
@@ -305,23 +304,19 @@ export function StatusDial({ d }: { d: Title }) {
     watched: (d.type === 'movie' ? d.you?.plays : d.you?.episodes) || 0, mine: d.you?.rating || null, progress, lastAt: d.you?.last || null, next: d.upNext || null }), [d, progress]);
   const dirty = useRef(false);
   const closed = useCallback(() => { if (dirty.current) { dirty.current = false; void reloadTitle(); } }, [reloadTitle]);
-  const dial = usePosterDial(tile, { cls: 'tc-sdial', changed: () => { dirty.current = true; }, closed });
+  // phone: poster with its circle
+  const phone = usePhone();
+  const dial = usePosterDial(tile, { cls: phone ? 'tposter' : 'tc-sdial', changed: () => { dirty.current = true; }, closed });
   const t = dial.t, done = t.type === 'movie' || (t.progress ?? 1) >= 1;
   const word = t.mine ? 'Rated' : t.watched ? (done ? 'Watched' : 'Watching') : t.watchlist ? 'Planned' : 'Add';
-  // phone: status row
-  const phone = usePhone(), listRef = useRef<HTMLButtonElement>(null);
   if (phone) return (
-    <div className="tc-sdial dialhost tc-actrow2">
-      {t.type !== 'movie' && <span className="topt rated" style={{ '--fill': `${(t.progress || 0) * 100}%` } as CSSProperties} role="img" aria-label={done && t.watched ? 'All watched' : `${Math.round((t.progress || 0) * 100)}% watched`}>
-        <span className="dot"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={PATHS.watched} /></svg></span>
-        <span className="tc-al">{t.watched ? (done ? 'Watched' : 'Watching') : '0%'}</span></span>}
-      {dial.seen?.(t.watched ? 'Watched' : 'Watch')}
-      {dial.rate(t.mine ? 'Rated' : 'Rate')}
-      {dial.plan(t.watchlist ? 'Planned' : 'Plan')}
-      <button ref={listRef} type="button" className="topt" aria-label="Add to list" onClick={() => openAddTo({ key: t.key, title: t.title, from: listRef.current })}>
-        <span className="dot"><Icon d="M4 6.5h11M4 12h11M4 17.5h7M18 14.5v6M15 17.5h6" size={18} width={2} /></span><span className="tc-al">List</span>
-      </button>
-      {dial.ringDial}
+    <div className="hero-post">
+      <div {...dial.host}>
+        {d.poster && <img src={d.poster} alt="" />}
+        <div className="tdial-shade" />
+        <div className="tdial-menu">{dial.plan()}{dial.seen?.()}{dial.rate()}</div>
+        {dial.dial}{dial.ringDial}
+      </div>
     </div>
   );
   return (
@@ -336,9 +331,11 @@ export function StatusDial({ d }: { d: Title }) {
 // carousel words
 function Head({ d, h }: { d: Title; h: 'h2' | 'h3' }) {
   const { playTrailer } = useTitle();
+  const phone = usePhone();
   const H = h;
   return (
     <>
+      {phone && <StatusDial d={d} />}
       <span className="hero-kick">{d.anime && d.type !== 'anime' ? 'Anime' : KIND[d.type]}</span>
       <H className="hero-title">{d.title + (d.label ? ` · ${d.label}` : '')}</H>
       {d.watching && <span className="tc-now">{['Watching now', d.watching.se >= 0 ? (d.type === 'anime' ? `E${d.watching.ep}` : `S${d.watching.se} E${d.watching.ep}`) : null,
@@ -346,7 +343,7 @@ function Head({ d, h }: { d: Title; h: 'h2' | 'h3' }) {
       <div className="tc-meta hero-meta">{metaOf(d, true)}<Cert d={d} /></div>
       <Scores d={d}>
         {d.trailer && <button type="button" className="tc-ytico" aria-label="Play the trailer" onClick={() => playTrailer(d.trailer!)}><YtLogo /><b className="tc-link">Trailer</b></button>}
-        <span className="tc-sep" /><StatusDial d={d} />
+        {!phone && <><span className="tc-sep" /><StatusDial d={d} /></>}
       </Scores>
     </>
   );

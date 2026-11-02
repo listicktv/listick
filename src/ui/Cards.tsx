@@ -299,7 +299,7 @@ const norm = (k: string, v: unknown) => (k === 'watchlist' ? !!v : v || 0);
 // change (default: refresh the page); closed runs when the pointer leaves (or a tap outside closes it)
 // cls: the host's own class (a row poster's tposter, the title card's tc-postwrap)
 type DialOpts = { dismiss?: (() => void) | null; changed?: () => void; closed?: () => void; cls?: string };
-function PosterArt({ t, children, ...o }: DialOpts & { t: Tile; children: ReactNode }) {
+export function PosterArt({ t, children, ...o }: DialOpts & { t: Tile; children: ReactNode }) {
   const p = usePosterDial(t, o);
   return (
     <div {...p.host}>

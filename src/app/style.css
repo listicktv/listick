@@ -1303,8 +1303,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 #air-list > .tc-more { margin-top: 6px; }   /* the phone's "All N episodes" under its first 5 */
 /* phone: the row posters' circles a size down (28 px, their options too). The title card: a solid card, a
    short backdrop with the poster centred over its foot and the title and meta centred under it; the scores as circles (logo in
-   a ring filled by the score, the number under it); a row of named circles for your watching, rating, Plan to watch and the
-   trailer; the menu as a segmented bar; each part only as tall as itself; details as label / value rows; compact episodes */
+   a ring filled by the score, the number under it); the trailer; the menu as a segmented bar; each part only as tall as itself; details as label / value rows; compact episodes */
 @media (max-width: 800px) {
   .dialhost .tdial, .dialhost .topt { width: 28px; height: 28px; }
   .dialhost .tdial .face, .dialhost .tdial .alt, .dialhost .topt .dot { --ring: 3px; font-size: 8.5px; }
@@ -1471,6 +1470,15 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
   .hero-title { font-size: 32px; }
   .hero .hero-story { display: none; }
   .hero-x { top: 64px; }
+  /* phone: cover on top, poster with its circle */
+  :is(.hero, .tpeek:not(.tep) .tpk-art) > .hero-bg { height: 58%; -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); mask-image: linear-gradient(180deg, #000 70%, transparent); }
+  .hero-post .tposter { position: relative; width: calc((100vw - 42px) / 2); aspect-ratio: 2 / 3; border-radius: 8px; overflow: hidden; background: var(--tile); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); }
+  .hero-post .tposter > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hero-post .dialhost .tdial, .hero-post .dialhost .topt { width: 38px; height: 38px; }
+  .hero-post .dialhost .tdial { right: 8px; bottom: 8px; }
+  .hero-post .dialhost .tdial-menu { right: 8px; bottom: 53px; gap: 7px; }
+  .hero-post .dialhost .tdial :is(.face, .alt), .hero-post .dialhost .topt .dot { --ring: 3.5px; font-size: var(--fs-11); }
+  .hero-post .dialhost :is(.tdial, .topt) svg { width: 16px; height: 16px; }
 }
 
 /* ---------- the Settings page: a big title with your name, the sections as ringed circles with names (a row of chips on a
@@ -2802,20 +2810,13 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 /* phone: Next up */
 @media (max-width: 800px) { .tf-next { position: static; width: auto; } }
 @media (max-width: 800px) { .sv-of { display: none; } }
-/* phone: status row */
+/* phone: small view */
 @media (max-width: 800px) {
-  .tc-chips .tc-sep:has(+ .tc-actrow2) { display: none; }
-  .tc-chips > .tc-actrow2 { flex-basis: 100%; display: flex; flex-direction: row; justify-content: center; gap: 10px; margin-top: 6px; padding: 12px 6px; border-block: 1px solid var(--line); }
-  .tc-actrow2 .topt { position: relative; flex: 0 0 56px; min-width: 0; }
-  .tc-actrow2 .topt .dot { width: 46px; height: 46px; }
-  .tc-actrow2 .topt:not(.on):not(.rated) .dot { background: radial-gradient(circle, #121726 0 19px, rgba(255, 255, 255, 0.34) 19.5px); }
-  .tc-actrow2 .topt.on .dot { background: radial-gradient(circle, #121726 0 19px, var(--accent) 19.5px); color: var(--accent); }
-  .tc-actrow2 .topt.rated .dot { background: radial-gradient(circle, #121726 0 19px, transparent 19.5px), conic-gradient(var(--accent) 0 var(--fill), rgba(255, 255, 255, 0.34) var(--fill) 100%); color: var(--accent); }
-  .tc-actrow2 .topt .tc-al { font-size: var(--fs-12); white-space: nowrap; }
-  .tc-actrow2 .topt:is(.on, .rated) .tc-al { color: var(--accent); }
   .tpeek .tpk-body .hero-story { -webkit-line-clamp: 6; font-size: var(--fs-15); }
   .tpk-body:not(.tep-body) .hero-story { min-height: calc(6 * 1.55em); }
   .tpk-art { height: 420px; }
+  .tpeek:not(.tep) .tpk-art { height: auto; min-height: 420px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .tpeek:not(.tep) .tpk-head { position: relative; inset: auto; padding: 96px 16px 6px; }
   /* episodes */
   .tf-epspane .tc-ep { grid-template-columns: 150px minmax(0, 1fr); gap: 12px; }
   .tf-epspane .tc-still { width: 150px; }
