@@ -499,7 +499,7 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
     const b = await body(req);
     let key: string | null = null, who: string | null = null;
     if (b.disconnect !== true) {
-      if (typeof b.key === 'string' && /^[\w-]{20,200}$/.test(b.key.trim())) { key = b.key.trim(); who = 'connected (key)'; }
+      if (typeof b.key === 'string' && /^(?=.{20,200}$)[\w+/-]+={0,2}$/.test(b.key.trim())) { key = b.key.trim(); who = 'connected (key)'; }
       else if (typeof b.email === 'string' && typeof b.password === 'string' && b.email.includes('@')) {
         try { key = await stremioLogin(b.email.trim(), b.password); who = b.email.trim(); } catch (e) { return json(req, 403, { error: msg(e) }); }
       } else return json(req, 400, { error: 'email and password, or a session key' });

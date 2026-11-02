@@ -75,6 +75,24 @@ describe('sign-up', () => {
   });
 });
 
+describe('Stremio session keys', () => {
+  test('accepts URL-safe and standard base64 keys, including padding', async () => {
+    const me = await signIn('owner', 'password-123', '198.51.100.60');
+    for (const key of ['a'.repeat(20), 'ab_-'.repeat(8), 'a'.repeat(43) + '=', 'a'.repeat(42) + '==', '+/'.repeat(21) + '==', 'a'.repeat(200), ' \t' + 'a'.repeat(42) + '==\n']) {
+      assert.equal((await me.post('/api/account/stremio', { key })).status, 200);
+      assert.equal((await q.one<{ stremio_key: string }>('select stremio_key from profiles where user_id = (select id from "user" where username = ?)', 'owner'))!.stremio_key, key.trim());
+    }
+  });
+  test('refuses malformed or out-of-range keys without changing the saved connection', async () => {
+    const me = await signIn('owner', 'password-123', '198.51.100.61'), saved = 'k'.repeat(30);
+    await me.post('/api/account/stremio', { key: saved });
+    for (const key of ['a'.repeat(19), 'a'.repeat(201), 'a'.repeat(199) + '==', 'a'.repeat(30) + '===', 'a'.repeat(20) + '=' + 'b'.repeat(10), 'a'.repeat(30) + '.', 'a'.repeat(15) + ' ' + 'a'.repeat(15), 'a'.repeat(15) + '\n' + 'a'.repeat(15), '='.repeat(30), null, 123]) {
+      assert.equal((await me.post('/api/account/stremio', { key })).status, 400);
+    }
+    assert.equal((await q.one<{ stremio_key: string }>('select stremio_key from profiles where user_id = (select id from "user" where username = ?)', 'owner'))!.stremio_key, saved);
+  });
+});
+
 describe('your data', () => {
   test('the export has your history and ratings but no keys or tokens', async () => {
     const me = await signIn('bo');
