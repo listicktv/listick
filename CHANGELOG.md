@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/listicktv/listick/compare/v0.14.2...v0.15.0) (2026-11-02)
+
+
+### Features
+
+* phone poster with its status circle on the carousel and title views ([c606671](https://github.com/listicktv/listick/commit/c6066711f8e524626c1626d308ff8214c8a46e7b))
+
+
+### Bug Fixes
+
+* accept base64 Stremio session keys ([81a6df1](https://github.com/listicktv/listick/commit/81a6df17037200e743901fa51028ffd373c6c43f))
+* New shows and New on streaming rows show the newest first ([6eeb652](https://github.com/listicktv/listick/commit/6eeb652ca5e93a1249be7cbe2d7c2ea22d25c64f))
+* smart list filters and Latest releases ([026bb61](https://github.com/listicktv/listick/commit/026bb61fb3a2ad5d5b82565543d9b2e839731db5))
+
 ## [0.14.2](https://github.com/listicktv/listick/compare/v0.14.1...v0.14.2) (2026-11-01)
 
 
