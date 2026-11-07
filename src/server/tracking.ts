@@ -4,13 +4,14 @@ import zlib from 'node:zlib';
 import { q, tx } from './db';
 import { details } from './details';
 import { forYou } from './foryou';
-import { cached, stremio } from './live';
+import { addonVideos, cached, CINEMETA, stremio, stremioAddons, type Addon } from './live';
 import { canonEp, canonKey, fribb, loadFribb, resolve } from './mapping';
 import { addPlay, collapseDoubles, nearPlay } from './plays';
 import { getJSON, tmdb } from './sources';
 import { getState, getUser, liveOf, setProfile, setState } from './store';
 import { getTitle } from './titles';
 import type { CinemetaVideo, Place, PlacedVideo, StremioLive, StremioObserve, TmdbFind, User } from './types';
+import { tmdbOnDay } from './tvdb';
 import { followOf } from './upnext';
 import { HOUR, present, safe } from './util';
 
@@ -24,10 +25,9 @@ export async function trackingSince(uid: string) {
   await setProfile(uid, { tracking_since: v });
   return v;
 }
-// Stremio's watched record per series: "<anchor video>:<videos up to it>:<zlib bitmap>", bit i = the i-th video of the series'
-// list (Cinemeta for IMDb ids, the Kitsu addon for anime, TMDB's seasons for the TMDB addon). A video id is "tt…:season:episode",
-// "kitsu:id:episode" or "tmdb:id:season:episode".
-type Vid = { id: string; tvdb: number | null };
+// watched record: "<last watched video>:<videos up to it>:<zlib bitmap>"; fallback lists: Cinemeta, Kitsu addon, TMDB seasons
+// own: addon's own numbering, placed by air date
+type Vid = { id: string; tvdb: number | null; se?: number; ep?: number; air?: string | null; own?: boolean };
 const metaVideos = new Map<string, { at: number; vids: Vid[] }>();
 async function seriesVideos(series: string) {
   const c = metaVideos.get(series);
@@ -49,7 +49,7 @@ async function seriesVideos(series: string) {
 // "Monster: The Lizzie Borden Story" S1), so each episode is looked up by its TheTVDB id; the series match is the fallback
 const tvdbEp = new Map<number, Place | null>();
 async function placeOf(video: string, vids: Vid[], fallbackKey: string | null): Promise<Place | null> {
-  if (video.startsWith('kitsu:')) return fallbackKey ? canonEp(fallbackKey, 1, epOf(video)[1]) : null;
+  if (/^(kitsu|mal|anilist):/.test(video)) return fallbackKey ? canonEp(fallbackKey, 1, epOf(video)[1]) : null;
   const tv = vids.find((v) => v.id === video)?.tvdb;
   if (tv) {
     if (!tvdbEp.has(tv)) {
@@ -63,8 +63,18 @@ async function placeOf(video: string, vids: Vid[], fallbackKey: string | null): 
       return (await getTitle(p.key))?.anime ? null : p;   // anime with an IMDb id goes on its Kitsu entry (placeAny)
     }
   }
-  const [se, ep] = epOf(video);
-  return fallbackKey && se >= 0 ? { key: fallbackKey, se, ep } : null;
+  const v = vids.find((x) => x.id === video), [se, ep] = v?.se != null && v.ep != null ? [v.se, v.ep] : epOf(video);
+  if (!fallbackKey || se < 0) return null;
+  return (v?.own && await byAirDate(fallbackKey, se, ep, v, vids)) || { key: fallbackKey, se, ep };
+}
+// TMDB episode by air date; null when the addon's numbers match or the day is ambiguous
+async function byAirDate(key: string, se: number, ep: number, v: Vid, vids: Vid[]): Promise<Place | null> {
+  if (!v.air || !key.startsWith('tmdb:tv:')) return null;
+  const day = v.air.slice(0, 10), hits = await tmdbOnDay(key.slice(8), day, se).catch(() => []);
+  if (hits.some((h) => h.se === se && h.ep === ep)) return null;
+  const sameDay = vids.filter((x) => x.air?.slice(0, 10) === day);
+  const hit = hits.length === 1 ? hits[0] : hits.length === sameDay.length ? hits[sameDay.indexOf(v)] : null;
+  return hit ? { key, se: hit.se, ep: hit.ep } : null;
 }
 export function decodeWatched(field: string | null, vids: Vid[]) {
   if (!field) return [];
@@ -77,13 +87,12 @@ export function decodeWatched(field: string | null, vids: Vid[]) {
   for (let i = 0; i < len; i++) if (bits[i >> 3] & (1 << (i & 7)) && ids[i + off]) out.push(ids[i + off]);
   return out;
 }
-export const seriesOf = (video: string | null | undefined) => (/^(kitsu|tmdb):/.test(video || '') ? video!.split(':').slice(0, 2).join(':') : video?.split(':')[0]);
-// a video as [season, episode]: anime episodes go under season 1, counted from the first as Kitsu does
+// video ids: tt<imdb>:se:ep, <source>:<id>:se:ep (tmdb, tvdb), <source>:<id>:ep (kitsu, mal, anilist; season 1)
+export const seriesOf = (video: string | null | undefined) => (video && (/^tt\d/.test(video) ? video.split(':')[0] : video.split(':').slice(0, 2).join(':'))) || undefined;
 export const epOf = (video: string | null | undefined): [number, number] => {
   const p = (video || '').split(':');
-  if (p[0] === 'kitsu') return p.length >= 3 ? [1, Number(p[2])] : [-1, -1];
-  if (p[0] === 'tmdb') return p.length >= 4 ? [Number(p[2]), Number(p[3])] : [-1, -1];
-  return p.length >= 3 ? [Number(p[1]), Number(p[2])] : [-1, -1];
+  if (/^tt\d/.test(p[0])) return p.length >= 3 ? [Number(p[1]), Number(p[2])] : [-1, -1];
+  return p.length >= 4 ? [Number(p[2]), Number(p[3])] : p.length === 3 ? [1, Number(p[2])] : [-1, -1];
 };
 // an anime episode recorded twice within a week (under its Kitsu and its IMDb id in Stremio, or by an import) is one watch; a
 // Kitsu entry's episode is stored where it sits on TMDB
@@ -116,7 +125,46 @@ type StremioSeen = { video: string | null; watched: number; offset?: number; dur
 export const played = (s: { watched: number; duration: number }) => !!s.duration && s.watched > s.duration * 0.7;
 // Stremio sets the position back to 0, or 1 on the next video, at the end
 export const stillOpen = (s: { video: string | null; offset?: number }) => !!s.video && (s.offset ?? 0) > 1;
-async function observeStremio(uid: string, items: StremioObserve[]) {
+// mal / anilist -> kitsu, tvdb -> tmdb, kitsu film -> tmdb film; null: unmapped
+const tvdbTmdb = new Map<string, string | null>();
+async function knownId(src: string, n: string, movie: boolean): Promise<string | null> {
+  if (src === 'mal' || src === 'anilist') {
+    await loadFribb();
+    const k = (src === 'mal' ? fribb.byMal : fribb.byAnilist).get(Number(n));
+    return k ? knownId('kitsu', String(k), movie) : null;
+  }
+  if (src === 'kitsu') {
+    if (!movie) return `kitsu:${n}`;
+    await loadFribb();
+    const m = fribb.map.get(Number(n))?.tmdb;
+    return m?.type === 'movie' ? `tmdb:${m.id}` : null;
+  }
+  const k = `${movie ? 'm' : 's'}${n}`;
+  if (!tvdbTmdb.has(k)) {
+    const r = await tmdb<TmdbFind>(`/find/${n}?external_source=tvdb_id`), t = (movie ? r.movie_results : r.tv_results)?.[0];
+    tvdbTmdb.set(k, t ? `tmdb:${t.id}` : null);
+  }
+  return tvdbTmdb.get(k)!;
+}
+// leading addon id swapped for the known one
+export async function knownVideo(s: string | null, movie: boolean, lookup = knownId) {
+  const m = s && /^(mal|anilist|tvdb|kitsu):(\d+)/.exec(s);
+  if (!m || (m[1] === 'kitsu' && !movie)) return s;
+  const to = await lookup(m[1], m[2], movie);
+  return to && to + s!.slice(m[0].length);
+}
+// episode list: the user's addon's (raw) when it has the anchor, else the fallback; addons get 3 s (settled: false past that)
+async function listOf(addons: Addon[], type: string, id: string, anchor: string | null, known: string) {
+  const late = Symbol(), ask = anchor ? addonVideos(addons, type, id).catch(() => null) : null;
+  const res = ask && await Promise.race([ask, new Promise<typeof late>((r) => setTimeout(r, 3000, late))]);
+  const settled = res !== late, got = res === late ? null : res;
+  if (got?.vids.some((v) => v.id === anchor)) {
+    const own = got.from !== CINEMETA;
+    return { raw: true, settled, vids: got.vids.map((v): Vid => ({ id: v.id, tvdb: v.tvdb_id || null, se: v.season, ep: v.episode ?? v.number, air: v.released || null, own: own && !v.id.startsWith('tmdb:') })) };
+  }
+  return { raw: false, settled, vids: await seriesVideos(known).catch((): Vid[] => []) };
+}
+async function observeStremio(uid: string, items: StremioObserve[], addons: Addon[] = []) {
   const since = await trackingSince(uid);
   let added = 0;
   for (const x of items) {
@@ -128,7 +176,8 @@ async function observeStremio(uid: string, items: StremioObserve[]) {
     // movies: Stremio keeps the real last-watched date, so a watched movie we have no play of is added at any age. A movie
     // opened from Listick's catalogs is in Stremio's library as tmdb:<id> (its video the IMDb id), not tt<id>
     if (x.type === 'movie') {
-      const tmdb = /^tmdb:\d+$/.test(x.id) ? `tmdb:movie:${x.id.slice(5)}` : null, imdb = /^tt\d+$/.test(x.id) ? x.id : /^tt\d+$/.test(cur.video || '') ? cur.video! : null;
+      const id = (await knownVideo(x.id, true)) || x.id, video = await knownVideo(cur.video, true);
+      const tmdb = /^tmdb:\d+$/.test(id) ? `tmdb:movie:${id.slice(5)}` : null, imdb = /^tt\d+$/.test(id) ? id : /^tt\d+$/.test(video || '') ? video! : null;
       if ((!tmdb && !imdb) || !cur.full || open) continue;
       if (prev?.full && prev.at === cur.at) continue;
       const key = tmdb ? await keyOfMovie(tmdb) : await keyOfSeries(imdb!, true);
@@ -137,31 +186,34 @@ async function observeStremio(uid: string, items: StremioObserve[]) {
       if (!prev || cur.at >= since) added += await addPlay(uid, key, -1, -1, cur.at, 'stremio');
       continue;
     }
-    const series = seriesOf((cur.seen || '').split(':').slice(0, -2).join(':') || cur.video);
+    // c / p: cur / prev read against the list in use
+    const anchor = (cur.seen || '').split(':').slice(0, -2).join(':') || cur.video, series = await knownVideo(seriesOf(anchor) || null, false);
     if (!series) continue;
     const key = await keyOfSeries(series);
-    const vids = await seriesVideos(series).catch((): Vid[] => []);
-    const now = new Set(decodeWatched(cur.seen, vids));
+    const { raw, vids } = await listOf(addons, x.type, x.id, anchor, series);
+    const read = async (s: StremioSeen) => raw ? s : { ...s, video: await knownVideo(s.video, false), seen: await knownVideo(s.seen, false) };
+    const c = await read(cur), p = prev && await read(prev);
+    const now = new Set(decodeWatched(c.seen, vids));
     const record = async (video: string, at: number, approx = 0) => {
-      const p = await placeAny(video, vids, key, series);
-      return p ? addWatch(uid, p.key, p.se, p.ep, at, 'stremio', approx) : 0;
+      const pl = await placeAny(video, vids, key, series);
+      return pl ? addWatch(uid, pl.key, pl.se, pl.ep, at, 'stremio', approx) : 0;
     };
     let fresh: string[] = [];
-    if (prev) {
-      if (cur.at < since) continue;
+    if (p) {
+      if (c.at < since) continue;
       // newly ticked episodes since last time, in series order, the last one at the last-watched time; not the open one
-      const before = new Set(decodeWatched(prev.seen, vids));
-      fresh = vids.map((v) => v.id).filter((v) => now.has(v) && !before.has(v) && !(open && v === cur.video));
-      for (const [i, v] of fresh.entries()) added += await record(v, cur.at - (fresh.length - 1 - i) * 60000);
+      const before = new Set(decodeWatched(p.seen, vids));
+      fresh = vids.map((v) => v.id).filter((v) => now.has(v) && !before.has(v) && !(open && v === c.video));
+      for (const [i, v] of fresh.entries()) added += await record(v, c.at - (fresh.length - 1 - i) * 60000);
       // the episode moved on from, rewatches too
-      if (prev.video && prev.video !== cur.video && !fresh.includes(prev.video) && prev.at >= since && played(prev))
-        added += await record(prev.video, prev.at);
-    } else if (Date.now() - cur.at < 30 * 86400000) {
-      added += await fillGaps(uid, vids, now, cur, series, key);
+      if (p.video && p.video !== c.video && !fresh.includes(p.video) && p.at >= since && played(p))
+        added += await record(p.video, p.at);
+    } else if (Date.now() - c.at < 30 * 86400000) {
+      added += await fillGaps(uid, vids, now, c, series, key);
     }
     // the open episode played to its end
-    const ended = prev && prev.video === cur.video && stillOpen(prev) && !open && played(cur);
-    if (ended && cur.video && cur.at >= since && !fresh.includes(cur.video)) added += await record(cur.video, cur.at);
+    const ended = p && p.video === c.video && stillOpen(p) && !open && played(c);
+    if (ended && c.video && c.at >= since && !fresh.includes(c.video)) added += await record(c.video, c.at);
   }
   return added;
 }
@@ -219,17 +271,20 @@ export async function moveAnimeToTmdb() {
   return moves.length + lists.length;
 }
 // for Continue watching: where a Stremio episode sits on TMDB/Kitsu (title, artwork, episode number), so cards match the History row
-async function places(videos: string[]) {
-  const out: Record<string, PlacedVideo> = {};
-  for (const video of videos.slice(0, 40)) {
-    const series = seriesOf(video);
-    if (!series || !/^(tt\d+|kitsu:\d+|tmdb:\d+):/.test(video)) continue;
-    const vids = await seriesVideos(series).catch((): Vid[] => []);
-    const p = await placeAny(video, vids, await keyOfSeries(series), series).catch(() => null);
+// retry: placed before the addon answered
+async function places(cards: { id: string; type: string; video: string }[], addons: Addon[]) {
+  const out: Record<string, PlacedVideo> = {}, retry = new Set<string>();
+  await Promise.all(cards.slice(0, 40).map(async ({ id, type, video: original }) => {
+    const series = await knownVideo(seriesOf(original) || null, false).catch(() => null);
+    if (!series || !/^(tt\d+|kitsu:\d+|tmdb:\d+)$/.test(series)) return;
+    const { raw, settled, vids } = await listOf(addons, type, id, original, series);
+    if (!settled) retry.add(original);
+    const video = raw ? original : await knownVideo(original, false).catch(() => null);
+    const p = video && await placeAny(video, vids, await keyOfSeries(series), series).catch(() => null);
     const t = p && await getTitle(p.key);
-    if (p && t) out[video] = { key: p.key, se: p.se, ep: p.ep, type: t.type, title: t.title, label: t.label, poster: t.poster, backdrop: t.backdrop };
-  }
-  return out;
+    if (p && t) out[original] = { key: p.key, se: p.se, ep: p.ep, type: t.type, title: t.title, label: t.label, poster: t.poster, backdrop: t.backdrop };
+  }));
+  return { out, retry };
 }
 // where a Stremio episode goes: its TMDB/Kitsu place, or for an IMDb-id anime episode its Kitsu entry
 async function placeAny(video: string, vids: Vid[], key: string | null, series: string) {
@@ -269,7 +324,7 @@ async function recentMal(uid: string) {
 // e.g. Stremio's "Monster" S4 is TMDB's Lizzie Borden Story) and the for-you rows; the History gives Up next and the
 // calendar. Saved per user in live_state (without the raw observations, which only tracking needs), where the page reads it.
 const observed = new Map<string, string>();   // uid|source -> the last observation recorded (worker memory)
-const placed: Record<string, PlacedVideo | null> = {};     // Stremio video id -> its TMDB/Kitsu title and episode (the same for everyone)
+const placed: Record<string, PlacedVideo | null> = {};     // uid|Stremio video id -> its TMDB/Kitsu title and episode
 const savedLive = new Map<string, string>();   // uid -> the JSON last written, so an unchanged answer isn't written again
 const omitObserve = <T extends { observe: unknown }>(x: T | null) => x && (({ observe, ...rest }) => rest)(x);
 // a changed source (another Stremio account) starts from nothing
@@ -278,9 +333,12 @@ export async function refreshLive(u: User) {
   const uid = u.id;
   // cached per user and per key, so a changed key or name starts fresh
   const sr: StremioLive | null = u.stremio_key ? await cached(`stremio:${uid}:${u.stremio_key.slice(0, 8)}`, 30000, () => stremio(u.stremio_key, uid)) : null;
-  const videos = (sr?.continue || []).map((c) => c.video).filter((v): v is string => !!v && !(v in placed));
-  if (videos.length) { const got = await safe(() => places(videos)); if (got) for (const v of videos) placed[v] = got[v] || null; }
-  if (sr?.continue) for (const c of sr.continue) c.place = (c.video && placed[c.video]) || null;
+  // the user's addons
+  const addons = u.stremio_key ? (await cached(`stremioAddons:${uid}:${u.stremio_key.slice(0, 8)}`, 6 * HOUR, () => stremioAddons(u.stremio_key!))) || [] : [];
+  const todo = (sr?.continue || []).filter((c): c is typeof c & { video: string } => !!c.video && !(`${uid}|${c.video}` in placed));
+  const got = todo.length ? await safe(() => places(todo, addons)) : null;
+  if (got) for (const c of todo) if (!got.retry.has(c.video)) placed[`${uid}|${c.video}`] = got.out[c.video] || null;
+  if (sr?.continue) for (const c of sr.continue) c.place = (c.video && (placed[`${uid}|${c.video}`] ?? got?.out[c.video])) || null;
   for (const c of sr?.continue || []) {
     const kk = c.id.startsWith('kitsu:') ? `kitsu:anime:${c.id.split(':')[1]}` : null;
     c.ids = [...new Set([kk || c.id, kk && await canonKey(kk), c.place?.key])].filter(present);
@@ -292,7 +350,7 @@ export async function refreshLive(u: User) {
     const added = await safe(() => fn(uid, obs!));
     if (added != null) { observed.set(`${uid}|${src}`, sig); if (added) console.log(`tracking: ${added} new ${src} play(s) for ${u.name}`); }
   };
-  await track('stremio', sr?.observe, observeStremio);
+  await track('stremio', sr?.observe, (id, items) => observeStremio(id, items, addons));
   const imdbs = [...new Set((sr?.history || []).map((h) => h.id).filter((id) => /^tt\d+$/.test(id || '')))].slice(0, 20);
   const mals = (await safe(() => recentMal(uid))) || [];
   const fy = imdbs.length || mals.length ? await safe(() => forYou(uid, imdbs, mals)) : null;

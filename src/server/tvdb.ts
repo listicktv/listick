@@ -126,6 +126,15 @@ async function tmdbAirs(id: string, season: number) {
   }
   return c.airs.get(season)!;
 }
+// TMDB episodes aired within a day of `day`, nearest season to `near` first
+export async function tmdbOnDay(tmdbId: string, day: string, near: number) {
+  const show = await tmdbShow(tmdbId), at = Date.parse(day);
+  for (const n of [...show.counts.keys()].filter((x) => x > 0).sort((a, b) => Math.abs(a - near) - Math.abs(b - near))) {
+    const hits = (await tmdbAirs(tmdbId, n)).filter((e) => e.air && Math.abs(Date.parse(e.air) - at) <= 86400000);
+    if (hits.length) return hits.sort((a, b) => a.ep - b.ep).map((e) => ({ se: n, ep: e.ep, air: e.air! }));
+  }
+  return [];
+}
 // a season and episode TMDB doesn't have, placed on the TMDB episode that aired the same day; null when it can't be placed
 export async function tmdbPlace(tmdbId: string, se: number, ep: number) {
   const show = await tmdbShow(tmdbId);
