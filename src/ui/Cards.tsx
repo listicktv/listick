@@ -175,7 +175,7 @@ export function WideCard({ w, cls = '', children }: { w: Wide; cls?: string; chi
   );
 }
 
-// a Continue watching card: one circle (⋯, on hover) like Plan to watch's. A tap brings its two actions: ✕ removes the card
+// a Continue watching or Up next card: one circle (⋯, on hover) like Plan to watch's. A tap brings its two actions: ✕ removes the card
 // (nothing recorded), the watched mark beside it marks it watched (a play goes into History). Either way the card stays away until
 // there is newer progress for it; after 3 s they fold back into ⋯
 export function ResumeCard({ w }: { w: Wide }) {
@@ -205,7 +205,7 @@ export function ResumeCard({ w }: { w: Wide }) {
     <WideCard w={w} cls={`${ask.armed ? ' asking' : ''}${leaving ? ' leaving' : ''}`}>
       <button type="button" className="pdial second" aria-label="Mark watched" onKeyDown={stop}
         onClick={(e) => { e.stopPropagation(); if (ask.armed) void leave(true); }}><span className="face"><PIcon name="watched" /></span></button>
-      <button type="button" className={`pdial${ask.armed ? ' confirm' : ' acts'}`} aria-label={ask.armed ? 'Remove from Continue watching' : 'Actions'} onKeyDown={stop}
+      <button type="button" className={`pdial${ask.armed ? ' confirm' : ' acts'}`} aria-label={ask.armed ? `Remove from ${w.resume ? 'Continue watching' : 'Up next'}` : 'Actions'} onKeyDown={stop}
         onClick={(e) => { e.stopPropagation(); ask.tap(() => leave(false)); }}><span className="face"><PIcon name={ask.armed ? 'close' : 'more'} /></span></button>
     </WideCard>
   );

@@ -59,7 +59,8 @@ export function continueItems(S: Summary) {
       sub: `${ep}${r.pct != null ? ` · ${r.pct} %` : ''}`, cw: { id: `${r.source}:${r.key}`, video: `${r.se}:${r.ep}`, at: r.at, key: r.key, se: r.se, ep: r.ep, movie: r.se < 0 } });
   }
   for (const u of S.upNext || []) out.push({ app: 'listick', ref: { key: u.key }, ids: [u.key], title: u.title, poster: u.poster, wide: u.backdrop, at: u.at,
-    airedAt: u.rewatch ? undefined : u.airedAt ?? undefined, rewatch: u.rewatch, sub: `${u.type === 'anime' ? `E${u.ep}` : `S${u.se} E${u.ep}`} · next up` });
+    airedAt: u.rewatch ? undefined : u.airedAt ?? undefined, rewatch: u.rewatch, sub: `${u.type === 'anime' ? `E${u.ep}` : `S${u.se} E${u.ep}`} · next up`,
+    cw: { id: `upnext:${u.key}`, video: `${u.se}:${u.ep}`, at: u.at, key: u.key, se: u.se, ep: u.ep, movie: false } });
   // a placed episode uses its TMDB/Kitsu title, artwork and numbering (the same as the History row)
   for (const c of (S.stremio?.continue || []).filter((x) => x.resume)) {
     const now = Date.now() - c.at < STREMIO_LIVE, p = c.place, ep = p ? (p.type === 'anime' ? `E${p.ep}` : `S${p.se} E${p.ep}`) : c.type === 'movie' ? 'Movie' : epLabel(c);
