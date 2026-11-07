@@ -1,5 +1,5 @@
 'use client';
-// The History page (/history): what you watched in the last 30 days, newest first, day by day: each play as History's wide card (the episode or
+// The History page (/history): what you watched in the last 30 days (?all=1: every play), newest first, day by day: each play as History's wide card (the episode or
 // Movie, the time, your rating circle), the episodes of one show watched back to back as one card ("S1 E3–E5"). Movies, shows or
 // anime; older days come in as you scroll.
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -41,15 +41,16 @@ const KINDS = [['all', 'All', PATHS.lists], ['movie', 'Movies', PATHS.movie], ['
 export function HistoryPage() {
   const [plays, setPlays] = useState<Play[] | null>(null), [more, setMore] = useState(false), [err, setErr] = useState('');
   const [kind, setKind] = useState<Kind>('all');
+  const [all] = useState(() => typeof location !== 'undefined' && new URLSearchParams(location.search).get('all') === '1');   // Lists' Watched: every play
   const phone = usePhone(), [filters, setFilters] = useState(false);   // a phone: the kinds behind one Filter circle
   const loading = useRef(false), end = useRef<HTMLDivElement>(null);
   // the newest page (again after a change on a card), then each older one
   const [n, setN] = useState(0);
   useEffect(() => {
     let live = true;
-    getJ<{ plays: Play[]; more: boolean }>('/api/history').then((r) => { if (live) { setPlays(r.plays); setMore(r.more); setErr(''); } }, (e: Error) => { if (live) setErr(e.message); });
+    getJ<{ plays: Play[]; more: boolean }>(`/api/history${all ? '?all=1' : ''}`).then((r) => { if (live) { setPlays(r.plays); setMore(r.more); setErr(''); } }, (e: Error) => { if (live) setErr(e.message); });
     return () => { live = false; };
-  }, [n]);
+  }, [n, all]);
   const gen = useRef(0);
   useEffect(() => { gen.current = n; }, [n]);
   const load = useCallback(async (last: Play) => {
@@ -57,11 +58,11 @@ export function HistoryPage() {
     loading.current = true;
     const g = gen.current;
     try {
-      const r = await getJ<{ plays: Play[]; more: boolean }>(`/api/history?before=${last.at}&id=${last.id}`);
+      const r = await getJ<{ plays: Play[]; more: boolean }>(`/api/history?before=${last.at}&id=${last.id}${all ? '&all=1' : ''}`);
       if (g !== gen.current) return;
       setPlays((x) => [...(x || []), ...r.plays]); setMore(r.more);
     } catch (e) { setErr((e as Error).message); } finally { loading.current = false; }
-  }, []);
+  }, [all]);
   // the next page when the end of the page comes near
   useEffect(() => {
     const el = end.current; if (!el || !more || !plays?.length) return;

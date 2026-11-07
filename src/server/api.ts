@@ -708,7 +708,7 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
   if (p === '/api/history' && req.method === 'GET') {
     const g = await reader(req); if (g.error) return g.error;
     const before = Number(url.searchParams.get('before')) || Date.now() + 86400000;
-    return json(req, 200, await historyPage(g.user.id, before, Number(url.searchParams.get('id')) || 0));
+    return json(req, 200, await historyPage(g.user.id, before, Number(url.searchParams.get('id')) || 0, url.searchParams.get('all') === '1'));
   }
   // the Airing page; ?plan=1: Plan to watch dates
   if (p === '/api/airing' && req.method === 'GET') {

@@ -81,7 +81,7 @@ export function Lists() {
           <MineCard href="/lists/plan" name="Plan to watch" b={b.plan} ring={`conic-gradient(var(--st-movie) 0 ${b.plan.n ? (b.plan.movie / b.plan.n) * 100 : 0}%, var(--st-tv) 0 100%)`}
             face={<Icon d={PATHS.bookmark} size={30} width={1.9} />}
             sub={<><span><b>{b.plan.n}</b> {b.plan.n === 1 ? 'title' : 'titles'}</span><span className="l-dot" style={{ '--c': 'var(--st-movie)' } as React.CSSProperties}>{b.plan.movie} films</span><span className="l-dot" style={{ '--c': 'var(--st-tv)' } as React.CSSProperties}>{b.plan.tv} shows</span></>} />
-          <MineCard href="/history" name="Watched" b={b.watched} ring="conic-gradient(var(--accent) 0 100%)" face={<Icon d={PATHS.watched} size={30} width={2.1} />}
+          <MineCard href="/history?all=1" name="Watched" b={b.watched} ring="conic-gradient(var(--accent) 0 100%)" face={<Icon d={PATHS.watched} size={30} width={2.1} />}
             sub={<><span><b>{b.watched.n}</b> {b.watched.n === 1 ? 'title' : 'titles'}</span>{!!b.watched.plays && <span>{b.watched.plays} plays this month</span>}</>} />
           <MineCard href="/lists/rated" name="Rated" b={b.rated} ring={`conic-gradient(var(--accent) 0 ${(b.rated.avg || 0) * 10}%, var(--l-ring) 0)`} face={<b className="mono">{b.rated.avg ?? '–'}</b>}
             sub={<><span><b>{b.rated.n}</b> {b.rated.n === 1 ? 'title' : 'titles'}</span>{b.rated.avg != null && <span>average {b.rated.avg}</span>}</>} />
