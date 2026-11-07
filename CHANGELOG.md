@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.16.0](https://github.com/listicktv/listick/compare/v0.15.0...v0.16.0) (2026-11-07)
+
+
+### Features
+
+* anime films from the Kitsu addon are tracked ([ab9508b](https://github.com/listicktv/listick/commit/ab9508b436b8384ef044a2a4687691d1f6a5e624))
+* Mark watched and Remove on Up next cards ([f7b8624](https://github.com/listicktv/listick/commit/f7b86240a4cbb8702ca50e70d8e3196705e07279))
+* plays from AIOMetadata and list addons are tracked, including mal:, anilist: and tvdb: ids ([ab9508b](https://github.com/listicktv/listick/commit/ab9508b436b8384ef044a2a4687691d1f6a5e624))
+* shows in DVD, absolute or yearly season order land on the right TMDB episode ([ab9508b](https://github.com/listicktv/listick/commit/ab9508b436b8384ef044a2a4687691d1f6a5e624))
+* Stremio tracking follows your own metadata addons ([ab9508b](https://github.com/listicktv/listick/commit/ab9508b436b8384ef044a2a4687691d1f6a5e624))
+
+
+### Bug Fixes
+
+* History and Continue watching show the right episode for mal:, anilist: and tvdb: ids ([ab9508b](https://github.com/listicktv/listick/commit/ab9508b436b8384ef044a2a4687691d1f6a5e624))
+* Watched list on the Lists page shows every play ([b915f07](https://github.com/listicktv/listick/commit/b915f07ee210307b51e2439e12e8fd5f4f350ad6))
+
 ## [0.15.0](https://github.com/listicktv/listick/compare/v0.14.2...v0.15.0) (2026-11-02)
 
 
