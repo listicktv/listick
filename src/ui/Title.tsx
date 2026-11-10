@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref as RRef } from 'react';
 import { createPortal } from 'react-dom';
 import { TrendCard, usePosterDial } from './Cards';
-import { Circ, EpisodesPane, PickDay, airAt, fmtDay, timed } from './Episodes';
+import { EpisodesPane, PickDay, airAt, fmtDay, swipeDown, timed } from './Episodes';
 import { getJ, postJ } from './lib/api';
 import { DASH, ago } from './lib/format';
 import { useHome, usePhone } from './lib/home';
@@ -177,7 +177,7 @@ export function TitlePanel({ ref }: { ref: RRef<TitlePanelApi> }) {
   const peek = !full && (
     <aside ref={panel} className={`tpanel tpeek${trailer ? ' playing' : ''}`} role="dialog" aria-modal="true" aria-label="Title details">
       <div ref={body} className="tp-body" id="tp-body">
-        {content.t ? <TitlePeek key={view} d={content.t} expand={expand} expandRef={x} />
+        {content.t ? <TitlePeek key={view} d={content.t} expand={expand} expandRef={x} close={close} />
           : content.err ? <div className="tp-note">{content.err}</div> : content.loading ? <div className="tp-note">Loading…</div> : null}
       </div>
       {player}
@@ -192,7 +192,7 @@ export function TitlePanel({ ref }: { ref: RRef<TitlePanelApi> }) {
           </div>
         )}
         {(!full || !content.t) && (under ? <div className="tp-over" onClick={(e) => { if (e.target === e.currentTarget) closeTitle(); }}>{peek}</div> : peek)}
-        {person && <div className="tp-over" onClick={(e) => { if (e.target === e.currentTarget) closeTitle(); }}><PersonView key={person.n} p={person} /></div>}
+        {person && <div className="tp-over" onClick={(e) => { if (e.target === e.currentTarget) closeTitle(); }}><PersonView key={person.n} p={person} close={close} /></div>}
       </div>
       {pick && <PickDay key={pick.n} a={pick} close={() => setPick(null)} />}
     </TitleCtx.Provider>,
@@ -329,7 +329,7 @@ export function StatusDial({ d }: { d: Title }) {
 }
 
 // carousel words
-function Head({ d, h }: { d: Title; h: 'h2' | 'h3' }) {
+function Head({ d, h, details, detailsRef }: { d: Title; h: 'h2' | 'h3'; details?: () => void; detailsRef?: RRef<HTMLButtonElement> }) {
   const { playTrailer } = useTitle();
   const phone = usePhone();
   const H = h;
@@ -343,6 +343,7 @@ function Head({ d, h }: { d: Title; h: 'h2' | 'h3' }) {
       <div className="tc-meta hero-meta">{metaOf(d, true)}<Cert d={d} /></div>
       <Scores d={d}>
         {d.trailer && <button type="button" className="tc-ytico" aria-label="Play the trailer" onClick={() => playTrailer(d.trailer!)}><YtLogo /><b className="tc-link">Trailer</b></button>}
+        {details && <button ref={detailsRef} type="button" className="tc-ytico tc-dt" aria-label="Open the full page" onClick={details}><Icon d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" /><b className="tc-link">Details</b></button>}
         {!phone && <><span className="tc-sep" /><StatusDial d={d} /></>}
       </Scores>
     </>
@@ -350,15 +351,15 @@ function Head({ d, h }: { d: Title; h: 'h2' | 'h3' }) {
 }
 
 // small view
-function TitlePeek({ d, expand, expandRef }: { d: Title; expand: () => void; expandRef: RRef<HTMLButtonElement> }) {
+function TitlePeek({ d, expand, expandRef, close }: { d: Title; expand: () => void; expandRef: RRef<HTMLButtonElement>; close: () => void }) {
   return (
     <>
       <div className="tpk-art" onClick={(e) => { if (!(e.target as Element).closest('button, a, .dialhost')) expand(); }}>
         {(d.backdrop || d.poster) && <img className="hero-bg on" src={wide(d.backdrop || d.poster)} alt="" />}
         <div className="hero-shade" />
-        <div className="tpk-head"><Head d={d} h="h2" /></div>
+        <div className="tpk-head"><Head d={d} h="h2" details={expand} detailsRef={expandRef} /></div>
       </div>
-      <button ref={expandRef} type="button" className="tc-cbtn tpk-grow" aria-label="Open the full page" onClick={expand}><Circ><Icon d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" /></Circ></button>
+      <button type="button" className="tp-x" aria-label="Close" onClick={close}><Icon d="M6 6l12 12M18 6L6 18" size={16} /></button>
       {d.overview && <div className="tpk-body"><p className="hero-story">{d.overview}</p></div>}
     </>
   );
@@ -438,7 +439,9 @@ function CastCard({ x, opens }: { x: Title['cast'][number]; opens: boolean }) {
 // actor card
 type Person = { id: number; name: string; dept: string; birthday: string | null; deathday: string | null; place: string | null; bio: string | null; photo: string | null;
   knownFor: Tile[]; acting: Tile[]; crew: { label: string; items: Tile[] } | null };
-function PersonView({ p }: { p: PersonRef }) {
+function PersonView({ p, close }: { p: PersonRef; close: () => void }) {
+  const panel = useRef<HTMLElement>(null);
+  useEffect(() => swipeDown(panel.current!, close), [close]);
   const [got, setGot] = useState<{ v?: Person; err?: string } | null>(null);
   const [more, setMore] = useState(false);
   useEffect(() => {
@@ -452,7 +455,9 @@ function PersonView({ p }: { p: PersonRef }) {
   const facts = v && [v.birthday ? (v.deathday ? `${fmtDay(v.birthday)} – ${fmtDay(v.deathday)} (${age(v.birthday, v.deathday)})` : `Born ${fmtDay(v.birthday)} (${age(v.birthday)})`) : null, v.place].filter(Boolean).join(' · ');
   const row = (id: string, title: string, items: Tile[]) => !!items.length && <Group key={id} id={`pp-${id}`} title={title} cls="group" railClass="rail ptrack" items={items} keyOf={(t) => t.key} card={trend} />;
   return (
-    <aside className="tpanel tpeek tpp" role="dialog" aria-modal="true" aria-label={v?.name || p.name || 'Person'}>
+    <aside ref={panel} className="tpanel tpeek tpp" role="dialog" aria-modal="true" aria-label={v?.name || p.name || 'Person'}>
+      <div className="grabber" aria-hidden="true" />
+      <button type="button" className="tp-x" aria-label="Close" onClick={close}><Icon d="M6 6l12 12M18 6L6 18" size={16} /></button>
       <div className="tp-body">
         {!got ? <div className="tp-note">Loading…</div> : got.err || !v ? <div className="tp-note">{`Couldn't load ${p.name || 'this person'} (${got.err || 'not found'}).`}</div> : <>
           <div className="tpp-head">
@@ -465,8 +470,7 @@ function PersonView({ p }: { p: PersonRef }) {
             </div>
           </div>
           <div className="tpp-rows">
-            {row('known', 'Known for', v.knownFor)}
-            {row('acting', 'Acted in', v.acting)}
+            {row('known', 'Known for', [...v.knownFor, ...v.acting.filter((a) => !v.knownFor.some((k) => k.key === a.key))])}
             {v.crew && row('crew', v.crew.label, v.crew.items)}
           </div>
         </>}

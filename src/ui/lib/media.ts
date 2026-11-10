@@ -36,7 +36,7 @@ export type Ref = { key: string } | { imdb: string };
 export type Wide = { app: string; ref: Ref | null; ids?: string[]; title: string; poster: string | null; wide: string | null; url?: string; at: number;
   sub: string; pct?: number; airedAt?: number; isNew?: boolean; watching?: boolean; resume?: boolean; rewatch?: boolean;
   cw?: { id: string; video?: string | null; at: number; key?: string; se?: number; ep?: number; movie: boolean } | null;
-  play?: { key: string; season: number; episode: number; mine?: number | null } };
+  play?: { key: string; season: number; episode: number; mine?: number | null; grouped?: boolean } };
 
 export const APP_NAME: Record<string, string> = { listick: 'Listick', stremio: 'Stremio', jellyfin: 'Jellyfin', seanime: 'Seanime', anilist: 'AniList', tmdb: 'TMDB', kitsu: 'Kitsu', manual: 'Marked by you', imported: 'Past history' };
 export const TYPE_NAME: Record<TitleType, string> = { movie: 'Movie', tv: 'TV', anime: 'Anime' };
@@ -79,7 +79,7 @@ export function continueItems(S: Summary) {
 const SOURCE_APP: Record<string, string> = { stremio: 'stremio', anilist: 'anilist', jellyfin: 'jellyfin', seanime: 'seanime', manual: 'manual', trakt: 'stremio', mdblist: 'stremio' };
 export function historyItems(S: Summary) {
   if (S.media?.recent) return oneCardPerTitle(S.media.recent.map((h) => ({ app: SOURCE_APP[h.source] || 'imported', ref: { key: h.key }, title: h.title,
-    poster: h.poster, wide: h.backdrop, at: h.at, play: { key: h.key, season: h.season, episode: h.episode, mine: h.mine },
+    poster: h.poster, wide: h.backdrop, at: h.at, play: { key: h.key, season: h.season, episode: h.episode, mine: h.mine, grouped: h.from != null && h.from < h.episode },
     sub: `${h.type === 'movie' ? 'Movie' : h.season >= 0 ? `${h.type === 'anime' ? '' : `S${h.season} `}E${h.from != null && h.from < h.episode ? `${h.from}–${h.episode}` : h.episode}` : ''} · ${ago(h.at)} ago` })));
   const out: Wide[] = [];
   for (const h of S.stremio?.history || []) out.push({ app: 'stremio', ref: imdbRef(h.id), title: h.title, poster: h.poster, wide: stremioWide(h.id), url: h.url, at: h.at,

@@ -4,6 +4,30 @@ import { getJ } from './api';
 import type { Ref, Tile, TitleType } from './media';
 
 export type Season = { n: number; name: string; episodes: number | null; year: number | null };
+// sideways wheel, Shift + wheel: one step a gesture
+type WheelStep = Pick<WheelEvent, 'deltaX' | 'deltaY' | 'deltaMode' | 'shiftKey' | 'preventDefault'>;
+export function wheelSteps(go: (dir: number) => void) {
+  let sum = 0, last = 0, size = 0, stepped = 0, done = false;
+  return (e: WheelStep, now = Date.now()) => {
+    const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
+    if (!dx || (!e.shiftKey && Math.abs(dx) < Math.abs(e.deltaY))) return;
+    e.preventDefault();
+    const abs = Math.abs(dx);
+    if (done ? now - last > 120 || (now - stepped > 250 && abs > size + 4) : now - last > 200) { sum = 0; done = false; }
+    last = now; size = abs;
+    if (done) return;
+    sum += dx * (e.deltaMode === 1 ? 33 : 1);
+    if (Math.abs(sum) >= 50) { done = true; stepped = now; go(Math.sign(sum)); }
+  };
+}
+export const swipeCloses =(dy: number, ms: number, height: number) => dy > height / 4 || (dy > 40 && dy / ms > 0.5);
+// the season Next up is in
+export function nextSeason(seasons: Season[], by: Record<number, number>) {
+  const last = Math.max(0, ...seasons.filter((s) => s.n > 0 && by[s.n]).map((s) => s.n));
+  if (!last) return (seasons.find((s) => s.n > 0) || seasons[0]).n;
+  const cur = seasons.find((s) => s.n === last)!;
+  return cur.episodes && by[last] >= cur.episodes ? seasons.find((s) => s.n > last)?.n ?? null : last;
+}
 export type Play = { at: number; approx?: number | null; source?: string; plays?: number };
 export type Episode = { ep: number; name: string | null; air: string | null; runtime: number | null; still: string | null; overview: string | null; tvdb?: boolean; se?: number; tep?: number;
   score?: number | null; votes?: number; directors?: string[]; writers?: string[]; guests?: { id: number; name: string; role: string | null; photo: string | null }[];

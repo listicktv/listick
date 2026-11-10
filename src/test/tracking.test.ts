@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import zlib from 'node:zlib';
 import { describe, test } from 'node:test';
 import { fetchAddon, isPrivate, servesMeta, stremioOrder, type Addon } from '@/server/live';
-import { decodeWatched, epOf, knownVideo, played, seriesOf, stillOpen } from '@/server/tracking';
+import { decodeWatched, epOf, knownVideo, played, seriesOf, stillOpen, tvdbOf } from '@/server/tracking';
+import { nextSeason, swipeCloses, wheelSteps } from '@/ui/lib/title';
 
 // a watched record as Stremio writes it: "<anchor video>:<videos up to it>:<base64 zlib bitmap>", bit i = the i-th video
 const record = (anchor: string, watched: boolean[]) => {
@@ -73,6 +74,60 @@ describe('knownVideo', () => {
   });
   test('null when there is no mapping', async () => {
     assert.equal(await knownVideo('mal:0:5', false, lookup), null);
+  });
+});
+
+describe('wheelSteps', () => {
+  const run = (events: [number, Partial<WheelEvent>][]) => {
+    const out: number[] = [], h = wheelSteps((d) => out.push(d));
+    let prevented = 0;
+    for (const [at, e] of events) h({ deltaX: 0, deltaY: 0, deltaMode: 0, shiftKey: false, preventDefault: () => { prevented++; }, ...e }, at);
+    return { out, prevented };
+  };
+  test('a long sideways gesture is one step', () => assert.deepEqual(run([[1000, { deltaX: 60 }], [1020, { deltaX: 80 }], [1040, { deltaX: 90 }]]).out, [1]));
+  test("a trackpad's fading glide stays one step", () => assert.deepEqual(run([[1000, { deltaX: 70 }], [1100, { deltaX: 50 }], [1200, { deltaX: 35 }], [1300, { deltaX: 22 }], [1400, { deltaX: 12 }], [1500, { deltaX: 6 }]]).out, [1]));
+  test('a new swipe during the glide steps again', () => assert.deepEqual(run([[1000, { deltaX: 70 }], [1100, { deltaX: 40 }], [1200, { deltaX: 20 }], [1300, { deltaX: 10 }], [1350, { deltaX: 60 }], [1370, { deltaX: 80 }], [1470, { deltaX: 30 }], [1570, { deltaX: 12 }], [1650, { deltaX: 70 }]]).out, [1, 1, 1]));
+  test('a pause starts a new step', () => assert.deepEqual(run([[1000, { deltaX: 60 }], [1500, { deltaX: -60 }]]).out, [1, -1]));
+  test('small movements add up', () => assert.deepEqual(run([[1000, { deltaX: 30 }], [1020, { deltaX: 30 }]]).out, [1]));
+  test('Shift + wheel steps, in lines too', () => {
+    assert.deepEqual(run([[1000, { deltaY: 100, shiftKey: true }]]).out, [1]);
+    assert.deepEqual(run([[1000, { deltaY: -3, deltaMode: 1, shiftKey: true }]]).out, [-1]);
+  });
+  test('up and down is left to the page', () => assert.deepEqual(run([[1000, { deltaY: 120 }], [1020, { deltaX: 5, deltaY: 90 }]]), { out: [], prevented: 0 }));
+});
+
+describe('swipeCloses', () => {
+  test('a long drag or a flick closes, a short slow one does not', () => {
+    assert.equal(swipeCloses(200, 900, 600), true);
+    assert.equal(swipeCloses(60, 80, 600), true);
+    assert.equal(swipeCloses(60, 900, 600), false);
+    assert.equal(swipeCloses(30, 20, 600), false);
+  });
+});
+
+describe('nextSeason', () => {
+  const s = (n: number, episodes: number | null = 10) => ({ n, name: '', episodes, year: null });
+  const all = [s(0), s(1), s(2), s(3)];
+  test('unwatched: the first season, not specials', () => assert.equal(nextSeason(all, {}), 1));
+  test('part watched: that season', () => assert.equal(nextSeason(all, { 1: 10, 2: 4 }), 2));
+  test('finished: the one after', () => assert.equal(nextSeason(all, { 1: 10 }), 2));
+  test('last season finished: none', () => assert.equal(nextSeason(all, { 3: 10 }), null));
+  test('unknown length stays on that season', () => assert.equal(nextSeason([s(1, null), s(2)], { 1: 3 }), 1));
+  test('specials alone', () => assert.equal(nextSeason([s(0)], {}), 0));
+});
+
+describe('tvdbOf', () => {
+  const addon = [{ id: 'tt1:4:6', tvdb: null }], cinemeta = async () => [{ id: 'tt1:4:6', tvdb: 99 }];
+  test('Cinemeta fills the id only when the series has no match', async () => {
+    assert.equal(await tvdbOf('tt1:4:6', addon, null, cinemeta), 99);
+    assert.equal(await tvdbOf('tt1:4:6', addon, 'tmdb:tv:5', cinemeta), null);
+  });
+  test("the list's own id wins", async () => {
+    assert.equal(await tvdbOf('tt1:4:6', [{ id: 'tt1:4:6', tvdb: 7 }], null, cinemeta), 7);
+  });
+  test('Cinemeta only for IMDb ids, and a failed fetch places nothing', async () => {
+    assert.equal(await tvdbOf('tvdb:1:4:6', [], null, cinemeta), undefined);
+    assert.equal(await tvdbOf('tt1:4:6', addon, null, async () => { throw new Error('down'); }), undefined);
   });
 });
 

@@ -257,7 +257,7 @@ export function HistCard({ w }: { w: Wide }) {
     setMine(n || 0); reset(); reload(800);
   };
   const ring = useRingRate({ cur: () => mine, show: (v) => { ask.disarm(); setView(v); }, reset, save, confirm: ask.tap, dragging: setDragging });
-  if (!p) return <WideCard w={w} />;
+  if (!p || p.grouped) return <WideCard w={w} />;
   const v = view ?? mine;
   return (
     <WideCard w={w} cls={dragging ? ' dragging' : ''}>
@@ -368,6 +368,7 @@ export function usePosterDial(given: Tile, { dismiss, changed, closed, cls = 'tp
   }
   const ring = useRingRate({ cur: () => t.mine || 0, show: setRateView, reset: () => setRateView(undefined), save: rate, confirm: rm.tap, dragging: setDragging });
 
+  const status = (t.progress ?? 1) >= 1 ? 'Watched' : 'Watching';
   const icon = t.mine ? null : t.watched ? 'watched' : t.watchlist ? 'bookmark' : 'plus';
   // your rating fills the accent ring to it; the watched mark fills it as far as you've watched (a movie: all of it, a show:
   // its share of episodes); the bookmark and + keep the plain white look
@@ -394,7 +395,13 @@ export function usePosterDial(given: Tile, { dismiss, changed, closed, cls = 'tp
     host: { ref: art, className: `${cls} dialhost${open ? ' open' : ''}${dragging ? ' dragging' : ''}`, onMouseLeave: () => closed?.() },
     plan: (short?: string) => opt('bookmark', 'Plan to watch', !!t.watchlist, false, 0, () => void toggleWatchlist(), short),
     seen: t.type === 'movie' ? (short?: string) => opt('watched', 'Watched', !!t.watched, seen.armed, 0,
-      () => (t.watched ? seen.tap(() => setWatched(false)) : void setWatched(true, 'unknown')), short) : null,
+      () => (t.watched ? seen.tap(() => setWatched(false)) : void setWatched(true, 'unknown')), short) : t.watched ? (short?: string) => (
+      <span key="watched" className="topt rated status" role="img" aria-label={status} title={status} style={{ '--fill': `${(t.progress ?? 1) * 100}%` } as React.CSSProperties}>
+        <span className="lbl">{status}</span>
+        <span className="dot"><PIcon name="watched" /></span>
+        {short && <span className="tc-al">{status}</span>}
+      </span>
+    ) : null,
     rate: (short?: string) => opt('star', rateLabel, !!rv, rm.armed, rv, () => {}, short, ring.handlers),
     ringDial: ring.dial,
     dial: (

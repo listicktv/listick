@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { PIcon, useRingRate, useTwoTap } from './Cards';
 import { getJ, postJ } from './lib/api';
 import { Icon } from './lib/icons';
-import { useTitle, type Episode, type PickArgs, type Play, type Title } from './lib/title';
+import { nextSeason, swipeCloses, useTitle, wheelSteps, type Episode, type PickArgs, type Play, type Title } from './lib/title';
 
 export const fmtDay = (iso: string | null | undefined) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -36,6 +36,36 @@ export const Circ = ({ fill, children }: { fill?: number; children: ReactNode })
   <span className="tc-circ" style={fill != null ? ({ '--fill': `${fill}%` } as CSSProperties) : undefined}><span>{children}</span></span>
 );
 
+// phone: swipe down closes
+export function swipeDown(el: HTMLElement, close: () => void) {
+  let s: { x: number; y: number; at: number; dy: number; on: boolean } | null = null;
+  const atTop = (t: Element) => { for (let n: Element | null = t; n && n !== el.parentElement; n = n.parentElement) if (n.scrollTop > 0) return false; return true; };
+  const start = (e: TouchEvent) => {
+    const t = e.touches[0], target = e.target as Element;
+    s = e.touches.length === 1 && matchMedia('(max-width: 800px)').matches && !target.closest('.tc-erate, .dialhost') && atTop(target)
+      ? { x: t.clientX, y: t.clientY, at: Date.now(), dy: 0, on: false } : null;
+  };
+  const move = (e: TouchEvent) => {
+    if (!s) return;
+    const t = e.touches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (!s.on) {
+      if (dy <= 0 || Math.abs(dx) > dy) { if (Math.abs(dx) + Math.abs(dy) > 6) s = null; return; }
+      s.on = true; el.style.transition = 'none';
+    }
+    e.preventDefault(); s.dy = Math.max(0, dy); el.style.transform = `translateY(${s.dy}px)`;
+  };
+  const end = () => {
+    if (!s?.on) { s = null; return; }
+    const go = swipeCloses(s.dy, Date.now() - s.at, el.offsetHeight);
+    el.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+    el.style.transform = go ? 'translateY(100%)' : '';
+    s = null;
+    if (go) setTimeout(close, 200);
+  };
+  el.addEventListener('touchstart', start, { passive: true }); el.addEventListener('touchmove', move, { passive: false }); el.addEventListener('touchend', end); el.addEventListener('touchcancel', end);
+  return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end); el.removeEventListener('touchcancel', end); };
+}
+
 // a season's or an episode's rating circle, rated by dragging round it; a tap on a rated one turns it red with a ✕ and a second
 // tap removes the rating. The card is redrawn once a change is saved
 function RateCircle({ cls, state, v, current, label, save }: { cls: string; state: string; v: number; current: number; label: string; save: (n: number | null) => Promise<boolean> }) {
@@ -64,6 +94,17 @@ async function rateIt(d: Title, n: number | null, season?: number, episode?: num
 }
 
 type St = { season: number | null; allEps: boolean; home: number };
+function useSeasonEps(d: Title, season: number | null, tv: boolean) {
+  const [res, setRes] = useState<{ d: Title; season: number; tv: boolean; list?: Episode[]; err?: string } | null>(null);
+  useEffect(() => {
+    if (season == null) return;
+    let live = true;
+    getJ<{ episodes: Episode[] }>(`/api/title/${encodeURIComponent(d.key)}/season/${season}${tv ? '?order=tvdb' : ''}`)
+      .then((r) => live && setRes({ d, season, tv, list: r.episodes }), (e: Error) => live && setRes({ d, season, tv, err: e.message }));
+    return () => { live = false; };
+  }, [d, season, tv]);
+  return res && res.d === d && res.season === season && res.tv === tv ? res : null;
+}
 // rows: the full page's list; nextSlot: Next up's place
 export function EpisodesPane({ d, st, set, cls, rows = false, nextSlot }: { d: Title; st: St; set: (s: Partial<St>) => void; cls: string; rows?: boolean; nextSlot?: HTMLElement | null }) {
   const { reloadTitle, pickDay, backRef } = useTitle();
@@ -79,14 +120,11 @@ export function EpisodesPane({ d, st, set, cls, rows = false, nextSlot }: { d: T
   const cur = seasons.find((x) => x.n === season)!;
   const seasonName = (x: typeof cur) => (x.n ? `Season ${x.n}` : 'Specials'), done = (x: typeof cur) => by[x.n] || 0;
 
-  const [res, setRes] = useState<{ d: Title; season: number; tv: boolean; list?: Episode[]; err?: string } | null>(null);
-  useEffect(() => {
-    let live = true;
-    getJ<{ episodes: Episode[] }>(`/api/title/${encodeURIComponent(d.key)}/season/${season}${tv ? '?order=tvdb' : ''}`)
-      .then((r) => live && setRes({ d, season, tv, list: r.episodes }), (e: Error) => live && setRes({ d, season, tv, err: e.message }));
-    return () => { live = false; };
-  }, [d, season, tv]);
-  const got = res && res.d === d && res.season === season && res.tv === tv ? res : null, episodes = got?.list;
+  const got = useSeasonEps(d, season, tv), episodes = got?.list;
+  // Next up's season
+  const ns = nextSeason(seasons, by), here = season === ns;
+  const heroGot = useSeasonEps(d, nextSlot && !here ? ns : null, tv), heroEps = here ? episodes : heroGot?.list;
+  const heroEp = heroEps?.find((x) => !x.watched && (!x.air || x.air <= today())) || heroEps?.find((x) => !x.watched);
   // episode card
   const [opened, setOpened] = useState<{ season: number; ep: number; home: number } | null>(null);
   const viewing = opened?.season === season && opened.home === st.home && episodes?.some((e) => e.ep === opened.ep) ? opened.ep : null;
@@ -103,13 +141,18 @@ export function EpisodesPane({ d, st, set, cls, rows = false, nextSlot }: { d: T
     setDir(ep != null && viewing != null && ep !== viewing ? (ep > viewing ? 'R' : 'L') : '');
     setOpened(ep == null ? null : { season, ep, home: st.home });
   };
+  const openHero = (ep: number | null) => {
+    if (ep != null && !here) set({ season: ns! });
+    setDir('');
+    setOpened(ep == null ? null : { season: ns!, ep, home: st.home });
+  };
 
   // at: when you watched them; times: each one's own (their air dates); unknown: the date isn't known (at only stands in)
-  const markEpisodes = async (eps: number[], watched: boolean, at?: number | null, times?: (number | null)[]) => {
+  const markIn = (list: Episode[] | undefined, inSeason: number): Mark => async (eps, watched, at, times) => {
     // each at its TMDB place
     const groups = new Map<number, { eps: number[]; times: (number | null)[] }>();
     eps.forEach((n, i) => {
-      const e = episodes?.find((x) => x.ep === n), se = e?.se ?? season;
+      const e = list?.find((x) => x.ep === n), se = e?.se ?? inSeason;
       const g = groups.get(se) || groups.set(se, { eps: [], times: [] }).get(se)!;
       g.eps.push(e?.tep ?? n); g.times.push(times ? times[i] : null);
     });
@@ -119,6 +162,7 @@ export function EpisodesPane({ d, st, set, cls, rows = false, nextSlot }: { d: T
     }
     await reloadTitle();
   };
+  const markEpisodes = markIn(episodes, season);
 
   const markAsk = useTwoTap();
   const markRef = useRef<HTMLButtonElement>(null);
@@ -151,20 +195,13 @@ export function EpisodesPane({ d, st, set, cls, rows = false, nextSlot }: { d: T
 
   const sr = d.you?.seasonRatings?.[cur.n], avg = d.you?.seasonAvg?.[cur.n];
   const [railRef, strip] = useStrip(episodes);
-  const home = st.season == null || st.season === (watchedIn.length ? Math.max(...watchedIn) : (seasons.find((s) => s.n > 0) || seasons[0]).n);
-  const nextOne = episodes?.find((x) => !x.watched && (!x.air || x.air <= today())) || episodes?.find((x) => !x.watched);
   const card = viewing != null && episodes
     ? <EpisodeView d={d} episodes={episodes} at={viewing} season={season} where={seasonName(cur)} markEpisodes={markEpisodes} open={openEp} dir={dir} /> : null;
-  const n = done(cur), inProgress = rows && n > 0 && !!cur.episodes && n < cur.episodes;
   return (
     <div className={`tc-eps ${cls}${st.allEps ? ' all' : ''}`}>
       <div className="tc-shead">
         <SeasonPick seasons={seasons} cur={cur} label={seasonName} done={done} pick={(n) => set({ season: n, allEps: false })} order={d.seasonsTvdb?.length ? { tv, set: setOrder } : undefined} />
         <div className="tc-sacts">
-          {inProgress && <>
-            <span className="tc-snum" role="img" aria-label={`${seasonName(cur)}: ${n} of ${cur.episodes} watched`}><Circ fill={(n / cur.episodes!) * 100}><b>{cur.n || 'SP'}</b></Circ></span>
-            <span className="rsep" aria-hidden="true" />
-          </>}
           {!tv && (d.type !== 'anime' || seasons.length > 1) && (
             <RateCircle key={`s${cur.n}`} cls="tc-erate season" state={sr ? ' on' : avg ? ' avg' : ''} v={sr || avg || 0} current={sr || 0}
               label={sr ? `Your rating of ${seasonName(cur)}` : avg ? 'Episode average · drag to rate' : 'Drag to rate'} save={(n) => rateIt(d, n, cur.n, -1)} />
@@ -187,10 +224,10 @@ export function EpisodesPane({ d, st, set, cls, rows = false, nextSlot }: { d: T
         : got.err ? <p className="tc-note">{`Couldn't load episodes (${got.err}).`}</p>
         : !episodes!.length ? <p className="tc-note">No episode list for this season yet.</p>
         : st.allEps || rows ? <>
-          <div className="tc-eplist"><EpisodeRows d={d} episodes={episodes!} season={season} markEpisodes={markEpisodes} open={openEp} /></div>
+          <div className="tc-eplist"><EpisodeRows d={d} episodes={episodes!} season={season} markEpisodes={markEpisodes} open={openEp} here={here} /></div>
         </>
-        : <div className={`tc-split${episodes!.some((e) => !e.watched) ? '' : ' solo'}`}>
-          <NextUp d={d} episodes={episodes!} season={season} markEpisodes={markEpisodes} open={openEp} />
+        : <div className={`tc-split${here && episodes!.some((e) => !e.watched) ? '' : ' solo'}`}>
+          {here && <NextUp d={d} episodes={episodes!} season={season} markEpisodes={markEpisodes} open={openEp} />}
           <div className="tc-srh">
             <span>{`${episodes!.length} episodes`}</span>
             <div className="rail-nav">
@@ -202,10 +239,10 @@ export function EpisodesPane({ d, st, set, cls, rows = false, nextSlot }: { d: T
               </>}
             </div>
           </div>
-          <EpisodeStrip d={d} episodes={episodes!} season={season} markEpisodes={markEpisodes} open={openEp} strip={strip} rail={railRef} />
+          <EpisodeStrip d={d} episodes={episodes!} season={season} markEpisodes={markEpisodes} open={openEp} strip={strip} rail={railRef} here={here} />
         </div>}
       {card}
-      {nextSlot && home && nextOne && episodes && createPortal(<HeroNext key={nextOne.ep} d={d} e={nextOne} episodes={episodes} season={season} markEpisodes={markEpisodes} open={openEp} />, nextSlot)}
+      {nextSlot && heroEp && heroEps && createPortal(<HeroNext key={`${ns}:${heroEp.ep}`} d={d} e={heroEp} episodes={heroEps} season={ns!} markEpisodes={markIn(heroEps, ns!)} open={openHero} />, nextSlot)}
     </div>
   );
 }
@@ -308,7 +345,7 @@ function HeroNext({ d, e, episodes, season, markEpisodes, open }: { d: Title; e:
         <span className={`tc-nexttag${now ? ' playing' : ''}`}>{now ? 'Watching' : ep.upcoming ? airs(e.air) : 'Next up'}</span>
         <div className="hn-row">
           <button type="button" className="hn-tx" onClick={() => open(e.ep)}>
-            <span className={`hn-k${now ? ' now' : ''}`}>{now ? 'Watching' : ep.upcoming ? airs(e.air) : 'Up next'}{` · ${season ? `S${season} ` : ''}E${e.ep}`}</span>
+            <span className="hn-k">{`${season ? `S${season} ` : ''}E${e.ep}`}</span>
             <b>{name}</b>
             <span className="hn-d">{[ep.upcoming ? null : epDay(e.air), e.runtime ? `${e.runtime}m` : null].filter(Boolean).join(' · ')}</span>
           </button>
@@ -346,8 +383,8 @@ function useStrip(episodes: Episode[] | undefined) {
   return [ref, { nav, upd, go }] as const;
 }
 type Strip = ReturnType<typeof useStrip>[1];
-function EpisodeStrip({ d, episodes, season, markEpisodes, open, strip, rail }: { d: Title; episodes: Episode[]; season: number; markEpisodes: Mark; open: Open; strip: Strip; rail: React.RefObject<HTMLDivElement | null> }) {
-  const next = episodes.find((x) => !x.watched && (!x.air || x.air <= today()));
+function EpisodeStrip({ d, episodes, season, markEpisodes, open, strip, rail, here }: { d: Title; episodes: Episode[]; season: number; markEpisodes: Mark; open: Open; strip: Strip; rail: React.RefObject<HTMLDivElement | null>; here: boolean }) {
+  const next = here ? episodes.find((x) => !x.watched && (!x.air || x.air <= today())) : undefined;
   useLayoutEffect(() => { strip.upd(); });
   return (
     <div ref={rail} className="tc-srail" onScroll={strip.upd}>
@@ -388,8 +425,8 @@ const epImg = (d: Title, e: Episode) => e.still || (d.backdrops?.length ? d.back
 const playing = (d: Title, e: Episode, season: number) => !!d.watching && d.watching.se === (e.se ?? season) && d.watching.ep === (e.tep ?? e.ep);
 type Mark = (eps: number[], watched: boolean, at?: number | null, times?: (number | null)[]) => Promise<unknown>;
 type Open = (ep: number | null) => void;
-function EpisodeRows({ d, episodes, season, markEpisodes, open }: { d: Title; episodes: Episode[]; season: number; markEpisodes: Mark; open: Open }) {
-  const next = episodes.find((e) => !e.watched && (!e.air || e.air <= today()));
+function EpisodeRows({ d, episodes, season, markEpisodes, open, here }: { d: Title; episodes: Episode[]; season: number; markEpisodes: Mark; open: Open; here: boolean }) {
+  const next = here ? episodes.find((e) => !e.watched && (!e.air || e.air <= today())) : undefined;
   return <>{episodes.map((e) => <EpisodeRow key={e.ep} d={d} e={e} episodes={episodes} next={e === next} season={season} markEpisodes={markEpisodes} open={open} />)}</>;
 }
 
@@ -451,13 +488,15 @@ function EpisodeRow({ d, e, episodes, next, season, markEpisodes, open }: { d: T
     <div className={`tc-ep${w ? ' seen' : ''}${ep.upcoming ? ' soon' : ''}${next ? ' next' : ''}`} onClick={() => open(e.ep)}>
       <div className="tc-still">
         {epImg(d, e) && <img src={epImg(d, e)!} alt="" loading="lazy" className={e.still ? undefined : 'fb'} />}
-        {next && <span className="tc-nexttag">Next up</span>}
+        {playing(d, e, season) ? <span className="tc-nexttag playing">Watching</span> : next && <span className="tc-nexttag">Next up</span>}
         {tick}
       </div>
       <div className="tc-eptx">
         <button type="button" className="tc-eptop tc-epopen" onClick={(x) => { x.stopPropagation(); open(e.ep); }}>
           <span className="n">{`E${e.ep}`}</span><span className="t">{e.name || `Episode ${e.ep}`}</span>
         </button>
+        <div className="tc-epmeta">{[ep.upcoming ? airs(e.air) : epDay(e.air), e.runtime ? `${e.runtime}m` : null,
+          w?.at && w.approx !== 1 ? `Watched ${new Date(w.at).getDate()} ${MON[new Date(w.at).getMonth()]}` : null].filter(Boolean).join(' · ')}</div>
         {e.overview && <p className="tc-epov">{e.overview}</p>}
       </div>
     </div>
@@ -481,14 +520,26 @@ function EpisodeView({ d, episodes, at, season, where, markEpisodes, open, dir }
     if (dx < 0 && nextOne) open(nextOne.ep);
     else if (dx > 0 && prev) open(prev.ep);
   };
+  const panel = useRef<HTMLElement>(null);
+  useEffect(() => swipeDown(panel.current!, () => open(null)), [open]);
+  const step = useRef<(d: number) => void>(() => {});
+  useEffect(() => { step.current = (d) => { const to = d > 0 ? nextOne : prev; if (to) open(to.ep); }; });
+  useEffect(() => {
+    const el = panel.current!, take = wheelSteps((d) => step.current(d));
+    const wheel = (w: WheelEvent) => { if (!(w.target as Element).closest('.tep-guests')) take(w); };
+    el.addEventListener('wheel', wheel, { passive: false });
+    return () => el.removeEventListener('wheel', wheel);
+  }, []);
   return createPortal(
     <div className="tp-scrim tep-scrim" onClick={(x) => { if (x.target === x.currentTarget) open(null); }}>
-      <aside className="tpanel tpeek tep" role="dialog" aria-modal="true" aria-label={e.name || `Episode ${e.ep}`} onTouchStart={touchStart} onTouchEnd={touchEnd}>
+      <aside ref={panel} className="tpanel tpeek tep" role="dialog" aria-modal="true" aria-label={e.name || `Episode ${e.ep}`} onTouchStart={touchStart} onTouchEnd={touchEnd}>
+        <div className="grabber" aria-hidden="true" />
         <EpisodeCard key={e.ep} d={d} e={e} episodes={episodes} season={season} where={where} markEpisodes={markEpisodes} dir={dir} open={open} />
         <div className="tep-nav">
-          <button type="button" className={`tc-evnav${dir === 'L' ? ' lit' : ''}`} aria-label="Previous episode" disabled={!prev} onClick={() => prev && open(prev.ep)}><Circ><Icon d="M15 5l-7 7 7 7" /></Circ></button>
-          <button type="button" className={`tc-evnav${dir === 'R' ? ' lit' : ''}`} aria-label="Next episode" disabled={!nextOne} onClick={() => nextOne && open(nextOne.ep)}><Circ><Icon d="M9 5l7 7-7 7" /></Circ></button>
+          <button type="button" className="tp-x" aria-label="Previous episode" disabled={!prev} onClick={() => prev && open(prev.ep)}><Icon d="M15 5l-7 7 7 7" size={16} /></button>
+          <button type="button" className="tp-x" aria-label="Next episode" disabled={!nextOne} onClick={() => nextOne && open(nextOne.ep)}><Icon d="M9 5l7 7-7 7" size={16} /></button>
         </div>
+        <button type="button" className="tp-x" aria-label="Close" onClick={() => open(null)}><Icon d="M6 6l12 12M18 6L6 18" size={16} /></button>
       </aside>
     </div>,
     document.body,

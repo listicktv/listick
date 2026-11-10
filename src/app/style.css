@@ -796,6 +796,7 @@ body.tp-open { overflow: hidden; }
 .dialhost .topt:hover, .dialhost .topt:focus-visible, .dialhost.dragging .tdial-menu .topt:last-child { transform: scale(1.15); }
 .dialhost .topt.on { background: var(--accent); color: var(--accent); }
 .dialhost .topt.rated { background: conic-gradient(var(--accent) 0 var(--fill), rgba(255, 255, 255, 0.22) var(--fill) 100%); }
+.dialhost .topt.status, .dialhost .topt.status:hover { cursor: default; color: var(--accent); transform: none; }
 .tcast .names .host { font-family: inherit; }
 /* title card header: age rating and genres as outlined badges */
 .tc-meta { display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; }
@@ -968,15 +969,15 @@ a.tc-score:focus-visible img { transform: scale(1.15); }
 .dialhost.dragging :is(.tdial-shade, .tdial-menu) { opacity: 1; transform: none; }
 .dialhost.dragging .tdial-menu .topt { pointer-events: auto; }
 /* Plan to watch cards: one circle in the top-right corner, clear of the title (plain white bookmark; red ✕ while it asks to remove) */
-.wcard .pdial { position: absolute; right: 5px; top: 5px; z-index: 2; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%;
+.wcard .pdial { position: absolute; right: 7px; top: 7px; z-index: 2; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%;
   display: grid; place-items: center; cursor: pointer; background: rgba(255, 255, 255, 0.22); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5); }
-.wcard .pdial .face { --ring: 2.5px; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle closest-side, #121726 calc(100% - var(--ring)), transparent calc(100% - var(--ring) + 0.5px)); display: grid; place-items: center; color: var(--text); pointer-events: none; }
-.wcard .pdial svg { width: 10px; height: 10px; }
+.wcard .pdial .face { --ring: 3.5px; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle closest-side, #121726 calc(100% - var(--ring)), transparent calc(100% - var(--ring) + 0.5px)); display: grid; place-items: center; color: var(--text); pointer-events: none; }
+.wcard .pdial svg { width: 16px; height: 16px; }
 /* shown while the card is hovered (a resting watched mark would read as "already watched"); always on touch screens, which can't hover */
 .wcard .pdial { opacity: 0; transition: opacity 0.15s, transform 0.12s; }
 .wcard:hover .pdial:not(.second), .wcard .pdial:focus-visible, .wcard .pdial.confirm, .wcard.asking .pdial:not(.second) { opacity: 1; }
 /* Continue watching: the watched circle comes out left of the ✕ only while its actions are open */
-.wcard .pdial.second { right: 33px; opacity: 0; transform: translateX(6px); pointer-events: none; transition: opacity 0.15s, transform 0.12s; }
+.wcard .pdial.second { right: 51px; opacity: 0; transform: translateX(6px); pointer-events: none; transition: opacity 0.15s, transform 0.12s; }
 .wcard.asking .pdial.second { opacity: 1; transform: none; pointer-events: auto; }
 @media (hover: none) { .wcard .pdial { opacity: 1; } }
 .wcard .pdial.confirm { background: var(--down-text); }
@@ -989,7 +990,7 @@ a.tc-score:focus-visible img { transform: scale(1.15); }
 /* History: the rating circle (accent ring filled to your rating, the number in it); rated ones stay shown, and while dragged
    it stays grown */
 .wcard .pdial.rate { touch-action: none; }
-.wcard .pdial.rate .face { font-family: var(--mono); font-size: 7.5px; font-weight: 600; }
+.wcard .pdial.rate .face { font-family: var(--mono); font-size: var(--fs-11); font-weight: 600; }
 .wcard .pdial.rate.rated:not(.confirm) { opacity: 1; background: conic-gradient(var(--accent) 0 var(--fill), rgba(255, 255, 255, 0.22) var(--fill) 100%); }
 .wcard .pdial.rate.rated:not(.confirm) .face { color: var(--accent); }
 .wcard .pdial.rate:not(.rated):not(.confirm):is(:hover, :focus-visible) { background: var(--accent); }
@@ -999,6 +1000,20 @@ a.tc-score:focus-visible img { transform: scale(1.15); }
 .wcard .pdial.acts:is(:hover, :focus-visible) .face { color: var(--accent); }
 .wcard.asking .pdial.second:is(:hover, :focus-visible) { background: var(--accent); transform: scale(1.15); }
 .wcard.asking .pdial.second:is(:hover, :focus-visible) .face { color: var(--accent); }
+@media (max-width: 800px) {
+  .wcard .pdial { right: 4px; top: 4px; width: 28px; height: 28px; }
+  .wcard .pdial .face { --ring: 2.5px; }
+  .wcard .pdial svg { width: 13px; height: 13px; }
+  .wcard .pdial.second { right: 37px; }
+  .wcard .pdial.rate .face { font-size: var(--fs-10); }
+}
+@media (min-width: 1181px) {
+  .main .wcards.rail .wcard .pdial { right: 6px; top: 6px; width: 34px; height: 34px; }
+  .main .wcards.rail .wcard .pdial .face { --ring: 3px; }
+  .main .wcards.rail .wcard .pdial svg { width: 14px; height: 14px; }
+  .main .wcards.rail .wcard .pdial.second { right: 46px; }
+  .main .wcards.rail .wcard .pdial.rate .face { font-size: var(--fs-10); }
+}
 .wcard.leaving { opacity: 0.4; transition: opacity 0.2s; }
 
 /* the account button, last after the gear: a person outline while signed out, your initial in an accent ring once signed in,
@@ -2380,8 +2395,6 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 .rbtn.on { background: var(--accent); color: #0b1020; box-shadow: none; }
 @media (hover: none) {
   .rarrow.lit:not(:disabled) { color: var(--accent); box-shadow: inset 0 0 0 2.5px var(--accent); }
-  .tc-evnav.lit:not(:disabled) .tc-circ { background: var(--accent); }
-  .tc-evnav.lit:not(:disabled) .tc-circ > span { color: var(--accent); }
 }
 
 /* Episodes: the season line; all episodes as cards, two across on a wide window */
@@ -2415,11 +2428,6 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 .tc-ep { cursor: pointer; }
 .tc-epopen { padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
 .tc-ep:hover .tc-epopen .t { color: var(--accent); }
-.tc-evnav { padding: 0; border: 0; background: none; cursor: pointer; }
-.tc-evnav:disabled { opacity: 0.3; cursor: default; }
-.tc-evnav .tc-circ { width: 30px; height: 30px; } .tc-evnav .tc-circ > span { --ring: 2.5px; } .tc-evnav .tc-circ svg { width: 14px; height: 14px; }
-.tc-evnav:not(:disabled):is(:hover, :focus-visible) .tc-circ { background: var(--accent); }
-.tc-evnav:not(:disabled):is(:hover, :focus-visible) .tc-circ > span { color: var(--accent); }
 .tc-evdate { padding: 0; border: 0; background: none; cursor: pointer; text-align: left; }
 .tc-evdate:is(:hover, :focus-visible) { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 
@@ -2483,14 +2491,20 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
   linear-gradient(0deg, var(--glass-solid) 0%, rgba(8, 12, 24, 0.5) 32%, rgba(8, 12, 24, 0) 62%); }
 .tpk-head { position: absolute; left: 30px; right: 30px; bottom: 6px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; cursor: default; }
 .tpk-head .hero-title { margin: -4px 0 0; font-size: clamp(28px, 3vw, 40px); }
+.tfull .tf-hero .hero-title { font-size: clamp(28px, 2.8vw, 42px); }
+.tep .tpk-head .hero-title { font-size: clamp(24px, 2.2vw, 32px); }
+@media (max-width: 800px) { .tfull .tf-hero .hero-title { font-size: var(--fs-24); } .tep .tpk-head .hero-title { font-size: var(--fs-20); } }
 .tpk-body { padding: 14px 30px 26px; }
 /* card story */
 .tpk-body:not(.tep-body) .hero-story { min-height: calc(3 * 1.55em); }
 /* expand circle */
-.tpk-grow { position: absolute; top: 18px; right: 18px; z-index: 3; }
-:is(.tpk-grow, .tep-nav) .tc-circ { width: 50px; height: 50px; }
-:is(.tpk-grow, .tep-nav) .tc-circ > span { --ring: 4px; }
-:is(.tpk-grow, .tep-nav) .tc-circ svg { width: 20px; height: 20px; }
+.tp-x { position: absolute; top: 12px; right: 12px; z-index: 3; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 10px; display: grid; place-items: center; cursor: pointer;
+  background: rgba(11, 16, 32, 0.6); color: #fff; backdrop-filter: blur(8px); }
+.tp-x:not(:disabled):is(:hover, :focus-visible) { background: var(--accent); color: #0b1020; }
+.tp-x:disabled { opacity: 0.3; cursor: default; }
+.tpeek > .grabber { display: none; }
+.tpeek .tc-chips .tc-ytico.tc-dt svg { padding: 14px; background: radial-gradient(circle closest-side, #121726 calc(100% - 4px), rgba(255, 255, 255, 0.22) calc(100% - 3.5px)); }
+.tpeek .tc-chips .tc-ytico.tc-dt:is(:hover, :focus-visible) svg { color: var(--accent); background: radial-gradient(circle closest-side, #121726 calc(100% - 4px), var(--accent) calc(100% - 3.5px)); }
 .tpeek .tc-player .hero-x, .tf-hero .tc-player .hero-x { top: 14px; right: 14px; }
 /* status circle */
 .tc-sdial { position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -2516,6 +2530,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 .tc-sdial .topt.on:not(.rated):is(:hover, :focus-visible) .dot { background: radial-gradient(circle, #121726 0 20px, var(--down-text) 20.5px); color: var(--down-text); }
 .tc-sdial .topt.rated .dot { background: radial-gradient(circle, #121726 0 20px, transparent 20.5px), conic-gradient(var(--accent) 0 var(--fill), var(--act-ring, rgba(255, 255, 255, 0.22)) var(--fill) 100%); color: var(--accent); }
 .tc-sdial .topt.confirm .dot { background: radial-gradient(circle, #121726 0 20px, var(--down-text) 20.5px); color: var(--down-text); }
+.tc-sdial .topt.status .dot { transform: none; }
 /* full page */
 @keyframes tf-in { from { opacity: 0; transform: translateY(14px); } }
 .tp-scrim.full { z-index: 29; display: block; padding: 0; background: var(--page-bg); }
@@ -2542,15 +2557,14 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 @media (min-width: 801px) and (max-width: 1180px) { .tf-details { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 /* action rings */
 :is(.tpeek, .hero) { --act-ring: rgba(255, 255, 255, 0.34); }
-:is(.tpeek, .hero) .tc-sdial.dialhost .tdial :is(.face, .alt), :is(.tpk-grow, .tep-nav) .tc-circ > span, .tep-act :is(.tc-erate, .tc-mark) .tc-circ > span { --ring: 4.5px; }
+:is(.tpeek, .hero) .tc-sdial.dialhost .tdial :is(.face, .alt), .tep-act :is(.tc-erate, .tc-mark) .tc-circ > span { --ring: 4.5px; }
 /* small view over a full page */
 .tp-over { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding: 3vh 16px; background: rgba(4, 6, 12, 0.62); animation: tp-fade 0.22s ease-out; }
 @media (max-width: 800px) { .tp-over { padding: 0; place-items: end stretch; } }
 /* phone: actor page */
 @media (max-width: 800px) {
-  .tp-over:has(> .tpp), .tp-scrim:has(> .tpp) { place-items: stretch; padding: 0; }
-  .tpanel.tpeek.tpp { height: 100%; max-height: none; border-radius: 0 !important; background: var(--page-bg); }
-  .tpanel.tpp .tp-body { padding-bottom: calc(26px + var(--pbar)); }
+  .tpanel.tpeek.tpp { height: min(92dvh, 620px); background: var(--glass-solid); }
+  .tpanel.tpp .tp-body { padding-bottom: calc(26px + env(safe-area-inset-bottom)); }
 }
 /* top bar */
 .tfull { --top-pad: 36px; }
@@ -2570,20 +2584,22 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 .tf-epspane .tc-eptop { font-size: var(--fs-16); gap: 10px; }
 .tf-epspane .tc-eptop .n { font-size: var(--fs-13); }
 .tf-epspane .tc-ep .tc-eptx { gap: 6px; }
+.tc-epmeta { display: none; }
 .tf-epspane .tc-epov { font-size: var(--fs-14); line-height: 1.5; }
 .tf-epspane .tc-nexttag { left: 8px; top: 8px; padding: 3px 8px; font-size: var(--fs-11); }
 @media (min-width: 801px) {
   .tf-epspane .tc-still .tc-markwrap { right: 8px; bottom: 8px; }
-  .tf-epspane .tc-still .tc-mark .tc-circ { width: 38px; height: 38px; }
-  .tf-epspane .tc-still .tc-mark .tc-circ > span { --ring: 3.5px; }
-  .tf-epspane .tc-still .tc-mark .tc-circ svg { width: 16px; height: 16px; }
+  :is(.tf-epspane .tc-still .tc-mark, .tf-epspane .tc-shead .tc-erate, .tf-epspane .tc-shead .tc-cbtn) .tc-circ { width: 38px; height: 38px; }
+  :is(.tf-epspane .tc-still .tc-mark, .tf-epspane .tc-shead .tc-erate, .tf-epspane .tc-shead .tc-cbtn) .tc-circ > span { --ring: 3.5px; }
+  :is(.tf-epspane .tc-still .tc-mark, .tf-epspane .tc-shead .tc-erate, .tf-epspane .tc-shead .tc-cbtn) .tc-circ svg { width: 16px; height: 16px; }
+  .tf-epspane .tc-shead .tc-erate:is(.on, .avg) .tc-circ > span { font-size: var(--fs-11); }
+  .tf-epspane .tc-ep { align-items: start; }
+  .tf-epspane .tc-epmeta { display: block; font-size: var(--fs-13); color: var(--muted); }
+  .tf-epspane .tc-epov { -webkit-line-clamp: 4; margin: 0; }
 }
 .tf-epspane .tc-ep:is(:first-child, :nth-child(2)) { border-top: 0; padding-top: 0; }
 @media (max-width: 1180px) { .tf-epspane .tc-eplist { grid-template-columns: minmax(0, 1fr); } .tf-epspane .tc-ep:nth-child(2) { border-top: 1px solid var(--line); padding-top: 14px; } }
 /* season progress */
-.tc-snum .tc-circ { width: 30px; height: 30px; background: conic-gradient(var(--accent) 0 var(--fill), rgba(255, 255, 255, 0.22) var(--fill) 100%); }
-.tc-snum .tc-circ > span { --ring: 2.5px; }
-.tc-snum b { font: 600 var(--fs-11) var(--mono); color: var(--text); }
 /* episode card */
 .tep-scrim { z-index: 46; animation: tp-fade 0.2s ease-out; }
 .tep { animation: tp-pop 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -2592,7 +2608,7 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 /* no cast row */
 .tpanel.tpeek.tep:not(:has(.tep-body.full, .tep-guests)) { height: min(94vh, 540px); }
 .tep-in { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.tep .tpk-art { height: auto; flex: 1 0 380px; cursor: default; }
+.tep .tpk-art { height: auto; flex: 0 0 380px; cursor: default; }
 /* episode slide */
 @keyframes tep-from-r { from { opacity: 0; transform: translateX(28px); } }
 @keyframes tep-from-l { from { opacity: 0; transform: translateX(-28px); } }
@@ -2600,7 +2616,8 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
 .tep-in.from-L { animation: tep-from-l 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @media (prefers-reduced-motion: reduce) { .tep-in { animation: none; } }
 .tep .hero-bg.fb { opacity: 0.45; }
-.tep-nav { position: absolute; top: 18px; right: 18px; z-index: 3; display: flex; gap: 10px; }
+.tep-nav { position: absolute; top: 12px; left: 12px; z-index: 3; display: flex; gap: 6px; }
+.tep-nav .tp-x { position: static; }
 .tep-acts { gap: 16px; align-items: flex-start; }
 .tep-act { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .tep-act :is(.tc-erate, .tc-mark) .tc-circ { width: 50px; height: 50px; }
@@ -2618,9 +2635,11 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
   .tpk-head { left: 16px; right: 16px; gap: 10px; }
   .tpk-head .hero-title { font-size: var(--fs-24); }
   .tpk-body { padding: 12px 16px calc(20px + env(safe-area-inset-bottom)); }
-  .tpk-grow, .tep-nav { top: 14px; right: 14px; }
-  :is(.tpk-grow, .tep-nav, .tep-act) .tc-circ, .tep-act :is(.tc-erate, .tc-mark) .tc-circ { width: 40px; height: 40px; }
-  :is(.tpk-grow, .tep-nav, .tep-act) .tc-circ > span, .tep-act :is(.tc-erate, .tc-mark) .tc-circ > span { --ring: 3.5px; }
+  .tep-nav { display: none; }
+  .tpeek .tp-x { width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .tpeek > .grabber { display: block; position: absolute; top: 8px; left: 50%; z-index: 4; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: rgba(255, 255, 255, 0.55); }
+  .tep-act .tc-circ, .tep-act :is(.tc-erate, .tc-mark) .tc-circ { width: 40px; height: 40px; }
+  .tep-act .tc-circ > span, .tep-act :is(.tc-erate, .tc-mark) .tc-circ > span { --ring: 3.5px; }
   /* status options above */
   .tc-sdial.dialhost .tdial { width: 40px; height: 40px; }
   .tc-sdial.dialhost .tdial .face, .tc-sdial.dialhost .tdial .alt { --ring: 3.5px; }
@@ -2824,12 +2843,17 @@ body.signed-out .wall, body.signed-out .siderail, body.signed-out .pbar { visibi
   .tc-still .tc-mark .tc-circ { width: 34px; height: 34px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); }
   .tc-still .tc-mark .tc-circ > span { --ring: 3px; }
   .tc-still .tc-mark .tc-circ svg { width: 15px; height: 15px; }
+  .tf-epspane .tc-shead :is(.tc-erate, .tc-cbtn) .tc-circ { width: 34px; height: 34px; }
+  .tf-epspane .tc-shead :is(.tc-erate, .tc-cbtn) .tc-circ > span { --ring: 3px; }
+  .tf-epspane .tc-shead :is(.tc-erate, .tc-cbtn) .tc-circ svg { width: 15px; height: 15px; }
   .tf-epspane .tc-epov { display: -webkit-box; -webkit-line-clamp: 3; }
 }
 /* episode card head */
 .tep .tpk-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 20px; row-gap: 10px; align-items: center; }
 .tep .tpk-head > :not(.tep-acts) { grid-column: 1; }
-.tep .tpk-head > .hero-kick { justify-self: start; }
+.tep .tpk-head > .hero-kick { justify-self: start; transform: translateY(6px); }
+.tep .tpk-head > .hero-title { align-self: end; }
+.tep .tpk-head > .hero-meta { margin-top: -6px; align-self: start; }
 .tep .tpk-head > .tep-acts { grid-column: 2; grid-row: 2 / span 2; align-self: center; flex-wrap: nowrap; }
 @media (max-width: 800px) { .tep .tpk-head { column-gap: 12px; } .tep .tpk-head > .tep-acts { gap: 10px; } }
 /* episode card body */

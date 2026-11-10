@@ -48,9 +48,15 @@ async function seriesVideos(series: string) {
 // an episode as TMDB has it: Stremio and TMDB can split or number a series differently (Stremio's "Monster" S4 is TMDB's
 // "Monster: The Lizzie Borden Story" S1), so each episode is looked up by its TheTVDB id; the series match is the fallback
 const tvdbEp = new Map<number, Place | null>();
+// TheTVDB id: the list's, else Cinemeta's
+export async function tvdbOf(video: string, vids: Vid[], fallbackKey: string | null, cinemeta = seriesVideos) {
+  const tv = vids.find((v) => v.id === video)?.tvdb;
+  if (tv || fallbackKey || !/^tt\d/.test(video)) return tv;
+  return (await cinemeta(video.split(':')[0]).catch((): Vid[] => [])).find((v) => v.id === video)?.tvdb;
+}
 async function placeOf(video: string, vids: Vid[], fallbackKey: string | null): Promise<Place | null> {
   if (/^(kitsu|mal|anilist):/.test(video)) return fallbackKey ? canonEp(fallbackKey, 1, epOf(video)[1]) : null;
-  const tv = vids.find((v) => v.id === video)?.tvdb;
+  const tv = await tvdbOf(video, vids, fallbackKey);
   if (tv) {
     if (!tvdbEp.has(tv)) {
       const r = await tmdb<TmdbFind>(`/find/${tv}?external_source=tvdb_id`).catch(() => null);

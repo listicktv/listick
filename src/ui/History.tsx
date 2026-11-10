@@ -1,7 +1,6 @@
 'use client';
 // The History page (/history): what you watched in the last 30 days (?all=1: every play), newest first, day by day: each play as History's wide card (the episode or
-// Movie, the time, your rating circle), the episodes of one show watched back to back as one card ("S1 E3–E5"). Movies, shows or
-// anime; older days come in as you scroll.
+// Movie, the time, your rating circle). Movies, shows or anime; older days come in as you scroll.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HistCard, PkBtn } from './Cards';
 import { getJ } from './lib/api';
@@ -22,18 +21,12 @@ const dayName = (t: number) => {
     : `${d.toLocaleDateString('en-GB', { weekday: 'short' })} ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) })}`;
 };
 
-// a day's plays as cards: one show's episodes watched one after another (newest first, a step apart, same season) join up
+// a day's plays as cards, one each
 function cardsOf(plays: Play[]): Wide[] {
-  const out: { p: Play; from: number }[] = [];
-  for (const p of plays) {
-    const o = out[out.length - 1];
-    if (o && o.p.key === p.key && p.season === o.p.season && p.episode >= 0 && p.episode === o.from - 1) { o.from = p.episode; continue; }
-    out.push({ p, from: p.episode });
-  }
-  return out.map(({ p, from }) => ({
+  return plays.map((p) => ({
     app: APP[p.source] || 'imported', ref: { key: p.key }, title: p.title, poster: p.poster, wide: p.backdrop, at: p.at,
     play: { key: p.key, season: p.season, episode: p.episode, mine: p.mine },
-    sub: `${p.type === 'movie' ? 'Movie' : p.season >= 0 ? `${p.type === 'anime' ? '' : `S${p.season} `}E${from < p.episode ? `${from}–${p.episode}` : p.episode}` : ''} · ${p.approx === 1 ? 'date unknown' : hhmm(p.at)}`,
+    sub: `${p.type === 'movie' ? 'Movie' : p.season >= 0 ? `${p.type === 'anime' ? '' : `S${p.season} `}E${p.episode}` : ''} · ${p.approx === 1 ? 'date unknown' : hhmm(p.at)}`,
   }));
 }
 
