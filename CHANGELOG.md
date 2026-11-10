@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.17.0](https://github.com/listicktv/listick/compare/v0.16.0...v0.17.0) (2026-11-10)
+
+
+### Features
+
+* actor window floats on phones; Known for and Acted in are one row ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* episode arrows in the window corner; sideways scroll changes episode ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* episode rows show air date, runtime and when you watched ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* History page lists every episode; grouped cards have no rating circle ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* square Close on show, movie, episode and actor windows ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* swipe down closes episode and actor windows on phones ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* Watching and Watched status on show and anime posters ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+
+
+### Bug Fixes
+
+* episode window cover keeps one height ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* Next up shows only in the season you are up to and stays on top across seasons ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* Stremio episodes with no TMDB series match are tracked ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+* Watching shows on the episode being played in the episode list ([b266fcb](https://github.com/listicktv/listick/commit/b266fcbfb522e79e7619d90af69e1b7f3a6f0005))
+
 ## [0.16.0](https://github.com/listicktv/listick/compare/v0.15.0...v0.16.0) (2026-11-07)
 
 
