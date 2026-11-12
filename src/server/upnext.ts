@@ -3,7 +3,7 @@
 // to air waits (it is in the calendar) and comes back, NEW, when it airs. The calendar is their episodes airing this month and
 // next. Episodes and air dates come from TMDB (Kitsu for anime only Kitsu has), exact air times from TVmaze where it knows the
 // show. A show watched to its last aired episode and started again follows the rewatch (the episode after the latest play,
-// marked rewatch). The worker works it out (refreshLive) when the History changes, and hourly otherwise.
+// marked rewatch when that episode was played before). The worker works it out (refreshLive) when the History changes, and hourly otherwise.
 import { q } from './db';
 import { season } from './details';
 import { tvSeasons } from './mapping';
@@ -82,15 +82,18 @@ async function build(uid: string): Promise<Follow> {
       const stamps = f.key.startsWith('tmdb:tv:') ? await airTimes(f.key) : new Map<string, number>();
       const at = (se: number, e: Episode) => stamps.get(`${se}:${e.ep}`) ?? (e.air ? Date.parse(`${e.air}T12:00:00`) : null);
       const isOut = (x: NonNullable<Awaited<ReturnType<typeof nextOf>>>) => (stamps.has(`${x.se}:${x.e.ep}`) ? at(x.se, x.e)! <= now : aired(x.list, x.e, today));
+      const seen = new Set((await q.all<{ season: number; episode: number }>('select distinct season, episode from history where user_id = ? and key = ?', uid, f.key)).map((r) => `${r.season}:${r.episode}`));
       const n = await nextOf(f.key, f.season, f.episode);
       if (n && isOut(n)) upNext.push({ key: f.key, type: f.type, title: f.title, poster: f.poster, backdrop: f.backdrop, se: n.se, ep: n.e.ep, at: f.last, airedAt: at(n.se, n.e) });
       else if (f.ls < f.season || (f.ls === f.season && f.le < f.episode)) {
+        // rewatch: that episode played before; else the next unseen
+        const again = (await q.one<{ n: number }>('select count(*)::int n from history where user_id = ? and key = ? and season = ? and episode = ?', uid, f.key, f.ls, f.le))!.n > 1;
         const r = await nextOf(f.key, f.ls, f.le);
-        if (r && isOut(r)) upNext.push({ key: f.key, type: f.type, title: f.title, poster: f.poster, backdrop: f.backdrop, se: r.se, ep: r.e.ep, at: f.last, airedAt: at(r.se, r.e), rewatch: true });
+        if (r && isOut(r) && (again || !seen.has(`${r.se}:${r.e.ep}`)))
+          upNext.push({ key: f.key, type: f.type, title: f.title, poster: f.poster, backdrop: f.backdrop, se: r.se, ep: r.e.ep, at: f.last, airedAt: at(r.se, r.e), rewatch: again });
       }
       // calendar
       const seasons = [f.season, ...(n && n.se !== f.season ? [n.se] : [])];
-      const seen = new Set((await q.all<{ season: number; episode: number }>('select distinct season, episode from history where user_id = ? and key = ?', uid, f.key)).map((r) => `${r.season}:${r.episode}`));
       for (const se of seasons)
         for (const e of await season(f.key, se, null)) {
           if (!e.air || e.air < from || e.air > to) continue;

@@ -21,7 +21,14 @@ before(async () => {
     '/3/tv/300/season/1': eps(day(-60), day(-50)),
     '/3/tv/300/season/2': eps(day(-3)),                      // the next season is out
     '/3/tv/400/season/1': eps(day(-100), day(-90)),
+    '/3/tv/500/season/1': eps(day(-60), day(-50)),
+    '/3/tv/500/season/2': eps(day(-40)),
+    '/3/tv/600/season/1': eps(day(-60), day(-50)),
+    '/3/tv/700/season/1': eps(day(-60)),
+    '/3/tv/700/season/2': eps(day(-40)),
     '/3/tv/300': { seasons: [{ season_number: 1, episode_count: 2 }, { season_number: 2, episode_count: 1 }] },
+    '/3/tv/500': { seasons: [{ season_number: 1, episode_count: 2 }, { season_number: 2, episode_count: 1 }] },
+    '/3/tv/700': { seasons: [{ season_number: 1, episode_count: 1 }, { season_number: 2, episode_count: 1 }] },
   });
   uid = await addUser('ann');
   await addTitles(title('tmdb:tv:100', { title: 'Aired' }), title('tmdb:tv:200', { title: 'Waits' }), title('tmdb:tv:300', { title: 'Next season' }),
@@ -43,5 +50,21 @@ describe('Up next from the History', () => {
     const waits = f.schedule.filter((e) => e.key === 'tmdb:tv:200').map((e) => [e.ep, e.watched]);
     assert.ok(waits.some(([ep, w]) => ep === 3 && !w));
     assert.ok(!f.schedule.some((e) => e.key === 'tmdb:tv:400'));
+  });
+  test('an earlier season watched after a later one is caught up on, not a rewatch; a rewatch is an episode played again', async () => {
+    await addTitles(title('tmdb:tv:500', { title: 'Catch up' }), title('tmdb:tv:600', { title: 'Again' }), title('tmdb:tv:700', { title: 'Both seen' }));
+    const uid = await addUser('ben');
+    await addPlay(uid, 'tmdb:tv:500', 2, 1, Date.now() - 5 * DAY, 'manual');
+    await addPlay(uid, 'tmdb:tv:500', 1, 1, Date.now() - 1 * DAY, 'jellyfin');
+    await addPlay(uid, 'tmdb:tv:600', 1, 1, Date.now() - 10 * DAY, 'manual');
+    await addPlay(uid, 'tmdb:tv:600', 1, 2, Date.now() - 9 * DAY, 'manual');
+    await addPlay(uid, 'tmdb:tv:600', 1, 1, Date.now() - 3600000, 'jellyfin');
+    await addPlay(uid, 'tmdb:tv:700', 2, 1, Date.now() - 6 * DAY, 'manual');
+    await addPlay(uid, 'tmdb:tv:700', 1, 1, Date.now() - 2 * DAY, 'jellyfin');
+    const f = await followOf(uid);
+    const of = (t: string) => f.upNext.filter((u) => u.title === t).map((u) => [u.se, u.ep, !!u.rewatch]);
+    assert.deepEqual(of('Catch up'), [[1, 2, false]]);
+    assert.deepEqual(of('Again'), [[1, 2, true]]);
+    assert.deepEqual(of('Both seen'), [], 'the next one is already watched');
   });
 });
