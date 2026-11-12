@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.18.0](https://github.com/listicktv/listick/compare/v0.17.0...v0.18.0) (2026-11-12)
+
+
+### Features
+
+* About moved into Settings ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* calendar and Up next follow shows watched before into a new season (RETURNING pill) ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* History as a day rail of posters, back-to-back episodes as one card, Month/Year/All filter ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* History marks where each earlier year starts ([600da0d](https://github.com/listicktv/listick/commit/600da0d27a1d7f4c4111a7c4f62e7c0705590bc4))
+* History, Lists and calendar redesign ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* Lists page with a band for Plan to watch, Watched and Rated and shelves of stacked posters ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* row grids open Filters beside the button, genres behind a Genre circle ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* year headings in History; tighter Lists and Stats cards ([600da0d](https://github.com/listicktv/listick/commit/600da0d27a1d7f4c4111a7c4f62e7c0705590bc4))
+
+
+### Bug Fixes
+
+* Jellyfin titles with &, ' or " in their names are tracked ([0d4424c](https://github.com/listicktv/listick/commit/0d4424c36eba7ed47a6b5aba1c241ac152f3b99c))
+* less padding on the Lists and Stats cards ([600da0d](https://github.com/listicktv/listick/commit/600da0d27a1d7f4c4111a7c4f62e7c0705590bc4))
+* one 40 px circle size and one page-title size across pages ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* Returning shows keeps a new season for its first three weeks ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* title details show the airing state (TheTVDB seasons where used), TMDB's genres unsplit and anime genres ([aebf035](https://github.com/listicktv/listick/commit/aebf035109e3374717616e2b6d1685e9aa676a25))
+* Up next tags a rewatch only for an episode played before ([55dec61](https://github.com/listicktv/listick/commit/55dec613c3a8885c670ba220cdb56660e7e972b0))
+
 ## [0.17.0](https://github.com/listicktv/listick/compare/v0.16.0...v0.17.0) (2026-11-10)
 
 
