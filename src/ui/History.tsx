@@ -1,7 +1,7 @@
 'use client';
 // The History page (/history): what you watched in the last 30 days (?all=1: every play), newest first, day by day: each play as History's wide card (the episode or
 // Movie, the time, your rating circle). Movies, shows or anime; older days come in as you scroll.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { HistCard, PkBtn } from './Cards';
 import { getJ } from './lib/api';
 import { hhmm } from './lib/format';
@@ -25,7 +25,7 @@ const dayName = (t: number) => {
 const whenOf = (t: number) => {
   const d = new Date(t), n = dayName(t);
   return { name: n === 'Today' || n === 'Yesterday' ? n : d.toLocaleDateString('en-GB', { weekday: 'long' }),
-    date: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) };
+    date: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), year: d.getFullYear() };
 };
 
 // a day's plays as posters; a back-to-back run is one card
@@ -110,8 +110,11 @@ export function HistoryPage() {
         {err && <p className="st-note">{`Couldn't load your history (${err}).`}</p>}
         {plays && !shown.length && !more && <p className="st-note">Nothing watched here yet.</p>}
         <div className="hist-rail">
-          {days.map((d, i) => { const w = whenOf(d.plays[0].at); return (
-            <section key={d.name} className="hist-row">
+          {days.map((d, i) => { const w = whenOf(d.plays[0].at), prev = i ? whenOf(days[i - 1].plays[0].at).year : new Date().getFullYear(); return (
+            <Fragment key={d.name}>
+            {/* a year's start: its heading */}
+            {w.year !== prev && <h2 className="hist-year">{w.year}</h2>}
+            <section className="hist-row">
               <div className={`hist-when${i === 0 && w.name === 'Today' ? ' now' : ''}`}>
                 <h2 className="hist-day">{w.name}</h2><span className="mono">{w.date}</span><span>{d.plays.length === 1 ? '1 play' : `${d.plays.length} plays`}</span>
               </div>
@@ -119,6 +122,7 @@ export function HistoryPage() {
                 <div key={`${c.w.play!.key}|${c.w.at}|${j}`} className="hplay"><HistCard w={c.w} /><div className="hcap"><span>{c.ep}</span><span className="mono">{c.time}</span></div></div>
               ))}</div>
             </section>
+            </Fragment>
           ); })}
         </div>
         <div ref={end} aria-hidden="true" />
