@@ -17,6 +17,14 @@ export const JELLYFIN_TEMPLATE = JSON.stringify({ event: '{{NotificationType}}',
   season: '{{SeasonNumber}}', episode: '{{EpisodeNumber}}', episodeEnd: '{{EpisodeNumberEnd}}', tmdb: '{{Provider_tmdb}}', imdb: '{{Provider_imdb}}',
   tvdb: '{{Provider_tvdb}}', done: '{{PlayedToCompletion}}', played: '{{Played}}', position: '{{PlaybackPositionTicks}}', runtime: '{{RunTimeTicks}}' }, null, 2);
 
+// the plugin's values arrive HTML-escaped, a double quote as \&quot;
+const ESCAPES: Record<string, string> = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#x27;': "'", '&#x60;': '`', '&#x3D;': '=' };
+export function hookOf(body: string): Hook | null {
+  try {
+    const h: Hook = JSON.parse(body.replace(/\\&quot;/g, '\\"'));
+    return Object.fromEntries(Object.entries(h).map(([k, v]) => [k, typeof v === 'string' ? v.replace(/&(?:amp|lt|gt|quot|#x27|#x60|#x3D);/g, (e) => ESCAPES[e]) : v]));
+  } catch { return null; }
+}
 const yes = (v?: string) => /^true$/i.test((v || '').trim());
 const num = (v?: string) => (/^\d+$/.test((v || '').trim()) ? Number(v) : null);
 const imdbOf = (v?: string) => (/^tt\d+$/.test((v || '').trim()) ? v!.trim() : null);

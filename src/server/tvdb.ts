@@ -102,8 +102,8 @@ export async function tmdbEpisode(ids: EpisodeIds) {
   const k = ids.tvdb ? `tvdb:${ids.tvdb}` : ids.imdb ? `imdb:${ids.imdb}` : '';
   if (!k) return null;
   if (!byIds.has(k)) {
-    const r = await tmdb<TmdbEpisodeFind>(ids.tvdb ? `/find/${ids.tvdb}?external_source=tvdb_id` : `/find/${ids.imdb}?external_source=imdb_id`).catch(() => null);
-    const e = r?.tv_episode_results?.[0];
+    const r = await tmdb<TmdbEpisodeFind>(ids.tvdb ? `/find/${ids.tvdb}?external_source=tvdb_id` : `/find/${ids.imdb}?external_source=imdb_id`);
+    const e = r.tv_episode_results?.[0];
     byIds.set(k, e ? { show: e.show_id, se: e.season_number, ep: e.episode_number } : null);
   }
   return byIds.get(k)!;

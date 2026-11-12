@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { pool } from '@/db';
 import { q } from '@/server/db';
+import { hookOf } from '@/server/jellyfin';
 import { flushCalls } from '@/server/sources';
 import { addTitles, addUser, api, calls, fixtures, ORIGIN, resetDb, signIn, title } from './helpers';
 
@@ -201,5 +202,13 @@ describe('Jellyfin', () => {
     assert.deepEqual([(await now())?.key, (await now())?.pct], [MATRIX, 50], 'what is playing, and how far');
     await send({ type: 'Movie', tmdb: '603', done: 'False' });
     assert.equal(await now(), null, 'stopped');
+    fixtures({ '/3/tv/1396': TMDB_BB, '/3/search/tv?query=Breaking%20%26%20Bad': { results: [TMDB_BB] } });
+    assert.equal((await send({ type: 'Episode', series: 'Breaking &amp; Bad', season: '1', episode: '6' })).json.recorded, 1, 'its HTML-escaped names read as plain text');
+    assert.deepEqual(hookOf('{ "name": "The \\&quot;Pilot\\&quot;", "series": "Grey&#x27;s Anatomy" }'), { name: 'The "Pilot"', series: 'Grey\'s Anatomy' },
+      'a double quote arrives as \\&quot;');
+    const s1e5 = { type: 'Episode', series: 'Breaking Bad', tvdb: '349236', season: '1', episode: '5' };
+    assert.equal((await send(s1e5)).json.error, 'episode not found', 'TMDB failing');
+    fixtures({ '/3/find/349236?external_source=tvdb_id': { tv_episode_results: [{ show_id: 1396, season_number: 1, episode_number: 5 }] }, '/3/tv/1396': TMDB_BB });
+    assert.equal((await send(s1e5)).json.recorded, 1, 'and is not remembered as no match');
   });
 });

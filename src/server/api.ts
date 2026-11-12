@@ -3,7 +3,7 @@
 import crypto from 'node:crypto';
 import { auth } from '@/lib/auth';
 import { q, tx } from './db';
-import { JELLYFIN_TEMPLATE, jellyfinEvent } from './jellyfin';
+import { hookOf, JELLYFIN_TEMPLATE, jellyfinEvent } from './jellyfin';
 import { mailOn, ORIGINS, LINK_ORIGIN } from './mail';
 import { exportOf } from './account';
 import { animeOf, animePlay } from './anime';
@@ -287,7 +287,7 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
   if (m && req.method === 'POST') {
     const who = await keyOf(m[1]);
     if (!who || !mayUse(who.app, 'plays')) return json(req, await tooMany(req) ? 429 : 404, { error: 'no such key' });
-    return json(req, 200, await jellyfinEvent(who.id, await req.json().catch(() => null)));
+    return json(req, 200, await jellyfinEvent(who.id, hookOf(await req.text())));
   }
   // an app's plays by AniList id (Seanime)
   if (p === '/api/v1/anime/play' && req.method === 'POST') {
