@@ -192,7 +192,7 @@ export function Calendar() {
   return (
     <div className="stats" ref={page}>
       <div className="st-head">
-        <h1 className="st-title">Airing</h1>
+        <h1 className="st-title">Airing{!phone && <span className="cal-mname"> {month.toLocaleDateString('en-GB', { month: 'long' })}</span>}</h1>
         {/* phone: Filters */}
         {phone && <div className="st-period cal-filter">{pick('Filters', filters, () => setFilters(!filters), icon('M4 6h16M7 12h10M10 18h4'))}</div>}
         {phone && filters && <div className="cal-tools">
@@ -209,31 +209,27 @@ export function Calendar() {
             <Link href="/settings/api"><Ring>{icon(`${PATHS.cal}M12 13v5M9.5 15.5h5`)}</Ring>Subscribe</Link>
           </div>
         </div>}
-        {/* wide: month, Filter, Subscribe */}
+        {/* wide: everything in the header */}
         {!phone && <div className="cal-tools">
+          <div className="st-period" role="group" aria-label="What">
+            {pick('All', kind === 'all', () => setKind('all'), icon('M4 6h16M4 12h16M4 18h16'))}
+            {pick('Shows', kind === 'series', () => setKind('series'), icon(PATHS.tv))}
+            {pick('Anime', kind === 'anime', () => setKind('anime'), icon(PATHS.anime))}
+          </div>
+          <div className="st-period" role="group" aria-label="Show">
+            {pick('Unwatched', unwatched, () => setUnwatched(!unwatched), icon(PATHS.tick))}
+            {pick('Plan to watch', plan, () => setPlan(!plan), icon(PATHS.bookmark))}
+          </div>
           <div className="st-period" role="group" aria-label="Month">
             {pick('Earlier', false, () => setSel(today), icon('M15 6l-6 6 6 6'), !next)}
-            <b className="cal-mname">{month.toLocaleDateString('en-GB', { month: 'long' })}</b>
             {pick('Later', false, () => go(addDays(last, 1 - last.getDate())), icon('M9 6l6 6-6 6'), next)}
             {pick('Today', same(sel, today), () => setSel(today), icon('M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z'))}
           </div>
           <div className="st-period">
-            {pick('Filter', filters, () => setFilters(!filters), icon('M4 6h16M7 12h10M10 18h4'))}
             <Link href="/settings/api"><Ring>{icon(`${PATHS.cal}M12 13v5M9.5 15.5h5`)}</Ring>Subscribe</Link>
           </div>
         </div>}
       </div>
-      {!phone && filters && <div className="fpanel">
-        <div className="st-period" role="group" aria-label="What">
-          {pick('All', kind === 'all', () => setKind('all'), icon('M4 6h16M4 12h16M4 18h16'))}
-          {pick('Shows', kind === 'series', () => setKind('series'), icon(PATHS.tv))}
-          {pick('Anime', kind === 'anime', () => setKind('anime'), icon(PATHS.anime))}
-        </div>
-        <div className="st-period" role="group" aria-label="Show">
-          {pick('Unwatched', unwatched, () => setUnwatched(!unwatched), icon(PATHS.tick))}
-          {pick('Plan to watch', plan, () => setPlan(!plan), icon(PATHS.bookmark))}
-        </div>
-      </div>}
       {err && <p className="st-note">{`Couldn't load the calendar (${err}).`}</p>}
       {phone ? schedule && (
         <>

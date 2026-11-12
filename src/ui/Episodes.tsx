@@ -536,10 +536,10 @@ function EpisodeView({ d, episodes, at, season, where, markEpisodes, open, dir }
         <div className="grabber" aria-hidden="true" />
         <EpisodeCard key={e.ep} d={d} e={e} episodes={episodes} season={season} where={where} markEpisodes={markEpisodes} dir={dir} open={open} />
         <div className="tep-nav">
-          <button type="button" className="tp-x" aria-label="Previous episode" disabled={!prev} onClick={() => prev && open(prev.ep)}><Icon d="M15 5l-7 7 7 7" size={16} /></button>
-          <button type="button" className="tp-x" aria-label="Next episode" disabled={!nextOne} onClick={() => nextOne && open(nextOne.ep)}><Icon d="M9 5l7 7-7 7" size={16} /></button>
+          <button type="button" className="tp-x" aria-label="Previous episode" disabled={!prev} onClick={() => prev && open(prev.ep)}><Icon d="M15 5l-7 7 7 7" size={14} /></button>
+          <button type="button" className="tp-x" aria-label="Next episode" disabled={!nextOne} onClick={() => nextOne && open(nextOne.ep)}><Icon d="M9 5l7 7-7 7" size={14} /></button>
         </div>
-        <button type="button" className="tp-x" aria-label="Close" onClick={() => open(null)}><Icon d="M6 6l12 12M18 6L6 18" size={16} /></button>
+        <button type="button" className="tp-x" aria-label="Close" onClick={() => open(null)}><Icon d="M6 6l12 12M18 6L6 18" size={14} /></button>
       </aside>
     </div>,
     document.body,

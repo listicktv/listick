@@ -50,12 +50,12 @@ async function recent(uid: string, days = 30) {
   return [...out.values()].slice(0, 40);
 }
 // History page; all: every play, else the last 30 days
-export async function historyPage(uid: string, before: number, beforeId: number, all = false, limit = 80) {
+export async function historyPage(uid: string, before: number, beforeId: number, period: 'month' | 'year' | 'all' = 'month', limit = 80) {
   type R = { id: number; key: string; season: number; episode: number; at: number; approx: number; source: string; title: string; label: string | null; type: TitleType; anime: number | null;
     poster: string | null; backdrop: string | null };
   const rows = await q.all<R>(`select h.id, h.key, h.season, h.episode, h.watched_at at, h.approx, h.source, t.title, t.label, t.type, t.anime, t.poster, t.backdrop
     from history h join titles t using (key) where h.user_id = ? and (h.watched_at < ? or (h.watched_at = ? and h.id < ?)) and h.watched_at >= ?
-    order by h.watched_at desc, h.id desc limit ?`, uid, before, before, beforeId, all ? 0 : Date.now() - 30 * 86400000, limit);
+    order by h.watched_at desc, h.id desc limit ?`, uid, before, before, beforeId, period === 'all' ? 0 : Date.now() - (period === 'year' ? 365 : 30) * 86400000, limit);
   const keys = [...new Set(rows.map((r) => r.key))];
   const mine = new Map(keys.length ? (await q.all<{ key: string; season: number; episode: number; rating: number }>(
     `select key, season, episode, rating from ratings where user_id = ? and key in (${keys.map(() => '?').join(', ')})`, uid, ...keys)).map((r) => [`${r.key}|${r.season}|${r.episode}`, r.rating]) : []);

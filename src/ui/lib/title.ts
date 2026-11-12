@@ -35,7 +35,7 @@ export type Episode = { ep: number; name: string | null; air: string | null; run
 export type Title = {
   key: string; type: TitleType; title: string; label: string | null; year: number | null; poster: string | null; backdrop: string | null; backdrops?: string[];
   rating: number | null; ratingSrc: string | null; overview: string | null; url: string | null; genres: string[]; runtime: number | null;
-  released: string | null; status: string | null; tagline: string | null; seasons: Season[] | null; seasonsTvdb?: Season[] | null;
+  released: string | null; status: string | null; tagline: string | null; seasons: Season[] | null; seasonsTvdb?: Season[] | null; nextTvdb?: { season: number; ep: number } | null;
   next: { season?: number; ep?: number; date: string | null } | null; people: { label: string; names: string[] } | null;
   cast: { name: string | undefined; role: string | null; photo: string | null; id?: number | null }[]; imdb: string | null;
   scores?: { imdb: string | null; votes: string | null; rt: string | null; mc: string | null; awards: string | null; pages?: { rt: string | null; mc: string | null } } | null;

@@ -8,7 +8,7 @@ import { getJ, postJ } from './lib/api';
 import { DASH, ago } from './lib/format';
 import { useHome, usePhone } from './lib/home';
 import { Icon } from './lib/icons';
-import { TYPE_NAME, type Ref, type Tile } from './lib/media';
+import { type Ref, type Tile } from './lib/media';
 import { Group } from './Rail';
 import { TopBar } from './Shell';
 import { ShelfGrid } from './Shelf';
@@ -25,6 +25,7 @@ export function TitlePanel({ ref }: { ref: RRef<TitlePanelApi> }) {
   const { reload } = useHome();
   const tp = useRef<HTMLDivElement>(null), panel = useRef<HTMLElement>(null), body = useRef<HTMLDivElement>(null);
   const x = useRef<HTMLButtonElement>(null);
+  const phone = usePhone();
   const seq = useRef(0), from = useRef<Element | null>(null), closing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [content, setContent] = useState<Body>({});
   const [view, setView] = useState(0);   // each opening is a fresh card (its tab, season, …); a redraw keeps them
@@ -180,6 +181,7 @@ export function TitlePanel({ ref }: { ref: RRef<TitlePanelApi> }) {
         {content.t ? <TitlePeek key={view} d={content.t} expand={expand} expandRef={x} close={close} />
           : content.err ? <div className="tp-note">{content.err}</div> : content.loading ? <div className="tp-note">Loading…</div> : null}
       </div>
+      {content.t && !phone && <button ref={x} type="button" className="tp-dt" aria-label="Open the full page" onClick={expand}><Icon d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" size={14} /><b>Details</b></button>}
       {player}
     </aside>
   );
@@ -216,12 +218,8 @@ function Tight({ text }: { text: string }) {
 
 const RATING_SRC: Record<string, string> = { tmdb: 'TMDB', mal: 'MyAnimeList', kitsu: 'Kitsu' };
 // TMDB's long genre names in the usual short form; TV's combined ones ("Action & Adventure") split into their parts
-const GENRE_SHORT: Record<string, string> = { 'Science Fiction': 'Sci-Fi', 'Sci-Fi & Fantasy': 'Sci-Fi & Fantasy', Documentary: 'Doc' };
-function shortGenres(list: string[] | undefined) {
-  const out: string[] = [];
-  for (const g of list || []) for (const part of (GENRE_SHORT[g] || g).split(' & ')) { const x = GENRE_SHORT[part] || part; if (!out.includes(x)) out.push(x); }
-  return out;
-}
+const GENRE_SHORT: Record<string, string> = { 'Science Fiction': 'Sci-Fi', Documentary: 'Doc' };
+const shortGenres = (list: string[] | undefined) => [...new Set((list || []).map((g) => GENRE_SHORT[g] || g))];
 // age ratings in the UK's BBFC colours (the US ones have none), each US / TV / MAL rating by the age it stands for
 const CERT_RING: Record<string, string> = Object.fromEntries([
   ['#3DBE6E', 'G U TV-Y TV-G'], ['#F2C230', 'PG TV-Y7 TV-Y7-FV TV-PG'], ['#F28C28', 'PG-13 12 12A TV-14'],
@@ -237,13 +235,24 @@ export const YtLogo = () => (
 );
 
 // meta line
-export function metaOf(d: Title, noType = false) {
-  const nSeasons = d.seasons?.filter((s) => s.n > 0).length;
+const STATUS: Record<string, string | null> = { 'returning series': null, 'in production': 'In production', current: 'Airing', finished: 'Ended' };
+export function metaOf(d: Title) {
   const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m` : `${min}m`);
-  return [d.type === 'movie' || noType ? null : d.anime ? 'Anime' : TYPE_NAME[d.type], d.year, d.runtime ? (d.type === 'movie' ? hm(d.runtime) : `${d.runtime}min / ep`) : null,
-    d.type === 'tv' && nSeasons ? `${nSeasons} season${nSeasons === 1 ? '' : 's'}` : d.type !== 'movie' && d.episodes ? `${d.episodes} eps` : null,
-    d.type !== 'movie' && d.status ? String(d.status).replace(/^./, (c) => c.toUpperCase()) : null, ...shortGenres(d.genres).slice(0, 3)].filter(Boolean).join(' · ');
+  const st = String(d.status || '').toLowerCase(), status = st in STATUS ? STATUS[st] : st ? st.replace(/^./, (c) => c.toUpperCase()) : null;
+  // TheTVDB's seasons when the episode list uses them
+  const tv = d.seasonsTvdb?.length ? d.seasonsTvdb : null, seasons = tv || d.seasons;
+  const n = tv ? (d.nextTvdb ? { ...d.next, ...d.nextTvdb } : null) : d.next, starts = !!n?.season && n.ep === 1;
+  const aired = seasons?.filter((s) => s.n > 0 && s.year && !(starts && s.n >= n!.season!)).length;
+  const soon = !!n?.date && Date.parse(`${n.date}T12:00:00`) - Date.now() < 7 * 86400000;
+  const day = n?.date ? new Date(`${n.date}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
+  const run = d.type !== 'tv' ? (d.type !== 'movie' && d.episodes ? [`${d.episodes} eps`, status] : [status])
+    : tv && d.next && !n ? ['Airing']
+    : n?.season && !starts ? [(seasons?.filter((x) => x.n > 0).length ?? 0) > 1 ? `Season ${n.season} airing` : 'Airing']
+    : [aired ? `${aired} Season${aired === 1 ? '' : 's'}` : null,
+      starts ? (n!.season! > 1 && soon ? `Returning ${day}` : `S${n!.season} ${day ? `from ${day}` : 'coming'}`) : status];
+  return [d.year, d.type === 'movie' && d.runtime ? hm(d.runtime) : null, ...(d.type === 'movie' ? [] : run)].filter(Boolean).join(' · ');
 }
+export const genresOf = (d: Title) => shortGenres(d.genres).slice(0, 3).join(' · ');
 export const Cert = ({ d }: { d: Title }) => d.certification ? (
   <span className="tc-cert" style={CERT_RING[d.certification] ? ({ '--cert': CERT_RING[d.certification] } as CSSProperties) : undefined}>{d.certification}</span>
 ) : null;
@@ -340,7 +349,8 @@ function Head({ d, h, details, detailsRef }: { d: Title; h: 'h2' | 'h3'; details
       <H className="hero-title">{d.title + (d.label ? ` · ${d.label}` : '')}</H>
       {d.watching && <span className="tc-now">{['Watching now', d.watching.se >= 0 ? (d.type === 'anime' ? `E${d.watching.ep}` : `S${d.watching.se} E${d.watching.ep}`) : null,
         d.watching.pct != null ? `${d.watching.pct} %` : null].filter(Boolean).join(' · ')}</span>}
-      <div className="tc-meta hero-meta">{metaOf(d, true)}<Cert d={d} /></div>
+      <div className="tc-meta hero-meta">{metaOf(d)}<Cert d={d} /></div>
+      {genresOf(d) && <div className="tc-meta hero-meta hero-genres">{genresOf(d)}</div>}
       <Scores d={d}>
         {d.trailer && <button type="button" className="tc-ytico" aria-label="Play the trailer" onClick={() => playTrailer(d.trailer!)}><YtLogo /><b className="tc-link">Trailer</b></button>}
         {details && <button ref={detailsRef} type="button" className="tc-ytico tc-dt" aria-label="Open the full page" onClick={details}><Icon d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" /><b className="tc-link">Details</b></button>}
@@ -352,14 +362,15 @@ function Head({ d, h, details, detailsRef }: { d: Title; h: 'h2' | 'h3'; details
 
 // small view
 function TitlePeek({ d, expand, expandRef, close }: { d: Title; expand: () => void; expandRef: RRef<HTMLButtonElement>; close: () => void }) {
+  const phone = usePhone();
   return (
     <>
       <div className="tpk-art" onClick={(e) => { if (!(e.target as Element).closest('button, a, .dialhost')) expand(); }}>
         {(d.backdrop || d.poster) && <img className="hero-bg on" src={wide(d.backdrop || d.poster)} alt="" />}
         <div className="hero-shade" />
-        <div className="tpk-head"><Head d={d} h="h2" details={expand} detailsRef={expandRef} /></div>
+        <div className="tpk-head"><Head d={d} h="h2" details={phone ? expand : undefined} detailsRef={phone ? expandRef : undefined} /></div>
       </div>
-      <button type="button" className="tp-x" aria-label="Close" onClick={close}><Icon d="M6 6l12 12M18 6L6 18" size={16} /></button>
+      <button type="button" className="tp-x" aria-label="Close" onClick={close}><Icon d="M6 6l12 12M18 6L6 18" size={14} /></button>
       {d.overview && <div className="tpk-body"><p className="hero-story">{d.overview}</p></div>}
     </>
   );
@@ -457,7 +468,7 @@ function PersonView({ p, close }: { p: PersonRef; close: () => void }) {
   return (
     <aside ref={panel} className="tpanel tpeek tpp" role="dialog" aria-modal="true" aria-label={v?.name || p.name || 'Person'}>
       <div className="grabber" aria-hidden="true" />
-      <button type="button" className="tp-x" aria-label="Close" onClick={close}><Icon d="M6 6l12 12M18 6L6 18" size={16} /></button>
+      <button type="button" className="tp-x" aria-label="Close" onClick={close}><Icon d="M6 6l12 12M18 6L6 18" size={14} /></button>
       <div className="tp-body">
         {!got ? <div className="tp-note">Loading…</div> : got.err || !v ? <div className="tp-note">{`Couldn't load ${p.name || 'this person'} (${got.err || 'not found'}).`}</div> : <>
           <div className="tpp-head">
@@ -522,7 +533,7 @@ function Details({ d, cls }: { d: Title; cls: string }) {
     const y0 = d.released?.slice(0, 4), y1 = str('lastAired')?.slice(0, 4), soon = !!d.released && new Date(d.released) > new Date();
     const dates = phone ? [cell('Aired', !y0 ? null : soon ? `Starts ${fmtDay(d.released)}` : /ended|canceled|finished/i.test(d.status || '') ? `${y0}${y1 && y1 !== y0 ? ` – ${y1}` : ''} · Ended` : `Since ${y0}`, null, 'txt'),
       d.next?.date ? next : null] : [cell('First aired', fmtDay(d.released), null, 'txt'), next];
-    const count = cell('Episodes', eps ? `${eps}${d.type === 'tv' && n ? ` · ${n} season${n === 1 ? '' : 's'}` : ''}` : null, null, 'txt');
+    const count = cell('Episodes', eps ? `${eps}${d.type === 'tv' && n ? ` · ${n} Season${n === 1 ? '' : 's'}` : ''}` : null, null, 'txt');
     // anime facts
     if (d.type === 'anime') {
       const [by, byAll] = names(d.people?.names), [net, netAll] = names(str('network')?.split(', ')), rank = (f.rank as number | null) || d.mal?.rank;

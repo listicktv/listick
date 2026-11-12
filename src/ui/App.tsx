@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import dynamic from 'next/dynamic';
 import { Home } from './Home';
 import { clearToken, getConfig, postJ, session, signedOut, type Me } from './lib/api';
-import { Footer, PAGES, PhoneTabs, Rail, TopBar } from './Shell';
+import { PAGES, PhoneTabs, Rail, TopBar } from './Shell';
 import type { SignInState } from './SignIn';
 
 const Lists = dynamic(() => import('./Lists').then((m) => m.Lists));
@@ -116,7 +116,7 @@ export function App({ children }: { children?: ReactNode }) {
     closeLook: () => setLookSheet(null), openSettings,
     armed, tapAcct, armOut, signOut, setOffline, updateMe: (change) => setMe((m) => (m ? { ...m, ...change } : m)), welcome, setWelcome, q, setQ };
   // the footer after a fixed gap, whatever comes last before it (often a section that's hidden)
-  const view = (body: ReactNode) => <section className="view" id="view-media">{body}{children}<div className="foot-gap" aria-hidden="true" /><Footer /></section>;
+  const view = (body: ReactNode) => <section className="view" id="view-media">{body}{children}<div className="foot-gap" aria-hidden="true" /></section>;
   return (
     <Ctx.Provider value={state}>
       <Rail />

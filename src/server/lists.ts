@@ -251,7 +251,7 @@ async function cardOf(l: Row & { owner?: string }) {
   const [ts, changed] = await Promise.all([titlesOf(keys.slice(0, 8)),
     l.kind === 'smart' ? l.refreshed_at : q.one<{ at: number | null }>('select max(added_at) at from list_items where list_id = ?', l.id).then((r) => r?.at ?? null)]);
   return { id: l.id, name: l.name, description: l.description, kind: l.kind, media: l.media, filters: l.filters, shared: l.shared,
-    owner: l.owner ?? null, count: keys.length, refreshedAt: l.refreshed_at, posters: keys.slice(0, 5).map((k) => ts.get(k)?.poster).filter(present),
+    owner: l.owner ?? null, count: keys.length, refreshedAt: l.refreshed_at, posters: keys.slice(0, 10).map((k) => ts.get(k)?.poster).filter(present),
     backdrop: keys.slice(0, 8).map((k) => ts.get(k)?.backdrop).find(present) ?? null, changedAt: changed || l.created_at, onHome: !!l.filters?.row };
 }
 // others' lists shared on this Listick: those you follow, and the rest; each with its owner's name
@@ -290,25 +290,28 @@ export async function listsOf(uid: string) {
     q.one<{ n: number; movie: number; tv: number }>(`select count(*)::int n, count(*) filter (where t.type = 'movie')::int movie,
       count(*) filter (where t.type != 'movie')::int tv from watchlist w join titles t using (key) where w.user_id = ?`, uid),
     q.one<{ n: number }>('select count(distinct key)::int n from history where user_id = ?', uid),
-    q.one<{ n: number; avg: number | null }>('select count(distinct key)::int n, round(avg(rating)::numeric, 1)::float avg from ratings where user_id = ? and season < 0', uid),
-    q.one<{ n: number }>('select count(*)::int n from history where user_id = ? and watched_at >= ?', uid, Date.now() - 30 * 24 * 3600000),
+    q.one<{ n: number; avg: number | null; movie: number; tv: number }>(`select count(distinct r.key)::int n, round(avg(r.rating)::numeric, 1)::float avg,
+      count(distinct r.key) filter (where t.type = 'movie')::int movie, count(distinct r.key) filter (where t.type != 'movie')::int tv
+      from ratings r left join titles t using (key) where r.user_id = ? and r.season < 0`, uid),
+    q.one<{ n: number; movies: number; eps: number }>(`select count(*)::int n, count(*) filter (where season < 0)::int movies, count(*) filter (where season >= 0)::int eps
+      from history where user_id = ? and watched_at >= ?`, uid, Date.now() - 30 * 24 * 3600000),
     Promise.all(rows.map((l) => cardOf(l))), othersOf(uid),
-    posters('select t.poster from watchlist w join titles t using (key) where w.user_id = ? and t.poster is not null order by w.added_at desc limit 5'),
+    posters('select t.poster from watchlist w join titles t using (key) where w.user_id = ? and t.poster is not null order by w.added_at desc limit 8'),
     backdrop('select t.backdrop from watchlist w join titles t using (key) where w.user_id = ? and t.backdrop is not null order by w.added_at desc limit 1'),
     backdrop(`select t.backdrop from (select key, max(watched_at) at from history where user_id = ? group by key) h join titles t using (key)
       where t.backdrop is not null order by h.at desc limit 1`),
     posters(`select t.poster from (select key, max(watched_at) at from history where user_id = ? group by key) h join titles t using (key)
-      where t.poster is not null order by h.at desc limit 5`),
+      where t.poster is not null order by h.at desc limit 8`),
     backdrop(`select t.backdrop from (select key, max(rating) r, max(rated_at) at from ratings where user_id = ? and season < 0 group by key) r join titles t using (key)
       where t.backdrop is not null order by r.r desc, r.at desc limit 1`),
     posters(`select t.poster from (select key, max(rated_at) at from ratings where user_id = ? and season < 0 group by key) r join titles t using (key)
-      where t.poster is not null order by r.at desc limit 5`),
+      where t.poster is not null order by r.at desc limit 8`),
   ]);
   return {
     lists, ...others,
     builtin: {
       plan: { ...plan!, posters: planP, backdrop: planB },
-      watched: { n: watched!.n, plays: plays!.n, backdrop: watchedB, posters: watchedP },
+      watched: { n: watched!.n, plays: plays!.n, movies: plays!.movies, eps: plays!.eps, backdrop: watchedB, posters: watchedP },
       rated: { ...rated!, backdrop: ratedB, posters: ratedP },
     },
     genres: GENRES,

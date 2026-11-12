@@ -26,9 +26,13 @@ before(async () => {
     '/3/tv/600/season/1': eps(day(-60), day(-50)),
     '/3/tv/700/season/1': eps(day(-60)),
     '/3/tv/700/season/2': eps(day(-40)),
+    '/3/tv/800/season/2': eps(...Array.from({ length: 8 }, (_, i) => day(-400 + i * 7))),
+    '/3/tv/800/season/3': eps(day(-2), day(5)),
     '/3/tv/300': { seasons: [{ season_number: 1, episode_count: 2 }, { season_number: 2, episode_count: 1 }] },
     '/3/tv/500': { seasons: [{ season_number: 1, episode_count: 2 }, { season_number: 2, episode_count: 1 }] },
     '/3/tv/700': { seasons: [{ season_number: 1, episode_count: 1 }, { season_number: 2, episode_count: 1 }] },
+    '/3/tv/800': { next_episode_to_air: { season_number: 3, episode_number: 2, air_date: day(5) }, last_episode_to_air: { air_date: day(-2) },
+      seasons: [{ season_number: 2, episode_count: 8 }, { season_number: 3, episode_count: 2 }] },
   });
   uid = await addUser('ann');
   await addTitles(title('tmdb:tv:100', { title: 'Aired' }), title('tmdb:tv:200', { title: 'Waits' }), title('tmdb:tv:300', { title: 'Next season' }),
@@ -66,5 +70,13 @@ describe('Up next from the History', () => {
     assert.deepEqual(of('Catch up'), [[1, 2, false]]);
     assert.deepEqual(of('Again'), [[1, 2, true]]);
     assert.deepEqual(of('Both seen'), [], 'the next one is already watched');
+  });
+  test('a show watched long ago is on the calendar and in Up next when its new season airs', async () => {
+    await addTitles(title('tmdb:tv:800', { title: 'Back again' }));
+    const uid = await addUser('cat');
+    await addPlay(uid, 'tmdb:tv:800', 2, 8, Date.now() - 200 * DAY, 'manual');
+    const f = await followOf(uid);
+    assert.deepEqual(f.schedule.filter((e) => e.key === 'tmdb:tv:800').map((e) => [e.season, e.ep, e.watched]), [[3, 1, false], [3, 2, false]]);
+    assert.deepEqual(f.upNext.map((u) => [u.title, u.se, u.ep, u.returning]), [['Back again', 3, 1, true]]);
   });
 });

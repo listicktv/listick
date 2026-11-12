@@ -18,7 +18,7 @@ type StEp = { title: string; season: number | null; ep: number | null; at: numbe
 type StCard = StEp & { id: string; type: string; poster: string | null; url: string };
 type StContinue = StCard & { pct: number; resume?: boolean; video?: string | null; airedAt?: number; ids?: string[];
   place?: { key: string; type: TitleType; se: number; ep: number; title: string; poster: string | null; backdrop: string | null } | null };
-type UpNext = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; se: number; ep: number; at: number; airedAt: number | null; rewatch?: boolean };
+type UpNext = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; se: number; ep: number; at: number; airedAt: number | null; rewatch?: boolean; returning?: boolean };
 export type AirEp = { key: string; title: string; poster: string | null; season: number | null; ep: number; at: number; dayOnly: boolean; watched: boolean; anime: boolean };
 type Play = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; at: number; season: number; episode: number; from?: number; mine?: number | null; source: string };
 type Planned = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; addedAt: number; label?: string | null; year?: number | null; anime?: boolean };
@@ -34,7 +34,7 @@ export type Summary = {
 export type Ref = { key: string } | { imdb: string };
 // a wide card (History, Continue watching, Up next, Plan to watch)
 export type Wide = { app: string; ref: Ref | null; ids?: string[]; title: string; poster: string | null; wide: string | null; url?: string; at: number;
-  sub: string; pct?: number; airedAt?: number; isNew?: boolean; watching?: boolean; resume?: boolean; rewatch?: boolean;
+  sub: string; pct?: number; airedAt?: number; isNew?: boolean; watching?: boolean; resume?: boolean; rewatch?: boolean; returning?: boolean;
   cw?: { id: string; video?: string | null; at: number; key?: string; se?: number; ep?: number; movie: boolean } | null;
   play?: { key: string; season: number; episode: number; mine?: number | null; grouped?: boolean } };
 
@@ -59,7 +59,7 @@ export function continueItems(S: Summary) {
       sub: `${ep}${r.pct != null ? ` · ${r.pct} %` : ''}`, cw: { id: `${r.source}:${r.key}`, video: `${r.se}:${r.ep}`, at: r.at, key: r.key, se: r.se, ep: r.ep, movie: r.se < 0 } });
   }
   for (const u of S.upNext || []) out.push({ app: 'listick', ref: { key: u.key }, ids: [u.key], title: u.title, poster: u.poster, wide: u.backdrop, at: u.at,
-    airedAt: u.rewatch ? undefined : u.airedAt ?? undefined, rewatch: u.rewatch, sub: `${u.type === 'anime' ? `E${u.ep}` : `S${u.se} E${u.ep}`} · next up`,
+    airedAt: u.rewatch ? undefined : u.airedAt ?? undefined, rewatch: u.rewatch, returning: u.returning, sub: `${u.type === 'anime' ? `E${u.ep}` : `S${u.se} E${u.ep}`} · next up`,
     cw: { id: `upnext:${u.key}`, video: `${u.se}:${u.ep}`, at: u.at, key: u.key, se: u.se, ep: u.ep, movie: false } });
   // a placed episode uses its TMDB/Kitsu title, artwork and numbering (the same as the History row)
   for (const c of (S.stremio?.continue || []).filter((x) => x.resume)) {

@@ -18,8 +18,8 @@ import { Sheet } from './Sheet';
 
 type Card = { id: string; name: string; description: string | null; kind: 'manual' | 'smart'; media: Media | null; filters: Filters | null;
   shared: boolean; owner: string | null; count: number; refreshedAt: number | null; posters: string[]; backdrop: string | null; changedAt: number; onHome: boolean };
-type Built = { plan: { n: number; movie: number; tv: number; posters: string[]; backdrop: string | null }; watched: { n: number; plays: number; posters: string[]; backdrop: string | null };
-  rated: { n: number; avg: number | null; posters: string[]; backdrop: string | null } };
+type Built = { plan: { n: number; movie: number; tv: number; posters: string[]; backdrop: string | null }; watched: { n: number; plays: number; movies: number; eps: number; posters: string[]; backdrop: string | null };
+  rated: { n: number; avg: number | null; movie: number; tv: number; posters: string[]; backdrop: string | null } };
 type Page = { lists: Card[]; following: Card[]; shared: Card[]; builtin: Built; genres: Record<Media, string[]> };
 type Open = Omit<Card, 'kind'> & { kind: Card['kind'] | 'builtin'; items: Item[]; mine?: boolean; following?: boolean };
 type Naming = { id?: string; name: string; description: string; row?: boolean; from: HTMLElement | null };
@@ -77,14 +77,13 @@ export function Lists() {
           </div>
         </div>
         {/* built-in lists */}
-        <div className="l-band">
-          <MineCard href="/lists/plan" name="Plan to watch" b={b.plan} ring={`conic-gradient(var(--st-movie) 0 ${b.plan.n ? (b.plan.movie / b.plan.n) * 100 : 0}%, var(--st-tv) 0 100%)`}
-            face={<Icon d={PATHS.bookmark} size={30} width={1.9} />}
-            sub={<><span><b>{b.plan.n}</b> {b.plan.n === 1 ? 'title' : 'titles'}</span><span className="l-dot" style={{ '--c': 'var(--st-movie)' } as React.CSSProperties}>{b.plan.movie} films</span><span className="l-dot" style={{ '--c': 'var(--st-tv)' } as React.CSSProperties}>{b.plan.tv} shows</span></>} />
-          <MineCard href="/history?all=1" name="Watched" b={b.watched} ring="conic-gradient(var(--accent) 0 100%)" face={<Icon d={PATHS.watched} size={30} width={2.1} />}
-            sub={<><span><b>{b.watched.n}</b> {b.watched.n === 1 ? 'title' : 'titles'}</span>{!!b.watched.plays && <span>{b.watched.plays} plays this month</span>}</>} />
-          <MineCard href="/lists/rated" name="Rated" b={b.rated} ring={`conic-gradient(var(--accent) 0 ${(b.rated.avg || 0) * 10}%, var(--l-ring) 0)`} face={<b className="mono">{b.rated.avg ?? '–'}</b>}
-            sub={<><span><b>{b.rated.n}</b> {b.rated.n === 1 ? 'title' : 'titles'}</span>{b.rated.avg != null && <span>average {b.rated.avg}</span>}</>} />
+        <div className="l-band glass">
+          <MineCard href="/lists/plan" name="Plan to watch" posters={b.plan.posters} big={b.plan.n} sub={[count(b.plan.movie, 'movie'), count(b.plan.tv, 'show')]}
+            ring={`conic-gradient(var(--st-movie) 0 ${b.plan.n ? (b.plan.movie / b.plan.n) * 100 : 0}%, var(--st-tv) 0 100%)`} />
+          <MineCard href="/history?all=1" name="Watched" posters={b.watched.posters} big={b.watched.n} ring="conic-gradient(var(--accent) 0 100%)"
+            sub={b.watched.plays ? [count(b.watched.movies, 'movie'), count(b.watched.eps, 'episode')] : [titles(b.watched.n)]} />
+          <MineCard href="/lists/rated" name="Rated" posters={b.rated.posters} big={b.rated.avg ?? '–'} ring={`conic-gradient(var(--accent) 0 ${(b.rated.avg || 0) * 10}%, var(--l-ring) 0)`}
+            sub={[count(b.rated.movie, 'movie'), count(b.rated.tv, 'show')]} />
         </div>
 
         <section className="l-sec">
@@ -96,7 +95,7 @@ export function Lists() {
           </div>
           <div className="l-cards">
             {sorted(page.lists).map((l) => <ListCard key={l.id} l={l} />)}
-            <button type="button" className="l-new" onClick={() => setNaming({ name: '', description: '', from: null })}><span><span className="c"><Icon d={PATHS.plus} size={20} width={1.9} /></span>New list</span></button>
+            {!page.lists.length && <button type="button" className="l-new" onClick={() => setNaming({ name: '', description: '', from: null })}><span><span className="c"><Icon d={PATHS.plus} size={20} width={1.9} /></span>New list</span></button>}
           </div>
         </section>
         {([['Following', page.following], ['Shared on this Listick', page.shared]] as [string, Card[]][]).map(([head, ls]) => ls.length > 0 && (
@@ -139,52 +138,52 @@ export function ListPage({ id }: { id: string }) {
   if (err) return <p className="st-note">{`Couldn't load this list (${err}).`}</p>;
   if (!open) return null;
   const builtin = open.kind === 'builtin';
+  const head = builtin ? undefined : (
+    <section className="l-lh">
+      <div className="l-lhb">
+        <div className="l-lname"><h1 className="st-title l-lht">{open.name}</h1>
+          {/* on a phone its actions are one menu by the name (the circles on wider screens): yours (Edit, Refresh, On Home, Shared,
+              Delete), or someone else's (Follow, Copy) */}
+          <ListMenu items={!open.mine ? [
+            { label: open.following ? 'Following' : 'Follow', icon: open.following ? PATHS.tick : PATHS.plus, on: !!open.following,
+              run: () => void act(`/api/lists/${open.id}/follow`, { on: !open.following }).then(() => listsChanged()) },
+            { label: 'Copy', icon: PATHS.copy, run: () => { const got: { id?: string } = {};
+              void postJ(`/api/lists/${open.id}/copy`, {}, got).then((e) => (e ? alert(say(e)) : router.push(`/lists/${got.id}`))); } },
+          ] : [
+            { label: 'Edit', icon: PATHS.pen, run: () => void edit(open) },
+            ...(open.kind === 'smart' ? [{ label: 'Refresh', icon: ICON.refresh, run: () => void act(`/api/lists/${open.id}/refresh`) }] : []),
+            { label: 'On Home', icon: PATHS.home, on: !!open.filters?.row, run: () => void act(`/api/lists/${open.id}/edit`, { row: !open.filters?.row }).then(() => listsChanged()) },
+            { label: 'Shared', icon: ICON.share, on: open.shared, run: () => void act(`/api/lists/${open.id}/edit`, { shared: !open.shared }) },
+            { label: 'Delete', icon: PATHS.trash, rm: true, run: () => void postJ(`/api/lists/${open.id}/delete`).then((e) => (e ? alert(say(e)) : router.push('/lists'))) },
+          ]} /></div>
+        <div className="l-cm"><Badge l={open} /><span>{titles(open.count)}</span>{open.kind === 'smart' && <span>· {ago(open.refreshedAt)}</span>}{!open.mine && open.owner && <span>· by {open.owner}</span>}</div>
+        {open.description && <p className="l-desc">{open.description}</p>}
+        {open.media === 'tv' && open.filters?.tvdbGenre && <p className="l-desc">{`${label(TVDB_CATS, open.filters.tvdbGenre)} shows from `}<a href="https://thetvdb.com" target="_blank" rel="noopener noreferrer">TheTVDB.com</a></p>}
+        {open.kind === 'smart' && open.filters && <Chips media={open.media!} f={open.filters} />}
+      </div>
+      {/* someone else's shared list: follow it onto your Lists page, or copy it to make it yours */}
+      {!open.mine ? <div className="pk-set l-hacts">
+        <PkBtn label={open.following ? 'Following' : 'Follow'} data={{}} face={open.following ? PATHS.tick : PATHS.plus} on={!!open.following} pressed={!!open.following}
+          onClick={() => void act(`/api/lists/${open.id}/follow`, { on: !open.following }).then(() => listsChanged())} />
+        <PkBtn label="Copy" data={{}} face={PATHS.copy} on={false} onClick={() => { const got: { id?: string } = {};
+          void postJ(`/api/lists/${open.id}/copy`, {}, got).then((e) => (e ? alert(say(e)) : router.push(`/lists/${got.id}`))); }} />
+      </div> : <div className="pk-set l-hacts">
+        <PkBtn label="Edit" data={{}} face={PATHS.pen} on={false} onClick={() => void edit(open)} />
+        {open.kind === 'smart' && <PkBtn label="Refresh" data={{}} face={ICON.refresh} on={false} onClick={() => void act(`/api/lists/${open.id}/refresh`)} />}
+        <PkBtn label="On Home" data={{}} face={PATHS.home} on={!!open.filters?.row} pressed={!!open.filters?.row}
+          onClick={() => void act(`/api/lists/${open.id}/edit`, { row: !open.filters?.row }).then(() => listsChanged())} />
+        <PkBtn label={armed ? 'Delete?' : 'Delete'} data={{}} face={PATHS.trash} on={armed} none onClick={() => {
+          if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 3000); return; }
+          void postJ(`/api/lists/${open.id}/delete`).then((e) => (e ? alert(say(e)) : router.push('/lists')));
+        }} />
+        <PkBtn label="Shared" data={{}} face={ICON.share} on={open.shared} pressed={open.shared} onClick={() => void act(`/api/lists/${open.id}/edit`, { shared: !open.shared })} />
+      </div>}
+    </section>
+  );
   return (
     <ShelfWrap reload={reload}>
       <div className="shelf">
-        {builtin ? null : (
-          <section className="l-lh">
-            <div className="l-lhb">
-              <div className="l-lname"><h1 className="st-title l-lht">{open.name}</h1>
-                {/* on a phone its actions are one menu by the name (the circles on wider screens): yours (Edit, Refresh, On Home, Shared,
-                    Delete), or someone else's (Follow, Copy) */}
-                <ListMenu items={!open.mine ? [
-                  { label: open.following ? 'Following' : 'Follow', icon: open.following ? PATHS.tick : PATHS.plus, on: !!open.following,
-                    run: () => void act(`/api/lists/${open.id}/follow`, { on: !open.following }).then(() => listsChanged()) },
-                  { label: 'Copy', icon: PATHS.copy, run: () => { const got: { id?: string } = {};
-                    void postJ(`/api/lists/${open.id}/copy`, {}, got).then((e) => (e ? alert(say(e)) : router.push(`/lists/${got.id}`))); } },
-                ] : [
-                  { label: 'Edit', icon: PATHS.pen, run: () => void edit(open) },
-                  ...(open.kind === 'smart' ? [{ label: 'Refresh', icon: ICON.refresh, run: () => void act(`/api/lists/${open.id}/refresh`) }] : []),
-                  { label: 'On Home', icon: PATHS.home, on: !!open.filters?.row, run: () => void act(`/api/lists/${open.id}/edit`, { row: !open.filters?.row }).then(() => listsChanged()) },
-                  { label: 'Shared', icon: ICON.share, on: open.shared, run: () => void act(`/api/lists/${open.id}/edit`, { shared: !open.shared }) },
-                  { label: 'Delete', icon: PATHS.trash, rm: true, run: () => void postJ(`/api/lists/${open.id}/delete`).then((e) => (e ? alert(say(e)) : router.push('/lists'))) },
-                ]} /></div>
-              <div className="l-cm"><Badge l={open} /><span>{titles(open.count)}</span>{open.kind === 'smart' && <span>· {ago(open.refreshedAt)}</span>}{!open.mine && open.owner && <span>· by {open.owner}</span>}</div>
-              {open.description && <p className="l-desc">{open.description}</p>}
-              {open.media === 'tv' && open.filters?.tvdbGenre && <p className="l-desc">{`${label(TVDB_CATS, open.filters.tvdbGenre)} shows from `}<a href="https://thetvdb.com" target="_blank" rel="noopener noreferrer">TheTVDB.com</a></p>}
-              {open.kind === 'smart' && open.filters && <Chips media={open.media!} f={open.filters} />}
-            </div>
-            {/* someone else's shared list: follow it onto your Lists page, or copy it to make it yours */}
-            {!open.mine ? <div className="pk-set l-hacts">
-              <PkBtn label={open.following ? 'Following' : 'Follow'} data={{}} face={open.following ? PATHS.tick : PATHS.plus} on={!!open.following} pressed={!!open.following}
-                onClick={() => void act(`/api/lists/${open.id}/follow`, { on: !open.following }).then(() => listsChanged())} />
-              <PkBtn label="Copy" data={{}} face={PATHS.copy} on={false} onClick={() => { const got: { id?: string } = {};
-                void postJ(`/api/lists/${open.id}/copy`, {}, got).then((e) => (e ? alert(say(e)) : router.push(`/lists/${got.id}`))); }} />
-            </div> : <div className="pk-set l-hacts">
-              <PkBtn label="Edit" data={{}} face={PATHS.pen} on={false} onClick={() => void edit(open)} />
-              {open.kind === 'smart' && <PkBtn label="Refresh" data={{}} face={ICON.refresh} on={false} onClick={() => void act(`/api/lists/${open.id}/refresh`)} />}
-              <PkBtn label="On Home" data={{}} face={PATHS.home} on={!!open.filters?.row} pressed={!!open.filters?.row}
-                onClick={() => void act(`/api/lists/${open.id}/edit`, { row: !open.filters?.row }).then(() => listsChanged())} />
-              <PkBtn label={armed ? 'Delete?' : 'Delete'} data={{}} face={PATHS.trash} on={armed} none onClick={() => {
-                if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 3000); return; }
-                void postJ(`/api/lists/${open.id}/delete`).then((e) => (e ? alert(say(e)) : router.push('/lists')));
-              }} />
-              <PkBtn label="Shared" data={{}} face={ICON.share} on={open.shared} pressed={open.shared} onClick={() => void act(`/api/lists/${open.id}/edit`, { shared: !open.shared })} />
-            </div>}
-          </section>
-        )}
-        <ShelfGrid title={builtin ? open.name : undefined} items={open.items} first={FIRST[open.id] || (open.kind === 'smart' ? 'Popular' : 'Added')}
+        <ShelfGrid title={builtin ? open.name : undefined} head={head} items={open.items} first={FIRST[open.id] || (open.kind === 'smart' ? 'Popular' : 'Added')}
           empty={open.kind === 'smart' ? 'Nothing matches these filters: try a wider year, score or genre.' : 'Add titles from any poster’s circle, here or on any page.'} />
       </div>
       <Sheet id="lname" title="EDIT LIST" open={!!naming} from={naming?.from ?? null} onClose={() => setNaming(null)}>
@@ -237,35 +236,34 @@ function ListMenu({ items }: { items: MenuItem[] }) {
     </div>
   );
 }
-// built-in list card
-function MineCard({ href, name, b, ring, face, sub }: { href: string; name: string; b: { posters: string[]; backdrop: string | null }; ring: string; face: ReactNode; sub: ReactNode }) {
+// built-in list
+function MineCard({ href, name, ring, big, sub, posters }: { href: string; name: string; ring: string; big: ReactNode; sub: string[]; posters: string[] }) {
   return (
     <Link href={href} className="l-mine" onPointerDown={() => { if (href.startsWith('/lists/')) warmList(href.slice('/lists/'.length)); }}>
-      {(b.backdrop || b.posters[0]) && <img className="l-bd" src={b.backdrop || b.posters[0]} alt="" loading="lazy" />}
-      <span className="l-ring" style={{ '--g': ring } as React.CSSProperties}>{face}</span>
-      <span className="l-tx"><b className="l-mn">{name}</b><span className="l-msub">{sub}</span></span>
-      <span className="l-mp">{b.posters.slice(0, 3).map((p, i) => <img key={i} src={p} alt="" loading="lazy" />)}</span>
+      <span className="l-ring" style={{ '--g': ring } as React.CSSProperties}><b>{big}</b></span>
+      <span className="l-tx"><b className="l-mn">{name}</b><span className="l-msub">{sub.map((x) => <span key={x}>{x}</span>)}</span></span>
+      <span className="l-mp" aria-hidden="true">{posters.slice(0, 8).map((p, i) => <img key={i} src={p} alt="" loading="lazy" style={{ zIndex: 10 - i }} />)}</span>
     </Link>
   );
 }
-const WHEN = (t: number) => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? `${Math.max(1, m)} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; };
-// list card
+const count = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+const AGO = (t: number) => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? `${Math.max(1, m)}m` : m < 48 * 60 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}d`; };
+// list card: a shelf
 function ListCard({ l }: { l: Card }) {
-  const sub = [titles(l.count), l.owner ? `by ${l.owner}` : `${l.kind === 'smart' ? 'refreshed' : 'changed'} ${WHEN(l.changedAt)}`].join(' · ');
+  const sub = [titles(l.count), l.owner ? `by ${l.owner}` : null].filter(Boolean).join(' · '), when = `${l.kind === 'smart' ? 'Refreshed' : 'Changed'} ${AGO(l.changedAt)} ago`;
   return (
-    <Link href={`/lists/${l.id}`} className="l-card" onPointerDown={() => warmList(l.id)}>
-      <span className="l-cover">
-        {(l.backdrop || l.posters[0]) && <img className="l-bd" src={l.backdrop || l.posters[0]} alt="" loading="lazy" />}
-        <span className="l-mini">{l.posters.slice(0, 3).map((p, i) => <img key={i} src={p} alt="" loading="lazy" />)}</span>
-        <span className="l-cn"><b>{l.name}</b><span>{sub}</span></span>
-      </span>
-      <span className="l-facts">
-        <span className="l-fact" style={l.media ? ({ '--k': `var(--st-${TINT[l.media]})` } as React.CSSProperties) : undefined}>
-          <span className="c"><Icon d={l.kind === 'smart' ? ICON.smart : PATHS.lists} size={13} width={2} /></span><span>{l.kind === 'smart' ? 'Smart' : 'Manual'}{l.media && <i>{` · ${KIND[l.media][0]}`}</i>}</span>
+    <Link href={`/lists/${l.id}`} className="l-card glass" onPointerDown={() => warmList(l.id)}>
+      <span className="l-ci">
+        <b className="l-cname">{l.kind === 'smart' && <Icon d={ICON.smart} size={15} width={2} />}<span>{l.name}</span></b>
+        <span className="l-csub">{sub}</span>
+        <span className="l-facts">
+          {!l.owner && <span className="l-fact" title={when} aria-label={when}><Icon d="M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" size={12} width={2.2} />{AGO(l.changedAt)}</span>}
+          {l.media && <span className="l-fact">{KIND[l.media][0]}</span>}
+          {l.onHome && <span className="l-fact on">On Home</span>}
+          {!l.owner && l.shared && <span className="l-fact">Shared</span>}
         </span>
-        {l.onHome && <span className="l-fact on"><span className="c"><Icon d={PATHS.home} size={13} width={2} /></span>On Home</span>}
-        {!l.owner && l.shared && <span className="l-fact"><span className="c"><Icon d={ICON.share} size={13} width={2} /></span>Shared</span>}
       </span>
+      <span className="l-strip" aria-hidden="true">{l.posters.map((p, i) => <img key={i} src={p} alt="" loading="lazy" style={{ zIndex: 20 - i }} />)}</span>
     </Link>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 // The frame around every screen: the side rail (tablet and desktop), the top bar (date, search, clock, weather), the phone's
-// bottom bar, and the About link at the foot.
+// bottom bar.
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef } from 'react';
@@ -153,9 +153,4 @@ export function PhoneTabs() {
       ))}
     </nav>
   );
-}
-
-// the foot of every page: a small link to About (public/about.html), which carries the data sources' credits
-export function Footer() {
-  return <p className="foot-about"><a href="/about.html">About</a></p>;
 }

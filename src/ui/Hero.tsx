@@ -11,7 +11,7 @@ import { cards, type Tile, type TilePatch, type TitleType } from './lib/media';
 import { titleUrl, type Title } from './lib/title';
 import { PosterArt, useOpens } from './Cards';
 import { usePhone } from './lib/home';
-import { Cert, Scores, StatusDial, YtLogo, metaOf } from './Title';
+import { Cert, Scores, StatusDial, YtLogo, genresOf, metaOf } from './Title';
 
 type Item = Tile & { backdrop: string | null; overview: string | null; genres: string[]; rating: number | null };
 const NAME: Record<TitleType, string> = { movie: 'Movies', tv: 'Shows', anime: 'Anime' };
@@ -87,7 +87,8 @@ export function Hero({ kind }: { kind: TitleType }) {
         {phone && t.poster && <div className="hero-post"><PosterArt key={t.key} t={t}><img src={t.poster} alt="" className="opens" {...opens} /></PosterArt></div>}
         <span className="hero-kick">Trending {NAME[kind]} · #{at + 1}</span>
         <h2 className="hero-title opens" {...opens}>{t.title}{t.label ? ` · ${t.label}` : ''}</h2>
-        <div className="tc-meta hero-meta">{d ? metaOf(d) : [t.year, ...t.genres].filter(Boolean).join(' · ')}{d && <Cert d={d} />}</div>
+        <div className="tc-meta hero-meta">{d ? metaOf(d) : t.year}{d && <Cert d={d} />}</div>
+        {(d ? genresOf(d) : t.genres.length) ? <div className="tc-meta hero-meta hero-genres">{d ? genresOf(d) : t.genres.slice(0, 3).join(' · ')}</div> : null}
         {d && (
           <Scores d={d}>
             {d.trailer && <button type="button" className="tc-ytico" aria-label="Play the trailer" onClick={() => setTrailer((d.trailer!.match(/[?&]v=([\w-]{6,})/) || [])[1] || null)}>

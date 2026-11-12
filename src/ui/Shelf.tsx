@@ -4,7 +4,6 @@
 // a genre (a dropdown) when the row knows its titles' genres. /row/<id> is a row of Movies, TV, Anime, a streaming service or For you
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PkBtn, TrendCard } from './Cards';
-import { Drop } from './Drop';
 import { getJ, postJ } from './lib/api';
 import { HomeCtx, usePhone, type HomeState } from './lib/home';
 import { PATHS } from './lib/icons';
@@ -29,11 +28,11 @@ export function ShelfWrap({ reload, children }: { reload: () => void; children: 
 // title: the page's name, on the line of the controls (a list of yours has its own header instead); the count a circle among
 // them (a line under the name on a phone). first: the name of the row's own order (Popular, Added, Recent…); a link from Home's Plan to watch rows picks the
 // kind (?kind=)
+const TAG = 'M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9zM7.5 7.5h.01';
 const ORDERS = (first: string) => [['list', first, ICON.trend], ['rating', 'Rating', ICON.star], ['newest', 'Newest', ICON.cal], ['az', 'A–Z', ICON.abc]] as const;
-export function ShelfGrid({ title, items, first, genres = [], empty, dismiss }: { title?: string; items: Item[]; first: string; genres?: string[]; empty: ReactNode; dismiss?: (key: string) => void }) {
+export function ShelfGrid({ title, head, items, first, genres = [], empty, dismiss }: { title?: string; head?: ReactNode; items: Item[]; first: string; genres?: string[]; empty: ReactNode; dismiss?: (key: string) => void }) {
   const [sort, setSort] = useState<Sort>('list'), [genre, setGenre] = useState<string | null>(null);
-  // phone: Filters
-  const phone = usePhone(), [filters, setFilters] = useState(false);
+  const phone = usePhone(), [filters, setFilters] = useState(false), [showG, setShowG] = useState(false);
   const [kind, setKind] = useState<Kind>(() => { const k = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('kind'); return k === 'movie' || k === 'tv' ? k : 'all'; });
   const mixed = items.some((t) => kindOf(t) === 'movie') && items.some((t) => kindOf(t) === 'tv');
   const shown = useMemo(() => {
@@ -43,39 +42,30 @@ export function ShelfGrid({ title, items, first, genres = [], empty, dismiss }: 
     if (sort === 'az') l.sort((a, b) => a.title.localeCompare(b.title));
     return l;
   }, [items, mixed, kind, genre, sort]);
+  const genreBtn = genres.length > 1 && <div className="pk-set" role="group" aria-label="Genre">
+    <PkBtn label={genre || 'Genre'} data={{}} face={TAG} on={!!genre} pressed={showG} onClick={() => setShowG(!showG)} />
+  </div>;
+  const kinds = mixed && <div className="pk-set" role="group" aria-label="Kind">
+    {([['all', 'All', PATHS.lists], ['movie', 'Movies', PATHS.movie], ['tv', 'Shows', PATHS.tv]] as const).map(([v, n, f]) =>
+      <PkBtn key={v} label={n} data={{}} face={f} on={kind === v} pressed={kind === v} onClick={() => setKind(v)} />)}
+  </div>;
+  const orders = <div className="pk-set" role="group" aria-label="Order">
+    {ORDERS(first).map(([v, n, f]) => <PkBtn key={v} label={n} data={{}} face={f} on={sort === v} pressed={sort === v} onClick={() => setSort(v)} />)}
+  </div>;
   return (
     <div className="gen-rows shelf-g">
-      <div className="group-head pick-head shelf-head">{title ? <h1 className="st-title shelf-t">{title}</h1> : <span />}
+      <div className="group-head pick-head shelf-head">{head ?? (title ? <h1 className="st-title shelf-t">{title}</h1> : <span />)}
         <div className="pick-tools">
-        {phone && <div className="pk-set fbtn"><PkBtn label="Filters" data={{}} face="M4 6h16M7 12h10M10 18h4" on={filters} pressed={filters} onClick={() => setFilters(!filters)} /></div>}
-        {/* the row's genres as one dropdown */}
-        {!phone && genres.length > 1 && <div className="shelf-dd"><Drop bare label="Genre" search opts={[['', 'All genres'], ...genres.map((g): [string, string] => [g, g])]}
-          value={genre || ''} set={(g) => setGenre(g || null)} /></div>}
-        {!phone && mixed && <>
-          <div className="pk-set shelf-kinds" role="group" aria-label="Kind">
-            {([['all', 'All', PATHS.lists], ['movie', 'Movies', PATHS.movie], ['tv', 'Shows', PATHS.tv]] as const).map(([v, n, f]) =>
-              <PkBtn key={v} label={n} data={{}} face={f} on={kind === v} pressed={kind === v} onClick={() => setKind(v)} />)}
-          </div>
-          <span className="pk-sep" /><span className="shelf-br" />
-        </>}
-        {!phone && <><div className="pk-set" role="group" aria-label="Order">
-          {ORDERS(first).map(([v, n, f]) =>
-            <PkBtn key={v} label={n} data={{}} face={f} on={sort === v} pressed={sort === v} onClick={() => setSort(v)} />)}
-        </div>
-        <span className="pk-sep" /></>}
+        {/* wide: kind and order slide out beside Filters */}
+        {!phone && <div className={`fslide${filters ? ' open' : ''}`} inert={!filters}>{genreBtn}{genreBtn && <span className="pk-sep" />}{kinds}{mixed && <span className="pk-sep" />}{orders}<span className="pk-sep" /></div>}
+        <div className="pk-set fbtn"><PkBtn label="Filters" data={{}} face="M4 6h16M7 12h10M10 18h4" on={filters} pressed={filters} onClick={() => setFilters(!filters)} /></div>
         <div className="pk shelf-n" role="status" aria-label={titles(shown.length)}><span className="pk-c"><b>{shown.length}</b></span><span className="pk-t">{shown.length === 1 ? 'Title' : 'Titles'}</span></div>
       </div></div>
-      {phone && filters && <div className="fpanel">
-        {genres.length > 1 && <div className="shelf-dd"><Drop bare label="Genre" search opts={[['', 'All genres'], ...genres.map((g): [string, string] => [g, g])]}
-          value={genre || ''} set={(g) => setGenre(g || null)} /></div>}
-        {mixed && <div className="pk-set" role="group" aria-label="Kind">
-          {([['all', 'All', PATHS.lists], ['movie', 'Movies', PATHS.movie], ['tv', 'Shows', PATHS.tv]] as const).map(([v, n, f]) =>
-            <PkBtn key={v} label={n} data={{}} face={f} on={kind === v} pressed={kind === v} onClick={() => setKind(v)} />)}
+      {filters && (phone || (showG && genres.length > 1)) && <div className="fpanel">
+        {phone && genreBtn}{phone && kinds}{phone && orders}
+        {showG && genres.length > 1 && <div className="fgenres" role="group" aria-label="Genre">
+          {[null, ...genres].map((g) => <button key={g || ''} type="button" className={genre === g ? 'on' : ''} aria-pressed={genre === g} onClick={() => setGenre(g)}>{g || 'All genres'}</button>)}
         </div>}
-        <div className="pk-set" role="group" aria-label="Order">
-          {ORDERS(first).map(([v, n, f]) =>
-            <PkBtn key={v} label={n} data={{}} face={f} on={sort === v} pressed={sort === v} onClick={() => setSort(v)} />)}
-        </div>
       </div>}
       {shown.length ? <div className="l-grid shelf-grid ptrack">{shown.map((t) => <TrendCard key={t.key} t={t} dismiss={dismiss} />)}</div> : <p className="st-note">{empty}</p>}
     </div>

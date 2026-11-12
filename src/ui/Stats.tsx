@@ -103,7 +103,7 @@ function Body({ s, hov }: { s: Stats; hov: Hov }) {
           <div className="st-ch"><h2>What you watch</h2></div>
           <div className="st-kinds">
             {KINDS.map(([k, name, icon]) => (
-              <div key={k} {...hov(`${name} · ${fmt(s.kinds[k])} plays`)}><Ring size={84} w={6} c={`var(--st-${k})`} fill={pct(s.kinds[k], total)}><Icon d={icon} size={26} width={1.9} /></Ring>
+              <div key={k} {...hov(`${name} · ${fmt(s.kinds[k])} plays`)}><Ring size={84} w={6} c={`var(--st-${k})`} fill={pct(s.kinds[k], total)}><Icon d={icon} size={34} width={1.8} /></Ring>
                 <b>{pct(s.kinds[k], total)}%</b><span>{fmt(s.kinds[k])} {k === 'movie' ? 'movies' : `episodes of ${k === 'tv' ? 'shows' : 'anime'}`}</span></div>
             ))}
           </div>

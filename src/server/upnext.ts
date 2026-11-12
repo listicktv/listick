@@ -1,9 +1,10 @@
 // Up next and the Airing calendar from the History here: every show or anime with a play in the last 60 days, whichever way it
 // came in (Stremio, a mark here, an import). Up next is the episode after the furthest one watched once it has aired; one still
 // to air waits (it is in the calendar) and comes back, NEW, when it airs. The calendar is their episodes airing this month and
-// next. Episodes and air dates come from TMDB (Kitsu for anime only Kitsu has), exact air times from TVmaze where it knows the
-// show. A show watched to its last aired episode and started again follows the rewatch (the episode after the latest play,
-// marked rewatch when that episode was played before). The worker works it out (refreshLive) when the History changes, and hourly otherwise.
+// next, and the next season of any show watched before. Episodes and air dates come from TMDB (Kitsu for anime only Kitsu has),
+// exact air times from TVmaze where it knows the show. A show watched to its last aired episode and started again follows the
+// rewatch (the episode after the latest play, marked rewatch when that episode was played before). The worker works it out
+// (refreshLive) when the History changes, and hourly otherwise.
 import { q } from './db';
 import { season } from './details';
 import { tvSeasons } from './mapping';
@@ -12,7 +13,7 @@ import type { Episode, TitleType } from './types';
 import { HOUR, safe } from './util';
 
 export type UpNext = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; se: number; ep: number; at: number; airedAt: number | null;
-  rewatch?: boolean };
+  rewatch?: boolean; returning?: boolean };
 export type AirEp = { key: string; title: string; poster: string | null; season: number | null; ep: number; at: number; dayOnly: boolean; watched: boolean; anime: boolean };
 type Follow = { upNext: UpNext[]; schedule: AirEp[] };
 type Followed = { key: string; type: TitleType; title: string; poster: string | null; backdrop: string | null; anime: number | null; season: number; episode: number; last: number;
@@ -54,6 +55,19 @@ async function airTimes(key: string) {
   return value;
 }
 
+// a TMDB show's next and last air days, kept 6 h
+type Air = { next: { se: number; air: string } | null; last: string | null };
+const airs = new Map<string, { at: number; v: Air }>();
+async function showAir(key: string) {
+  const c = airs.get(key);
+  if (c && Date.now() - c.at < 6 * HOUR) return c.v;
+  type D = { next_episode_to_air?: { season_number: number; air_date?: string | null } | null; last_episode_to_air?: { air_date?: string | null } | null };
+  const d = await tmdb<D>(`/tv/${key.split(':')[2]}`), n = d.next_episode_to_air;
+  const v = { next: n?.air_date ? { se: n.season_number, air: n.air_date } : null, last: d.last_episode_to_air?.air_date || null };
+  airs.set(key, { at: Date.now(), v });
+  return v;
+}
+
 // the episode after (se, ep): on in this season, else the first of the next season TMDB lists
 async function nextOf(key: string, se: number, ep: number) {
   const here = await season(key, se, null);
@@ -77,6 +91,14 @@ async function build(uid: string): Promise<Follow> {
     where h.user_id = ? and h.season > 0 order by h.key, h.season desc, h.episode desc`, uid, since, uid, uid)).sort((a, b) => b.last - a.last).slice(0, 30);
   const from = day(new Date(new Date().getFullYear(), new Date().getMonth(), 1 - 7).getTime()), to = day(new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0).getTime());
   const upNext: UpNext[] = [], schedule: AirEp[] = [];
+  const onCalendar = async (f: Pick<Followed, 'key' | 'type' | 'title' | 'poster' | 'anime'>, se: number, stamps: Map<string, number>, seen: Set<string>) => {
+    for (const e of await season(f.key, se, null)) {
+      if (!e.air || e.air < from || e.air > to) continue;
+      const stamp = stamps.get(`${se}:${e.ep}`);
+      schedule.push({ key: f.key, title: f.title, poster: f.poster, season: f.type === 'anime' ? null : se, ep: e.ep, at: stamp ?? Date.parse(`${e.air}T12:00:00`),
+        dayOnly: !stamp, watched: seen.has(`${se}:${e.ep}`), anime: !!f.anime || f.type === 'anime' });
+    }
+  };
   for (const f of followed) {
     await safe(async () => {
       const stamps = f.key.startsWith('tmdb:tv:') ? await airTimes(f.key) : new Map<string, number>();
@@ -93,17 +115,31 @@ async function build(uid: string): Promise<Follow> {
           upNext.push({ key: f.key, type: f.type, title: f.title, poster: f.poster, backdrop: f.backdrop, se: r.se, ep: r.e.ep, at: f.last, airedAt: at(r.se, r.e), rewatch: again });
       }
       // calendar
-      const seasons = [f.season, ...(n && n.se !== f.season ? [n.se] : [])];
-      for (const se of seasons)
-        for (const e of await season(f.key, se, null)) {
-          if (!e.air || e.air < from || e.air > to) continue;
-          const stamp = stamps.get(`${se}:${e.ep}`);
-          schedule.push({ key: f.key, title: f.title, poster: f.poster, season: f.type === 'anime' ? null : se, ep: e.ep, at: stamp ?? Date.parse(`${e.air}T12:00:00`),
-            dayOnly: !stamp, watched: seen.has(`${se}:${e.ep}`), anime: !!f.anime || f.type === 'anime' });
-        }
+      for (const se of [f.season, ...(n && n.se !== f.season ? [n.se] : [])]) await onCalendar(f, se, stamps, seen);
     });
   }
-  return { upNext: upNext.slice(0, 15), schedule: schedule.sort((a, b) => a.at - b.at) };
+  // shows watched before: calendar and Up next
+  const near = new Set(followed.map((f) => f.key));
+  const before = (await q.all<Omit<Followed, 'ls' | 'le'>>(`select distinct on (h.key) h.key, h.season, h.episode, m.last, t.type, t.title, t.poster, t.backdrop, t.anime
+    from history h join (select key, max(watched_at) last from history where user_id = ? and season > 0 group by key) m on m.key = h.key join titles t on t.key = h.key
+    where h.user_id = ? and h.season > 0 and h.key like 'tmdb:tv:%' order by h.key, h.season desc, h.episode desc`, uid, uid)).filter((x) => !near.has(x.key));
+  for (let i = 0; i < before.length; i += 8) {
+    await Promise.all(before.slice(i, i + 8).map((f) => safe(async () => {
+      const a = await showAir(f.key), fresh = !!a.last && a.last >= day(since) && a.last > day(f.last);
+      if (!fresh && !(a.next && a.next.air <= to)) return;
+      const stamps = await airTimes(f.key);
+      const at = (se: number, e: Episode) => stamps.get(`${se}:${e.ep}`) ?? (e.air ? Date.parse(`${e.air}T12:00:00`) : null);
+      if (fresh) {
+        const n = await nextOf(f.key, f.season, f.episode), t = n && at(n.se, n.e);
+        if (n && t && t <= now && t > f.last) upNext.push({ key: f.key, type: f.type, title: f.title, poster: f.poster, backdrop: f.backdrop, se: n.se, ep: n.e.ep, at: t, airedAt: t, returning: true });
+      }
+      if (a.next && a.next.air <= to) {
+        const seen = new Set((await q.all<{ season: number; episode: number }>('select distinct season, episode from history where user_id = ? and key = ?', uid, f.key)).map((r) => `${r.season}:${r.episode}`));
+        await onCalendar(f, a.next.se, stamps, seen);
+      }
+    })));
+  }
+  return { upNext: upNext.sort((a, b) => b.at - a.at).slice(0, 15), schedule: schedule.sort((a, b) => a.at - b.at) };
 }
 
 // worked out again when the History changed (a play added or removed) or the day turned, else at most hourly. The first time it

@@ -217,9 +217,10 @@ async function returningShows() {
   for (const t of cands) {
     const d = await tmdb<TmdbDetails>(`/tv/${t.key.split(':')[2]}`).catch(() => null);
     const last = d?.last_episode_to_air, next = d?.next_episode_to_air;
-    const premiere = (e: typeof last, from: number, to: number) => !!e && e.season_number > 1 && e.episode_number === 1 && !!e.air_date && e.air_date >= day(from) && e.air_date <= day(to);
-    // the premiere itself: just aired (the latest episode is a new season's first) or coming (the next one is)
-    if (premiere(next, 0, 30) || premiere(last, -since, 0)) out.push(t);
+    const started = last && last.season_number > 1 ? d?.seasons?.find((x) => x.season_number === last.season_number)?.air_date : null;
+    // season started lately, or a new season starts soon
+    if ((started && started >= day(-since) && started <= day(0))
+      || (next && next.season_number > 1 && next.episode_number === 1 && !!next.air_date && next.air_date <= day(30))) out.push(t);
   }
   return out;
 }

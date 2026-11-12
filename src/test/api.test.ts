@@ -5,6 +5,7 @@ import { after, before, describe, test } from 'node:test';
 import { pool } from '@/db';
 import { q } from '@/server/db';
 import { hookOf } from '@/server/jellyfin';
+import { addPlay } from '@/server/plays';
 import { flushCalls } from '@/server/sources';
 import { addTitles, addUser, api, calls, fixtures, ORIGIN, resetDb, signIn, title } from './helpers';
 
@@ -210,5 +211,19 @@ describe('Jellyfin', () => {
     assert.equal((await send(s1e5)).json.error, 'episode not found', 'TMDB failing');
     fixtures({ '/3/find/349236?external_source=tvdb_id': { tv_episode_results: [{ show_id: 1396, season_number: 1, episode_number: 5 }] }, '/3/tv/1396': TMDB_BB });
     assert.equal((await send(s1e5)).json.recorded, 1, 'and is not remembered as no match');
+  });
+});
+
+describe('History', () => {
+  test('the last 30 days by default, the last 12 months, or every play', async () => {
+    const uid = await addUser('hank');
+    await addTitles(title('tmdb:movie:901', { title: 'Recent' }), title('tmdb:movie:902', { title: 'This year' }), title('tmdb:movie:903', { title: 'Long ago' }));
+    for (const [key, days] of [['tmdb:movie:901', 10], ['tmdb:movie:902', 100], ['tmdb:movie:903', 500]] as const) await addPlay(uid, key, -1, -1, Date.now() - days * 86400000, 'manual');
+    const me = await signIn('hank', 'password-123', '198.51.100.77');
+    const titlesOf = async (qs: string) => (await me.get(`/api/history${qs}`)).json.plays.map((p: { title: string }) => p.title);
+    assert.deepEqual(await titlesOf(''), ['Recent']);
+    assert.deepEqual(await titlesOf('?period=year'), ['Recent', 'This year']);
+    assert.deepEqual(await titlesOf('?period=all'), ['Recent', 'This year', 'Long ago']);
+    assert.deepEqual(await titlesOf('?all=1'), ['Recent', 'This year', 'Long ago'], 'Lists\' Watched link');
   });
 });

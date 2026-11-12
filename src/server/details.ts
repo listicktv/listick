@@ -64,12 +64,14 @@ export async function details(key: string, uid: Uid = null) {
     if (isAnime(value)) split = await tvdbSplit(id).catch(() => null);
     else { const known = tvdbSplitKnown(id); if (known === undefined) void tvdbSplit(id, true).catch(() => null); else split = known; }
   }
+  const ag = isAnime(value) ? (await q.one<{ anime_genres: string[] | null }>('select anime_genres from titles where key = ?', key))?.anime_genres : null;
   const you = await activity(key, uid);
   if (split && uid) {
     const seen = new Set((await q.all<{ season: number; episode: number }>('select distinct season, episode from history where user_id = ? and key = ? and season > 0', uid, key)).map((r) => `${r.season}:${r.episode}`));
     Object.assign(you, { bySeasonTvdb: Object.fromEntries(split.map((s) => [s.n, s.eps.filter((e) => seen.has(`${e.se}:${e.tep}`)).length])) });
   }
-  return { ...value, seasonsTvdb: split ? split.map((s) => ({ n: s.n, name: `Season ${s.n}`, episodes: s.eps.length, year: s.year })) : null,
+  const nx = value.next, at = split && nx?.season != null ? split.map((t) => ({ n: t.n, e: t.eps.find((x) => x.se === nx.season && x.tep === nx.ep) })).find((t) => t.e) : null;
+  return { ...value, genres: ag?.length ? ag : value.genres, nextTvdb: at ? { season: at.n, ep: at.e!.ep } : null, seasonsTvdb: split ? split.map((s) => ({ n: s.n, name: `Season ${s.n}`, episodes: s.eps.length, year: s.year })) : null,
     watchlist: wl.has(key), you, upNext: await nextUp({ key, type: value.type, anime: value.anime }, uid),
     watching: uid ? (await watchingOf(uid)).find((w) => w.key === key) ?? null : null,
     collectionItems: await cardsOf(uid, value.collectionKeys || [], wl), similar: await cardsOf(uid, similarKeys, wl) };
