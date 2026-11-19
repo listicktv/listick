@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.19.0](https://github.com/listicktv/listick/compare/v0.18.0...v0.19.0) (2026-11-19)
+
+
+### Features
+
+* awards filter: Oscars, Emmys, Golden Globes, BAFTA, Cannes ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+* Include/Exclude filters on every smart list kind ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+* Latest shows, new and returning ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+* New to rent or buy and New on streaming rows; Box office removed; each title once per page ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+* sharper posters, backgrounds and episode images ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+* smart lists refresh every 6 or 12 hours; full preview with release days ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+* Stand-up comedy, Concerts and Shorts genres ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+* titles open the full page; poster and See more on the title page; named collection row ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+* Watch as filter and service Include/Exclude ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+
+
+### Bug Fixes
+
+* **deps:** update next to 16.4.5 ([e10a8a0](https://github.com/listicktv/listick/commit/e10a8a07331e2e9bd2fe5f0958e7e0bdbee253c5))
+* Latest releases date a film by its first day at home ([e5efbad](https://github.com/listicktv/listick/commit/e5efbad897b332a591081c96be1c44f278819d2d))
+
 ## [0.18.0](https://github.com/listicktv/listick/compare/v0.17.0...v0.18.0) (2026-11-12)
 
 
