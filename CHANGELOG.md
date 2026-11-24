@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.20.0](https://github.com/listicktv/listick/compare/v0.19.0...v0.20.0) (2026-11-24)
+
+
+### Features
+
+* Available filter: Anywhere, Released there, Streaming, Streaming or digital ([9c91686](https://github.com/listicktv/listick/commit/9c916866a01a87d70e6dedb14ca0d1d119bc3d07))
+* presets for Bollywood, South Indian, Indian shows, Hollywood, British, Korean, Japanese, Chinese, French, Spanish-language, Turkish and Pakistani titles ([9c91686](https://github.com/listicktv/listick/commit/9c916866a01a87d70e6dedb14ca0d1d119bc3d07))
+* presets for Marvel, DC, Star Wars, Pixar, Disney, DreamWorks, Studio Ghibli, A24 and Blumhouse ([9c91686](https://github.com/listicktv/listick/commit/9c916866a01a87d70e6dedb14ca0d1d119bc3d07))
+* regional and studio list presets; Available filter ([9c91686](https://github.com/listicktv/listick/commit/9c916866a01a87d70e6dedb14ca0d1d119bc3d07))
+
+
+### Bug Fixes
+
+* each play is its own History card ([3f3ba31](https://github.com/listicktv/listick/commit/3f3ba31b37fafca6b87087218058b6ff03eb516c))
+* History page shows every episode play as its own card, each rateable ([3f3ba31](https://github.com/listicktv/listick/commit/3f3ba31b37fafca6b87087218058b6ff03eb516c))
+* Home History row shows the last 15 plays, one card each ([3f3ba31](https://github.com/listicktv/listick/commit/3f3ba31b37fafca6b87087218058b6ff03eb516c))
+* Latest releases keep their order between refreshes ([930b17b](https://github.com/listicktv/listick/commit/930b17bf19767fe3e9c7ba51f3a1e8de19581dc6))
+* same-day titles keep a fixed order ([930b17b](https://github.com/listicktv/listick/commit/930b17bf19767fe3e9c7ba51f3a1e8de19581dc6))
+* titles found later go on top of Latest releases ([930b17b](https://github.com/listicktv/listick/commit/930b17bf19767fe3e9c7ba51f3a1e8de19581dc6))
+
 ## [0.19.0](https://github.com/listicktv/listick/compare/v0.18.0...v0.19.0) (2026-11-19)
 
 
