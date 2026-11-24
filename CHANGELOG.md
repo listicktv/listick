@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.21.0](https://github.com/listicktv/listick/compare/v0.20.0...v0.21.0) (2026-11-24)
+
+
+### Features
+
+* Available as Streaming or Rent or buy; TV networks searched from all of TMDB's ([5870878](https://github.com/listicktv/listick/commit/58708780bc5ea81e33348ca19ea299812e4e5860))
+* builder tabs General, Genres, Release, Scores, Where to watch, Language, People & studios and List ([5870878](https://github.com/listicktv/listick/commit/58708780bc5ea81e33348ca19ea299812e4e5860))
+* cast as portraits, photos first ([3fd8413](https://github.com/listicktv/listick/commit/3fd8413754ae17a3a3b9430307394cf3e0c3f075))
+* facts as a two-column list with a You card beside them ([3fd8413](https://github.com/listicktv/listick/commit/3fd8413754ae17a3a3b9430307394cf3e0c3f075))
+* mood circles, anime demographics, match all keywords and show age ratings ([5870878](https://github.com/listicktv/listick/commit/58708780bc5ea81e33348ca19ea299812e4e5860))
+* phones list every service with its name and way ([4f55873](https://github.com/listicktv/listick/commit/4f5587316f9d52cfa64aa8ede120e80c9ebde703))
+* Plex and Emby connections ([b4ae082](https://github.com/listicktv/listick/commit/b4ae082ad3c4d77b0696d2a3acc1b1bafa0840fa))
+* ranges for every score source, average of all scores, IMDb and MyAnimeList votes ([5870878](https://github.com/listicktv/listick/commit/58708780bc5ea81e33348ca19ea299812e4e5860))
+* Razzie and Best Picture awards ([5870878](https://github.com/listicktv/listick/commit/58708780bc5ea81e33348ca19ea299812e4e5860))
+* release date with anime seasons; collection, franchise, movie status, trailer, budget and box office filters ([5870878](https://github.com/listicktv/listick/commit/58708780bc5ea81e33348ca19ea299812e4e5860))
+* service name and way on hover ([4f55873](https://github.com/listicktv/listick/commit/4f5587316f9d52cfa64aa8ede120e80c9ebde703))
+* smart list builder regrouped; more filters ([5870878](https://github.com/listicktv/listick/commit/58708780bc5ea81e33348ca19ea299812e4e5860))
+* trailer in a floating window on desktop ([3fd8413](https://github.com/listicktv/listick/commit/3fd8413754ae17a3a3b9430307394cf3e0c3f075))
+* Where to watch and You in one panel beside the facts ([4f55873](https://github.com/listicktv/listick/commit/4f5587316f9d52cfa64aa8ede120e80c9ebde703))
+* Where to watch and You share a panel beside the facts; the hero corner keeps Next up only ([4f55873](https://github.com/listicktv/listick/commit/4f5587316f9d52cfa64aa8ede120e80c9ebde703))
+* Where to watch in your watch country, your services first ([3fd8413](https://github.com/listicktv/listick/commit/3fd8413754ae17a3a3b9430307394cf3e0c3f075))
+* Where to watch on title pages; facts, You and cast redone ([3fd8413](https://github.com/listicktv/listick/commit/3fd8413754ae17a3a3b9430307394cf3e0c3f075))
+* You ring with the watched tick; started and last watched on their own lines ([4f55873](https://github.com/listicktv/listick/commit/4f5587316f9d52cfa64aa8ede120e80c9ebde703))
+
+
+### Bug Fixes
+
+* a movie watched once shows one date ([cd60dd2](https://github.com/listicktv/listick/commit/cd60dd264ccc3b3507c780cf1cface558e05041f))
+* desktop list builder keeps its height; preview shows four rows ([3fd8413](https://github.com/listicktv/listick/commit/3fd8413754ae17a3a3b9430307394cf3e0c3f075))
+* episodes not out yet can be marked watched ([531b530](https://github.com/listicktv/listick/commit/531b5304a77a3fdeb89825181d15a990a36bd419))
+* Home, the logo and every page tab empty the search box and its results ([1cba902](https://github.com/listicktv/listick/commit/1cba9028b817fedbb54f15ab269ba4dab200f691))
+* page links clear the search ([1cba902](https://github.com/listicktv/listick/commit/1cba9028b817fedbb54f15ab269ba4dab200f691))
+* unmarking a season removes only its watched episodes ([531b530](https://github.com/listicktv/listick/commit/531b5304a77a3fdeb89825181d15a990a36bd419))
+
 ## [0.20.0](https://github.com/listicktv/listick/compare/v0.19.0...v0.20.0) (2026-11-24)
 
 
