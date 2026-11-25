@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.1](https://github.com/listicktv/listick/compare/v0.21.0...v0.21.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* title saves lock rows in key order ([d9459c3](https://github.com/listicktv/listick/commit/d9459c38bc0b833c35314de8fb64151098a05514))
+
 ## [0.21.0](https://github.com/listicktv/listick/compare/v0.20.0...v0.21.0) (2026-11-24)
 
 
