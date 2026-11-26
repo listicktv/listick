@@ -1,12 +1,12 @@
 # Listick API (v1)
 
-An API for addons and other apps: a user's lists and their titles, the calendar feed, and plays sent by Jellyfin, Plex, Emby and Seanime. Every route is under `/api/v1/` on a Listick instance (for example `https://listick.example.com/api/v1/me`, or `http://localhost:3000/api/v1/me`).
+An API for addons and other apps: a user's lists and their titles, the calendar feed, plays sent by Jellyfin, Plex, Emby and Seanime, and an MCP server for AI assistants. Every route is under `/api/v1/` on a Listick instance (for example `https://listick.example.com/api/v1/me`, or `http://localhost:3000/api/v1/me`).
 
 ## Keys and scopes
 
 Users create keys in **Settings › API access**, one per app. Creating a new key replaces the old one, which stops working.
 Each key can use only the scopes its app needs: `lists` (the user's lists and their titles), `calendar` (the calendar
-feed) or `plays` (plays sent by Jellyfin, Plex, Emby or Seanime). To add an app, add an entry to `APPS` in `src/server/api.ts`. Send the key as a header:
+feed), `plays` (plays sent by Jellyfin, Plex, Emby or Seanime) or `mcp` (the MCP server). To add an app, add an entry to `APPS` in `src/server/api.ts`. Send the key as a header:
 
 ```
 Authorization: Bearer <key>
@@ -103,3 +103,22 @@ Titles without an AniList mapping are left out.
 An episode by AniList id: `{ "anilistId": 154587, "episode": 29, "state": "watched" }`. `state`: `playing` (watching now,
 optional `progress` 0-100), `stopped` or `watched` (a play). A `progress` of 5 to 90 %, sent while playing or last before
 `stopped`, goes to Continue watching. Answers `{ "ok": true, "recorded": 1 }`; unknown id: `404`.
+
+### `/api/v1/mcp` (`mcp`)
+
+An [MCP](https://modelcontextprotocol.io) server (Streamable HTTP, stateless) for AI assistants such as Claude, ChatGPT,
+Copilot or Hermes, opened by an **AI assistant (MCP)** key sent as `Authorization: Bearer <key>`. Point the assistant at
+`https://listick.example.com/api/v1/mcp`. Tools read and change the key's user only, through the same checks as the page:
+
+| Tool | Does |
+|---|---|
+| `search` | find movies, shows and anime by name; each result's `key` is what the other tools take |
+| `title` | a title's details, or with `season` that season's episodes |
+| `history` | plays, newest first (`period` `month`, `year` or `all`; `cursor` for older ones) |
+| `lists`, `list` | the user's lists, and one list's titles (`plan`, `watched`, `rated` or a list's id) |
+| `up_next`, `stats` | the next episode of each show being watched and this week's airings; watching stats (`12m`, `all` or a year) |
+| `watchlist`, `list_item`, `list_create` | add to or take off Plan to watch or a manual list; make a manual list |
+| `mark`, `rate` | mark a movie or episodes watched (or take the latest play off); rate a title, season or episode, or unrate |
+
+Read tools are annotated read-only; the rest ask the assistant to act only when the user asks. Answers are the page's JSON
+without images, times as ISO 8601.

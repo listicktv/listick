@@ -27,6 +27,7 @@ import { insertPlay, mark, rate, retime } from './plays';
 import { makeUser, noUsers, placeholderEmail } from './owner';
 import { allUsers, getState, getUser, liveOf, ownerId, setProfile, setState } from './store';
 import { KEY, getTitle } from './titles';
+import { mcpHandler } from './mcp';
 import { forgetLive } from './tracking';
 import { appName, env, HOUR, msg, safe } from './util';
 import type { TitleType, User } from './types';
@@ -121,11 +122,14 @@ async function signIn(login: unknown, password: unknown) {
 // from a fresh baseline instead of reading as a burst of plays
 const forgetSource = (uid: string, sources: string[]) => q.run('delete from sync_state where user_id = ? and source = any(?)', uid, sources);
 // the apps a user can make an API key for (one key each) and the scopes of the public API (docs/api.md) each key opens: lists
-// (your lists and their titles), calendar (the feed), plays (what was played)
+// (your lists and their titles), calendar (the feed), plays (what was played), mcp (the MCP server: reading and changing all of it)
 const APPS = [{ id: 'catalogs', name: 'Stremio addon', scopes: ['lists'] }, { id: 'calendar', name: 'Calendar feed', scopes: ['calendar'] },
-  { id: 'jellyfin', name: 'Jellyfin', scopes: ['plays'] }, { id: 'plex', name: 'Plex', scopes: ['plays'] }, { id: 'emby', name: 'Emby', scopes: ['plays'] }, { id: 'seanime', name: 'Seanime', scopes: ['lists', 'plays'] }];
+  { id: 'jellyfin', name: 'Jellyfin', scopes: ['plays'] }, { id: 'plex', name: 'Plex', scopes: ['plays'] }, { id: 'emby', name: 'Emby', scopes: ['plays'] }, { id: 'seanime', name: 'Seanime', scopes: ['lists', 'plays'] },
+  { id: 'mcp', name: 'AI assistant (MCP)', scopes: ['mcp'] }];
 // a key's user and app, if the key is real
 const keyOf = (token: string) => (/^[\w-]{10,128}$/.test(token) ? q.one<{ id: string; app: string }>('select user_id id, addon app from api_keys where token = ?', token) : null);
+// made on its first request (its tools are registered per request, for the key's user)
+let mcp: ReturnType<typeof mcpHandler> | undefined;
 const mayUse = (app: string, scope: string) => !!APPS.find((a) => a.id === app)?.scopes.includes(scope);
 async function account(uid: string) {
   const u = (await getUser(uid))!;
@@ -309,6 +313,13 @@ async function route(req: Request, url: URL, p: string): Promise<Response | null
     if (!mayUse(who.app, 'plays')) return json(req, 403, { error: 'this key has no plays scope' });
     const r = await animePlay(who.id, who.app, await body(req));
     return json(req, r.code, r.body);
+  }
+  // the MCP server (docs/api.md, mcp.ts): any method, so the MCP SDK answers the ones it doesn't serve
+  if (p === '/api/v1/mcp') {
+    const token = String(req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim(), who = await keyOf(token);
+    if (!who) return json(req, await tooMany(req) ? 429 : 401, { error: 'wrong or missing key' });
+    if (!mayUse(who.app, 'mcp')) return json(req, 403, { error: 'this key has no mcp scope' });
+    return (mcp ??= mcpHandler(internal)).fetch(req, { authInfo: { token, clientId: who.app, scopes: ['mcp'], extra: { uid: who.id } } });
   }
   // the public API, v1 (docs/api.md): read-only, for addons and other apps. A key (Authorization: Bearer <key>, made in
   // Settings › API access) opens the scopes of the app it was made for. Wrong keys count toward the same limit as sign-in

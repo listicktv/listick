@@ -58,6 +58,11 @@ async function hideUpNext(uid: string, upNext: LiveValue['upNext']) {
   const hidden = await hiddenCards(uid);
   return (upNext || []).filter((u) => (hidden.get(`upnext:${u.key}|${u.se}:${u.ep}`) ?? -1) < u.at);
 }
+// Up next (less what you hid) and this week's airing episodes, without the rest of the summary (the MCP server's up_next)
+export async function upNextOf(uid: string) {
+  const l = await liveOf(uid);
+  return { upNext: await hideUpNext(uid, l.upNext), schedule: l.schedule || [] };
+}
 // the page's summary (asked every 15 s): Stremio's live parts, what a player says is playing, Up next, the calendar, Home's rows
 // and For you
 export async function pageData(uid: string, query: URLSearchParams) {
